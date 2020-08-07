@@ -39,13 +39,19 @@ import com.duckduckgo.app.fire.DataClearerForegroundAppRestartPixel
 import com.duckduckgo.app.global.ApplicationClearDataState
 import com.duckduckgo.app.global.DuckDuckGoActivity
 import com.duckduckgo.app.global.intentText
-import com.duckduckgo.app.global.view.*
+import com.duckduckgo.app.global.view.ClearPersonalDataAction
+import com.duckduckgo.app.global.view.gone
+import com.duckduckgo.app.global.view.renderIfChanged
+import com.duckduckgo.app.global.view.show
 import com.duckduckgo.app.onboarding.ui.page.DefaultBrowserPage
 import com.duckduckgo.app.playstore.PlayStoreUtils
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardActivity
 import com.duckduckgo.app.settings.SettingsActivity
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.tabs.model.TabEntity
+import com.google.android.play.core.review.ReviewInfo
+import com.google.android.play.core.review.ReviewManager
+import com.google.android.play.core.review.ReviewManagerFactory
 import kotlinx.android.synthetic.main.activity_browser.*
 import kotlinx.coroutines.*
 import org.jetbrains.anko.longToast
@@ -53,6 +59,8 @@ import timber.log.Timber
 import javax.inject.Inject
 
 class BrowserActivity : DuckDuckGoActivity(), CoroutineScope by MainScope() {
+
+    private lateinit var manager: ReviewManager
 
     @Inject
     lateinit var clearPersonalDataAction: ClearPersonalDataAction
@@ -98,6 +106,14 @@ class BrowserActivity : DuckDuckGoActivity(), CoroutineScope by MainScope() {
             renderer.renderBrowserViewState(it)
         })
         viewModel.awaitClearDataFinishedNotification()
+
+        manager = ReviewManagerFactory.create(this)
+        manager.requestReviewFlow()
+            .addOnCompleteListener {
+                if (it.isSuccessful) {
+                    reviewInfo = it.result
+                }
+            }
     }
 
     override fun onStop() {
@@ -258,7 +274,7 @@ class BrowserActivity : DuckDuckGoActivity(), CoroutineScope by MainScope() {
             is Command.DisplayMessage -> applicationContext?.longToast(command.messageId)
             is Command.LaunchPlayStore -> launchPlayStore()
             is Command.ShowAppEnjoymentPrompt -> showAppEnjoymentPrompt(AppEnjoymentDialogFragment.create(command.promptCount, viewModel))
-            is Command.ShowAppRatingPrompt -> showAppEnjoymentPrompt(RateAppDialogFragment.create(command.promptCount, viewModel))
+            is Command.ShowAppRatingPrompt -> showAppRatingPrompt(RateAppDialogFragment.create(command.promptCount, viewModel))
             is Command.ShowAppFeedbackPrompt -> showAppEnjoymentPrompt(GiveFeedbackDialogFragment.create(command.promptCount, viewModel))
             is Command.LaunchFeedbackView -> startActivity(FeedbackActivity.intent(this))
         }
@@ -274,15 +290,25 @@ class BrowserActivity : DuckDuckGoActivity(), CoroutineScope by MainScope() {
         }
     }
 
+    private var reviewInfo: ReviewInfo? = null
+
     fun launchFire() {
-        pixel.fire(Pixel.PixelName.FORGET_ALL_PRESSED_BROWSING)
-        val dialog = FireDialog(context = this, clearPersonalDataAction = clearPersonalDataAction)
-        dialog.clearStarted = {
-            removeObservers()
-            clearingInProgressView.show()
+        reviewInfo?.let {
+            Timber.i("Launching review")
+            manager.launchReviewFlow(this, it).addOnCompleteListener {
+                Timber.i("Completed review flow")
+            }
         }
-        dialog.clearComplete = { viewModel.onClearComplete() }
-        dialog.show()
+
+//        pixel.fire(Pixel.PixelName.FORGET_ALL_PRESSED_BROWSING)
+//        val dialog = FireDialog(context = this, clearPersonalDataAction = clearPersonalDataAction)
+//        dialog.clearStarted = {
+//            removeObservers()
+//            clearingInProgressView.show()
+//        }
+//        dialog.clearComplete = { viewModel.onClearComplete() }
+//        dialog.show()
+
     }
 
     fun launchNewTab() {
@@ -392,6 +418,24 @@ class BrowserActivity : DuckDuckGoActivity(), CoroutineScope by MainScope() {
         currentAppEnjoymentFragment?.dismiss()
         prompt.show(supportFragmentManager, APP_ENJOYMENT_DIALOG_TAG)
         currentAppEnjoymentFragment = prompt
+    }
+
+    private fun showAppRatingPrompt(prompt: DialogFragment) {
+        currentAppEnjoymentFragment?.dismiss()
+//        prompt.show(supportFragmentManager, APP_ENJOYMENT_DIALOG_TAG)
+//        currentAppEnjoymentFragment = prompt
+
+        val rInfo = reviewInfo
+        if (rInfo == null) {
+            Timber.i("Can't use play store version; fall back to classic")
+            prompt.show(supportFragmentManager, APP_ENJOYMENT_DIALOG_TAG)
+            currentAppEnjoymentFragment = prompt
+        } else {
+            Timber.i("Launching review")
+            manager.launchReviewFlow(this, rInfo).addOnCompleteListener {
+                Timber.i("Completed review flow")
+            }
+        }
     }
 
     private fun hideWebContent() {

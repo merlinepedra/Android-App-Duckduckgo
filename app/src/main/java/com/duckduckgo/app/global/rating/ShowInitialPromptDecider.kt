@@ -30,6 +30,8 @@ class InitialPromptDecider(
 ) : ShowPromptDecider {
 
     override suspend fun shouldShowPrompt(): Boolean {
+        return true
+
         if (!enoughDaysPassedToShowFirstPrompt()) {
             Timber.i("Not enough days passed to show first prompt")
             return false
