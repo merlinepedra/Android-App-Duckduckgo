@@ -58,6 +58,14 @@ class NetworkModule {
 
     @Provides
     @Singleton
+    @Named("webViewHttpClient")
+    fun webViewOkHttpClient(context: Context): OkHttpClient {
+        return OkHttpClient.Builder()
+            .build()
+    }
+
+    @Provides
+    @Singleton
     @Named("api")
     fun apiOkHttpClient(context: Context, apiRequestInterceptor: ApiRequestInterceptor): OkHttpClient {
         val cacheLocation = File(context.cacheDir, NetworkApiCache.FILE_NAME)

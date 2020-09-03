@@ -64,6 +64,8 @@ import com.duckduckgo.app.tabs.ui.GridViewColumnCalculator
 import com.duckduckgo.app.trackerdetection.TrackerDetector
 import dagger.Module
 import dagger.Provides
+import okhttp3.OkHttpClient
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -159,8 +161,9 @@ class BrowserModule {
         resourceSurrogates: ResourceSurrogates,
         trackerDetector: TrackerDetector,
         httpsUpgrader: HttpsUpgrader,
-        privacyProtectionCountDao: PrivacyProtectionCountDao
-    ): RequestInterceptor = WebViewRequestInterceptor(resourceSurrogates, trackerDetector, httpsUpgrader, privacyProtectionCountDao)
+        privacyProtectionCountDao: PrivacyProtectionCountDao,
+        @Named("webViewHttpClient") webViewHttpClient: OkHttpClient
+    ): RequestInterceptor = WebViewRequestInterceptor(resourceSurrogates, trackerDetector, httpsUpgrader, privacyProtectionCountDao, webViewHttpClient)
 
     @Provides
     fun cookieManager(

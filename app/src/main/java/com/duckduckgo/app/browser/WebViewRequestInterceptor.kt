@@ -16,6 +16,8 @@
 
 package com.duckduckgo.app.browser
 
+import android.net.Uri
+import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -28,7 +30,11 @@ import com.duckduckgo.app.surrogates.ResourceSurrogates
 import com.duckduckgo.app.trackerdetection.TrackerDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Headers
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import timber.log.Timber
+import java.io.IOException
 
 interface RequestInterceptor {
 
@@ -45,9 +51,12 @@ class WebViewRequestInterceptor(
     private val resourceSurrogates: ResourceSurrogates,
     private val trackerDetector: TrackerDetector,
     private val httpsUpgrader: HttpsUpgrader,
-    private val privacyProtectionCountDao: PrivacyProtectionCountDao
+    private val privacyProtectionCountDao: PrivacyProtectionCountDao,
+    private val webViewHttpClient: OkHttpClient
 
 ) : RequestInterceptor {
+
+    private val cookieManager: CookieManager = CookieManager.getInstance()
 
     /**
      * Notify the application of a resource request and allow the application to return the data.
@@ -65,9 +74,84 @@ class WebViewRequestInterceptor(
         documentUrl: String?,
         webViewClientListener: WebViewClientListener?
     ): WebResourceResponse? {
-
         val url = request.url
 
+        return withContext(Dispatchers.IO) {
+            val normalResponse = normalDetection(url, request, webView, documentUrl, webViewClientListener)
+            if (normalResponse != null) return@withContext normalResponse
+
+            val shouldUseExperimentalNetworkFetcher = true
+            if (!shouldUseExperimentalNetworkFetcher) return@withContext null
+            Timber.i("Normal response was null, meaning we should continue the load. Do the manual loading now for $url")
+
+            if (request.method != "GET") {
+                Timber.v("Can't handle request.method: ${request.method}. Delegating to WebView to load resource $url")
+                return@withContext null
+            }
+
+            val httpClientRequestBuilder = Request.Builder().url(url.toString())
+
+            addHeadersFromOriginalRequest(request, httpClientRequestBuilder)
+            addCustomHttpHeader(httpClientRequestBuilder)
+            addCookies(url.toString(), httpClientRequestBuilder)
+
+            try {
+                val response = webViewHttpClient.newCall(httpClientRequestBuilder.build()).execute()
+                if (response.isSuccessful) {
+
+                    val mimeTypeMain = response.body()?.contentType()?.type()
+                    val mimeTypeSub = response.body()?.contentType()?.subtype()
+                    val encoding = response.body()?.contentType()?.charset()?.name()
+                    val data = response.body()?.byteStream()
+
+                    val mimeType = if (mimeTypeMain != null && mimeTypeSub != null) "$mimeTypeMain/$mimeTypeSub" else null
+                    Timber.i("code: ${response.code()}, reason: ${response.message()}, mimeType: $mimeType, encoding: $encoding url: $url")
+
+                    var message = response.message()
+                    if (message.isNullOrEmpty()) message = "unknown"
+
+                    val cookieHeaders = response.headers("Set-Cookie")
+                    cookieHeaders.forEach { cookie ->
+                        Timber.i("Cookies: $cookie")
+                        cookieManager.setCookie(url.toString(), cookie)
+                    }
+
+                    return@withContext WebResourceResponse(mimeType, encoding, response.code(), message, response.headers().flattened(), data)
+                } else {
+                    return@withContext blockedResponse()
+                }
+
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to obtain resource $url")
+                return@withContext blockedResponse()
+            }
+        }
+    }
+
+    private fun addCookies(url: String, httpClientRequestBuilder: Request.Builder) {
+        val cookie = cookieManager.getCookie(url)
+        if (cookie != null) {
+            httpClientRequestBuilder.addHeader("Cookie", cookie)
+        }
+    }
+
+    private fun addHeadersFromOriginalRequest(request: WebResourceRequest, httpClientRequestBuilder: Request.Builder) {
+        request.requestHeaders.forEach {
+            httpClientRequestBuilder.addHeader(it.key, it.value)
+        }
+    }
+
+    private fun addCustomHttpHeader(httpClientRequestBuilder: Request.Builder) {
+        httpClientRequestBuilder.addHeader("X-DDG-Test", "it works!")
+    }
+
+    private suspend fun normalDetection(
+        url: Uri,
+        request: WebResourceRequest,
+        webView: WebView,
+        documentUrl: String?,
+        webViewClientListener: WebViewClientListener?
+    ): WebResourceResponse? {
         if (shouldUpgrade(request)) {
             val newUri = httpsUpgrader.upgrade(url)
 
@@ -77,7 +161,7 @@ class WebViewRequestInterceptor(
 
             webViewClientListener?.upgradedToHttps()
             privacyProtectionCountDao.incrementUpgradeCount()
-            return WebResourceResponse(null, null, null)
+            return blockedResponse()
         }
 
         if (documentUrl == null) return null
@@ -86,7 +170,7 @@ class WebViewRequestInterceptor(
             return null
         }
 
-        if (url != null && url.isHttp) {
+        if (url.isHttp) {
             webViewClientListener?.pageHasHttpResources(documentUrl)
         }
 
@@ -100,11 +184,13 @@ class WebViewRequestInterceptor(
 
             Timber.d("Blocking request $url")
             privacyProtectionCountDao.incrementBlockedTrackerCount()
-            return WebResourceResponse(null, null, null)
+            return blockedResponse()
         }
 
         return null
     }
+
+    private fun blockedResponse() = WebResourceResponse(null, null, null)
 
     private fun shouldUpgrade(request: WebResourceRequest) =
         request.isForMainFrame && request.url != null && httpsUpgrader.shouldUpgrade(request.url)
@@ -121,4 +207,14 @@ class WebViewRequestInterceptor(
         return trackingEvent.blocked
     }
 
+}
+
+private fun Headers.flattened(): MutableMap<String, String> {
+    val headers = mutableMapOf<String, String>()
+    this.names().forEach { name ->
+        this[name]?.let { value ->
+            headers.put(name, value)
+        }
+    }
+    return headers
 }
