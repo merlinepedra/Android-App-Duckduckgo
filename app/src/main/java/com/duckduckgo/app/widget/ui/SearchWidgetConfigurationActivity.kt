@@ -77,7 +77,6 @@ class SearchWidgetConfigurationActivity : DuckDuckGoActivity() {
         private const val SHARED_PREFS_FILENAME = "SearchWidgetPrefs"
         const val SHARED_PREFS_LIGHT_THEME_KEY = "SearchWidgetLightTheme"
 
-
         fun intent(context: Context): Intent {
             return Intent(context, SearchWidgetConfigurationActivity::class.java)
         }
