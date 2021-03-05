@@ -21,6 +21,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.widget.RemoteViews
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.global.DuckDuckGoApplication
@@ -30,11 +31,12 @@ import com.duckduckgo.app.statistics.pixels.Pixel.PixelName.WIDGETS_ADDED
 import com.duckduckgo.app.statistics.pixels.Pixel.PixelName.WIDGETS_DELETED
 import com.duckduckgo.app.systemsearch.SystemSearchActivity
 import com.duckduckgo.app.widget.ui.AppWidgetCapabilities
+import com.duckduckgo.app.widget.ui.SearchWidgetConfigurationActivity
+import timber.log.Timber
 import javax.inject.Inject
 
-class SearchWidgetLight : SearchWidget(R.layout.search_widget_light)
 
-open class SearchWidget(val layoutId: Int = R.layout.search_widget) : AppWidgetProvider() {
+class SearchWidget() : AppWidgetProvider() {
 
     @Inject
     lateinit var appInstallStore: AppInstallStore
@@ -70,7 +72,25 @@ open class SearchWidget(val layoutId: Int = R.layout.search_widget) : AppWidgetP
     }
 
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val views = RemoteViews(context.packageName, layoutId)
+
+        val theme = SearchWidgetConfigurationActivity.widgetThemePreference(context, appWidgetId)
+        Timber.i("Updating app widget $appWidgetId. Preference already set for widget? $theme")
+
+        val views = RemoteViews(context.packageName, R.layout.search_widget)
+
+        when (theme) {
+            "wild" -> {
+                views.setInt(R.id.widgetContainer, "setBackgroundResource", R.drawable.search_widget_background_wild)
+            }
+            "light" -> {
+                views.setInt(R.id.widgetContainer, "setBackgroundResource", R.drawable.search_widget_background_light)
+            }
+            "translucent" -> {
+                views.setInt(R.id.widgetContainer, "setBackgroundColor", Color.TRANSPARENT)
+            }
+            "dark" -> {
+            }
+        }
         views.setOnClickPendingIntent(R.id.widgetContainer, buildPendingIntent(context))
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }

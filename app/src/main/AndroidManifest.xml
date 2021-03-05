@@ -15,24 +15,26 @@
         android:name="com.duckduckgo.app.global.DuckDuckGoApplication"
         android:allowBackup="false"
         android:icon="${appIcon}"
-        android:roundIcon="${appIconRound}"
         android:label="@string/appName"
         android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="${appIconRound}"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+        <activity
+            android:name="com.duckduckgo.app.widget.ui.SearchWidgetConfigurationActivity"
+            android:label="@string/title_activity_search_widget_configuration"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
+
         <meta-data
             android:name="android.webkit.WebView.MetricsOptOut"
-            android:value="true" />
-
-        <!-- Disable WorkManager's default initialization so we can use Dagger with it -->
+            android:value="true" /> <!-- Disable WorkManager's default initialization so we can use Dagger with it -->
         <provider
             android:name="androidx.work.impl.WorkManagerInitializer"
             android:authorities="${applicationId}.workmanager-init"
             android:enabled="false"
             android:exported="false"
             tools:replace="android:authorities" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -40,93 +42,39 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths"/>
+                android:resource="@xml/provider_paths" />
         </provider>
-
         <!--
             To protect user privacy, disable SafeBrowsing which could send URLs to Google servers
             https://developer.android.com/reference/android/webkit/WebView
         -->
         <meta-data
             android:name="android.webkit.WebView.EnableSafeBrowsing"
-            android:value="false" />
-
-        <!-- Renamed to allow for the introduction of custom icons without breaking existing shortcuts -->
+            android:value="false" /> <!-- Renamed to allow for the introduction of custom icons without breaking existing shortcuts -->
         <activity
             android:name="com.duckduckgo.app.launch.LaunchBridgeActivity"
             android:icon="${appIcon}"
-            android:roundIcon="${appIconRound}"
-            android:label="@string/appName">
+            android:label="@string/appName"
+            android:roundIcon="${appIconRound}">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
         </activity>
 
         <activity-alias
-            android:name="com.duckduckgo.app.launch.Launcher"
-            android:enabled="true"
-            android:icon="${appIcon}"
-            android:roundIcon="${appIconRound}"
-            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.APP_BROWSER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name="com.duckduckgo.app.launch.LauncherBlue"
+            android:name="com.duckduckgo.app.launch.LauncherSilhoutte"
             android:enabled="false"
-            android:icon="@mipmap/ic_launcher_blue"
-            android:roundIcon="@mipmap/ic_launcher_blue_round"
+            android:icon="@mipmap/ic_launcher_silhouette"
+            android:label="@string/appName"
+            android:roundIcon="@mipmap/ic_launcher_silhouette_round"
             android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.APP_BROWSER" />
             </intent-filter>
         </activity-alias>
-
-        <activity-alias
-            android:name="com.duckduckgo.app.launch.LauncherBlack"
-            android:enabled="false"
-            android:icon="@mipmap/ic_launcher_black"
-            android:roundIcon="@mipmap/ic_launcher_black_round"
-            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.APP_BROWSER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name="com.duckduckgo.app.launch.LauncherGold"
-            android:enabled="false"
-            android:icon="@mipmap/ic_launcher_gold"
-            android:roundIcon="@mipmap/ic_launcher_gold_round"
-            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.APP_BROWSER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name="com.duckduckgo.app.launch.LauncherGreen"
-            android:enabled="false"
-            android:icon="@mipmap/ic_launcher_green"
-            android:roundIcon="@mipmap/ic_launcher_green_round"
-            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.APP_BROWSER" />
-            </intent-filter>
-        </activity-alias>
-
         <activity-alias
             android:name="com.duckduckgo.app.launch.LauncherPurple"
             android:enabled="false"
@@ -135,20 +83,72 @@
             android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.APP_BROWSER" />
             </intent-filter>
         </activity-alias>
-
         <activity-alias
-            android:name="com.duckduckgo.app.launch.LauncherSilhoutte"
+            android:name="com.duckduckgo.app.launch.LauncherGreen"
             android:enabled="false"
-            android:icon="@mipmap/ic_launcher_silhouette"
-            android:roundIcon="@mipmap/ic_launcher_silhouette_round"
-            android:label="@string/appName"
+            android:icon="@mipmap/ic_launcher_green"
+            android:roundIcon="@mipmap/ic_launcher_green_round"
             android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_BROWSER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name="com.duckduckgo.app.launch.LauncherGold"
+            android:enabled="false"
+            android:icon="@mipmap/ic_launcher_gold"
+            android:roundIcon="@mipmap/ic_launcher_gold_round"
+            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_BROWSER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name="com.duckduckgo.app.launch.LauncherBlack"
+            android:enabled="false"
+            android:icon="@mipmap/ic_launcher_black"
+            android:roundIcon="@mipmap/ic_launcher_black_round"
+            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_BROWSER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name="com.duckduckgo.app.launch.LauncherBlue"
+            android:enabled="false"
+            android:icon="@mipmap/ic_launcher_blue"
+            android:roundIcon="@mipmap/ic_launcher_blue_round"
+            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_BROWSER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name="com.duckduckgo.app.launch.Launcher"
+            android:enabled="true"
+            android:icon="${appIcon}"
+            android:roundIcon="${appIconRound}"
+            android:targetActivity="com.duckduckgo.app.launch.LaunchBridgeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.APP_BROWSER" />
             </intent-filter>
@@ -165,22 +165,21 @@
             <!-- Allow app to be default assistant -->
             <intent-filter>
                 <action android:name="android.intent.action.ASSIST" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
             <!-- Required to allow the browser to be launched externally, ensuring it is ready to allow users to search immediately -->
             <intent-filter>
                 <action android:name="com.duckduckgo.mobile.android.NEW_SEARCH" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-
         </activity>
-
         <activity
             android:name="com.duckduckgo.app.onboarding.ui.OnboardingActivity"
             android:label="@string/appName"
             android:theme="@style/AppTheme.Dark.Transparent" />
-
         <activity
             android:name=".BrowserActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
@@ -208,7 +207,6 @@
 
                 <data android:scheme="https" />
                 <data android:scheme="http" />
-
                 <data android:mimeType="text/html" />
                 <data android:mimeType="text/plain" />
                 <data android:mimeType="application/xhtml+xml" />
@@ -217,43 +215,45 @@
             <!-- Allows apps to consume links and text shared from other apps e.g chrome -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
             </intent-filter>
 
             <!-- Allow app to be opened using an NFC tag -->
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
-                <category android:name="android.intent.category.DEFAULT"/>
+
+                <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="https" />
                 <data android:scheme="http" />
             </intent-filter>
-
         </activity>
-
         <activity
             android:name="com.duckduckgo.app.SelectedTextSearchActivity"
             android:exported="true"
             android:label="@string/systemTextSearchMessage">
             <intent-filter>
                 <action android:name="android.intent.action.PROCESS_TEXT" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
             </intent-filter>
 
             <!-- Allow app to respond to "web search" requests from system -->
             <intent-filter>
                 <action android:name="android.intent.action.WEB_SEARCH" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
         <activity
             android:name="com.duckduckgo.app.tabs.ui.TabSwitcherActivity"
             android:label="@string/tabActivityTitle" />
-
         <activity
             android:name="com.duckduckgo.app.privacy.ui.PrivacyDashboardActivity"
             android:label="@string/privacyDashboardActivityTitle"
@@ -327,27 +327,17 @@
         <service
             android:name="com.duckduckgo.app.job.AppConfigurationJobService"
             android:permission="android.permission.BIND_JOB_SERVICE" />
-
         <service android:name="com.duckduckgo.app.notification.NotificationHandlerService" />
 
         <receiver android:name="com.duckduckgo.widget.SearchWidget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
+
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/search_widget_info" />
         </receiver>
-
-        <receiver android:name="com.duckduckgo.widget.SearchWidgetLight">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/search_widget_info_light" />
-        </receiver>
-
     </application>
 
 </manifest>

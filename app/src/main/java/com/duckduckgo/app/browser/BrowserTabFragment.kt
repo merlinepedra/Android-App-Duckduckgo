@@ -107,7 +107,7 @@ import com.duckduckgo.app.survey.ui.SurveyActivity
 import com.duckduckgo.app.tabs.model.TabEntity
 import com.duckduckgo.app.tabs.ui.TabSwitcherActivity
 import com.duckduckgo.app.widget.ui.AddWidgetInstructionsActivity
-import com.duckduckgo.widget.SearchWidgetLight
+import com.duckduckgo.widget.SearchWidget
 import com.google.android.material.snackbar.Snackbar
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.fragment_browser_tab.*
@@ -1339,7 +1339,7 @@ class BrowserTabFragment :
     @SuppressLint("NewApi")
     private fun launchAddWidget() {
         val context = context ?: return
-        val provider = ComponentName(context, SearchWidgetLight::class.java)
+        val provider = ComponentName(context, SearchWidget::class.java)
         AppWidgetManager.getInstance(context).requestPinAppWidget(provider, null, null)
     }
 
