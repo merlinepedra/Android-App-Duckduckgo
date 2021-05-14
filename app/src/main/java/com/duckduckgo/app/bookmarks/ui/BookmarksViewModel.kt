@@ -39,6 +39,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Provider
 
@@ -119,6 +120,7 @@ class BookmarksViewModel(
     }
 
     private fun onBookmarksChanged(bookmarks: List<Bookmark>) {
+        Timber.i("onBookmarksChanged $bookmarks")
         viewState.value = viewState.value?.copy(
             bookmarks = bookmarks,
             enableSearch = bookmarks.size > MIN_BOOKMARKS_FOR_SEARCH
@@ -126,6 +128,7 @@ class BookmarksViewModel(
     }
 
     private fun onFavoritesChanged(favorites: List<Favorite>) {
+        Timber.i("onFavoritesChanged $favorites")
         viewState.value = viewState.value?.copy(favorites = favorites)
     }
 
@@ -139,6 +142,23 @@ class BookmarksViewModel(
 
     fun onDeleteSavedSiteRequested(savedSite: SavedSite) {
         command.value = ConfirmDeleteSavedSite(savedSite)
+    }
+
+    fun onConvertRequested(savedSite: SavedSite) {
+        when(savedSite) {
+            is Bookmark -> {
+                viewModelScope.launch(dispatcherProvider.io() + NonCancellable) {
+                    dao.delete(BookmarkEntity(savedSite.id, savedSite.title, savedSite.url))
+                    favoritesRepository.insert(savedSite.title, savedSite.url)
+                }
+            }
+            is Favorite -> {
+                viewModelScope.launch(dispatcherProvider.io() + NonCancellable) {
+                    favoritesRepository.delete(savedSite)
+                    dao.insert(BookmarkEntity(title = savedSite.title, url = savedSite.url))
+                }
+            }
+        }
     }
 
     fun delete(savedSite: SavedSite) {

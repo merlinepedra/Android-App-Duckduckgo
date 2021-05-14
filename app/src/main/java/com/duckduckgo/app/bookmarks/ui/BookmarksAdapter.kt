@@ -26,6 +26,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.duckduckgo.app.bookmarks.model.SavedSite
+import com.duckduckgo.app.bookmarks.ui.BookmarksAdapter.BookmarksItemTypes.*
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.browser.favicon.FaviconManager
 import com.duckduckgo.app.global.baseHost
@@ -34,6 +35,7 @@ import kotlinx.android.synthetic.main.view_saved_site_entry.view.*
 import kotlinx.android.synthetic.main.view_saved_site_empty_hint.view.*
 import kotlinx.android.synthetic.main.view_saved_site_section_title.view.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class BookmarksAdapter(
     private val layoutInflater: LayoutInflater,
@@ -48,10 +50,11 @@ class BookmarksAdapter(
         const val BOOKMARK_TYPE = 2
     }
 
-    interface BookmarksItemTypes
-    object Header : BookmarksItemTypes
-    object EmptyHint : BookmarksItemTypes
-    data class BookmarkItem(val bookmark: SavedSite.Bookmark) : BookmarksItemTypes
+    sealed class BookmarksItemTypes {
+        object Header : BookmarksItemTypes()
+        object EmptyHint : BookmarksItemTypes()
+        data class BookmarkItem(val bookmark: SavedSite.Bookmark) : BookmarksItemTypes()
+    }
 
     var bookmarkItems: List<BookmarksItemTypes> = emptyList()
         set(value) {
@@ -82,12 +85,12 @@ class BookmarksAdapter(
         }
     }
 
-    override fun getItemCount(): Int = bookmarkItems.size
+    override fun getItemCount(): Int = currentList.size
 
     override fun onBindViewHolder(holder: BookmarkScreenViewHolders, position: Int) {
         when (holder) {
             is BookmarkScreenViewHolders.BookmarksViewHolder -> {
-                holder.update((bookmarkItems[position] as BookmarkItem).bookmark)
+                holder.update((currentList[position] as BookmarkItem).bookmark)
             }
             is BookmarkScreenViewHolders.SectionTitle -> {
                 holder.bind()
@@ -99,7 +102,7 @@ class BookmarksAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return when (bookmarkItems[position]) {
+        return when (currentList[position]) {
             is Header -> BOOKMARK_SECTION_TITLE_TYPE
             is EmptyHint -> EMPTY_STATE_TYPE
             else -> BOOKMARK_TYPE
@@ -164,10 +167,17 @@ sealed class BookmarkScreenViewHolders(itemView: View) : RecyclerView.ViewHolder
             val popupMenu = SavedSitePopupMenu(layoutInflater)
             val view = popupMenu.contentView
             popupMenu.apply {
+                view.convertTo.text = "Convert to Favorite"
+                onMenuItemClicked(view.convertTo) { convert(bookmark) }
                 onMenuItemClicked(view.editSavedSite) { editBookmark(bookmark) }
                 onMenuItemClicked(view.deleteSavedSite) { deleteBookmark(bookmark) }
             }
             popupMenu.show(itemView, anchor)
+        }
+
+        private fun convert(bookmark: SavedSite.Bookmark) {
+            Timber.i("Convert $bookmark into favorite")
+            viewModel.onConvertRequested(bookmark)
         }
 
         private fun editBookmark(bookmark: SavedSite.Bookmark) {

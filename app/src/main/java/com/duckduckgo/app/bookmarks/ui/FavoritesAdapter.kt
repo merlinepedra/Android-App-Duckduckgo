@@ -25,7 +25,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.duckduckgo.app.bookmarks.model.SavedSite
 import com.duckduckgo.app.bookmarks.model.SavedSite.Favorite
+import com.duckduckgo.app.bookmarks.ui.FavoritesAdapter.FavoriteItemTypes.*
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.browser.favicon.FaviconManager
 import com.duckduckgo.app.global.baseHost
@@ -34,6 +36,7 @@ import kotlinx.android.synthetic.main.view_saved_site_entry.view.*
 import kotlinx.android.synthetic.main.view_saved_site_empty_hint.view.*
 import kotlinx.android.synthetic.main.view_saved_site_section_title.view.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class FavoritesAdapter(
     private val layoutInflater: LayoutInflater,
@@ -48,10 +51,11 @@ class FavoritesAdapter(
         const val FAVORITE_TYPE = 2
     }
 
-    interface FavoriteItemTypes
-    object Header : FavoriteItemTypes
-    object EmptyHint : FavoriteItemTypes
-    data class FavoriteItem(val favorite: Favorite) : FavoriteItemTypes
+    sealed class FavoriteItemTypes {
+        object Header : FavoriteItemTypes()
+        object EmptyHint : FavoriteItemTypes()
+        data class FavoriteItem(val favorite: Favorite) : FavoriteItemTypes()
+    }
 
     var favoriteItems: List<FavoriteItemTypes> = emptyList()
         set(value) {
@@ -83,13 +87,13 @@ class FavoritesAdapter(
     }
 
     override fun getItemCount(): Int {
-        return favoriteItems.size
+        return currentList.size
     }
 
     override fun onBindViewHolder(holder: FavoritesScreenViewHolders, position: Int) {
         when (holder) {
             is FavoritesScreenViewHolders.FavoriteViewHolder -> {
-                holder.update((favoriteItems[position] as FavoriteItem).favorite)
+                holder.update((currentList[position] as FavoriteItem).favorite)
             }
             is FavoritesScreenViewHolders.SectionTitle -> {
                 holder.bind()
@@ -101,7 +105,7 @@ class FavoritesAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return when (favoriteItems[position]) {
+        return when (currentList[position]) {
             is Header -> {
                 FAVORITE_SECTION_TITLE_TYPE
             }
@@ -175,10 +179,17 @@ sealed class FavoritesScreenViewHolders(itemView: View) : RecyclerView.ViewHolde
             val popupMenu = SavedSitePopupMenu(layoutInflater)
             val view = popupMenu.contentView
             popupMenu.apply {
+                view.convertTo.text = "Convert to Bookmark"
+                onMenuItemClicked(view.convertTo) { convertTo(favorite) }
                 onMenuItemClicked(view.editSavedSite) { editFavorite(favorite) }
                 onMenuItemClicked(view.deleteSavedSite) { deleteFavorite(favorite) }
             }
             popupMenu.show(itemView, anchor)
+        }
+
+        private fun convertTo(favorite: Favorite) {
+            Timber.i("Convert $favorite into bookmark")
+            viewModel.onConvertRequested(favorite)
         }
 
         private fun editFavorite(favorite: Favorite) {

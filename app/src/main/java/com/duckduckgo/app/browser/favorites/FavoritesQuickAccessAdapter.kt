@@ -53,7 +53,7 @@ class FavoritesQuickAccessAdapter(
         const val QUICK_ACCESS_ITEM_MAX_SIZE_DP = 90
     }
 
-    data class QuickAccessFavorite(val favorite: SavedSite.Favorite) : FavoritesAdapter.FavoriteItemTypes
+    data class QuickAccessFavorite(val favorite: SavedSite.Favorite)
 
     class QuickAccessViewHolder(
         private val inflater: LayoutInflater,

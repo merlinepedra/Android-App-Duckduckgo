@@ -18,6 +18,8 @@ package com.duckduckgo.app.bookmarks.ui
 
 import androidx.appcompat.widget.SearchView
 import com.duckduckgo.app.bookmarks.model.SavedSite
+import com.duckduckgo.app.bookmarks.ui.BookmarksAdapter.BookmarksItemTypes.BookmarkItem
+import timber.log.Timber
 
 class BookmarksEntityQueryListener(
     val bookmarks: List<SavedSite.Bookmark>?,
@@ -26,6 +28,7 @@ class BookmarksEntityQueryListener(
 
     override fun onQueryTextChange(newText: String): Boolean {
         if (bookmarks != null) {
+            Timber.i("onQueryTextChange: $newText ${bookmarks}")
             adapter.bookmarkItems = filter(newText, bookmarks)
         }
         return true
@@ -35,11 +38,11 @@ class BookmarksEntityQueryListener(
         return false
     }
 
-    private fun filter(query: String, bookmarks: List<SavedSite.Bookmark>): List<BookmarksAdapter.BookmarkItem> {
+    private fun filter(query: String, bookmarks: List<SavedSite.Bookmark>): List<BookmarkItem> {
         val lowercaseQuery = query.toLowerCase()
         return bookmarks.filter {
             val lowercaseTitle = it.title.toLowerCase()
             lowercaseTitle.contains(lowercaseQuery) || it.url.contains(lowercaseQuery)
-        }.map { BookmarksAdapter.BookmarkItem(it) }
+        }.map { BookmarkItem(it) }
     }
 }

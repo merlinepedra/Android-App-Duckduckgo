@@ -23,6 +23,11 @@
     android:background="@drawable/popup_menu_bg">
 
     <TextView
+        android:id="@+id/convertTo"
+        style="@style/BrowserTextMenuItem"
+        android:text="@string/edit" />
+
+    <TextView
         android:id="@+id/editSavedSite"
         style="@style/BrowserTextMenuItem"
         android:text="@string/edit" />

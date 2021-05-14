@@ -27,6 +27,8 @@ import androidx.recyclerview.widget.ConcatAdapter
 import com.duckduckgo.app.bookmarks.model.SavedSite
 import com.duckduckgo.app.bookmarks.service.ExportBookmarksResult
 import com.duckduckgo.app.bookmarks.service.ImportBookmarksResult
+import com.duckduckgo.app.bookmarks.ui.BookmarksAdapter.BookmarksItemTypes.BookmarkItem
+import com.duckduckgo.app.bookmarks.ui.FavoritesAdapter.FavoriteItemTypes.FavoriteItem
 import com.duckduckgo.app.browser.BrowserActivity
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.browser.R.id.action_search
@@ -38,6 +40,7 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_bookmarks.bookmarkRootView
 import kotlinx.android.synthetic.main.content_bookmarks.recycler
 import kotlinx.android.synthetic.main.include_toolbar.toolbar
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -98,8 +101,9 @@ class BookmarksActivity : DuckDuckGoActivity() {
             this,
             { viewState ->
                 viewState?.let {
-                    favoritesAdapter.favoriteItems = it.favorites.map { FavoritesAdapter.FavoriteItem(it) }
-                    bookmarksAdapter.bookmarkItems = it.bookmarks.map { BookmarksAdapter.BookmarkItem(it) }
+                    Timber.i("Render bookmarks: $viewState")
+                    favoritesAdapter.favoriteItems = it.favorites.map { FavoriteItem(it) }
+                    bookmarksAdapter.bookmarkItems = it.bookmarks.map { BookmarkItem(it) }
                     invalidateOptionsMenu()
                 }
             }
