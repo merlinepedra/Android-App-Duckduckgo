@@ -18,20 +18,22 @@ package com.duckduckgo.app.bookmarks.ui
 
 import android.net.Uri
 import androidx.lifecycle.*
+import androidx.room.withTransaction
 import com.duckduckgo.app.bookmarks.db.BookmarkEntity
 import com.duckduckgo.app.bookmarks.db.BookmarksDao
-import com.duckduckgo.app.bookmarks.model.SavedSite
-import com.duckduckgo.app.bookmarks.service.ExportBookmarksResult
-import com.duckduckgo.app.bookmarks.service.ImportBookmarksResult
-import com.duckduckgo.app.bookmarks.service.BookmarksManager
 import com.duckduckgo.app.bookmarks.model.FavoritesRepository
+import com.duckduckgo.app.bookmarks.model.SavedSite
 import com.duckduckgo.app.bookmarks.model.SavedSite.Bookmark
 import com.duckduckgo.app.bookmarks.model.SavedSite.Favorite
+import com.duckduckgo.app.bookmarks.service.BookmarksManager
+import com.duckduckgo.app.bookmarks.service.ExportBookmarksResult
+import com.duckduckgo.app.bookmarks.service.ImportBookmarksResult
 import com.duckduckgo.app.bookmarks.ui.BookmarksViewModel.Command.*
 import com.duckduckgo.app.bookmarks.ui.EditSavedSiteDialogFragment.EditSavedSiteListener
 import com.duckduckgo.app.browser.favicon.FaviconManager
 import com.duckduckgo.app.global.DispatcherProvider
 import com.duckduckgo.app.global.SingleLiveEvent
+import com.duckduckgo.app.global.db.AppDatabase
 import com.duckduckgo.app.global.plugins.view_model.ViewModelFactoryPlugin
 import com.duckduckgo.di.scopes.AppObjectGraph
 import com.squareup.anvil.annotations.ContributesMultibinding
@@ -45,7 +47,8 @@ import javax.inject.Provider
 
 class BookmarksViewModel(
     private val favoritesRepository: FavoritesRepository,
-    val dao: BookmarksDao,
+    private val dao: BookmarksDao,
+    private val appDatabase: AppDatabase,
     private val faviconManager: FaviconManager,
     private val bookmarksManager: BookmarksManager,
     private val dispatcherProvider: DispatcherProvider
@@ -145,17 +148,21 @@ class BookmarksViewModel(
     }
 
     fun onConvertRequested(savedSite: SavedSite) {
-        when(savedSite) {
+        when (savedSite) {
             is Bookmark -> {
                 viewModelScope.launch(dispatcherProvider.io() + NonCancellable) {
-                    dao.delete(BookmarkEntity(savedSite.id, savedSite.title, savedSite.url))
-                    favoritesRepository.insert(savedSite.title, savedSite.url)
+                    appDatabase.withTransaction {
+                        dao.delete(savedSite.id)
+                        favoritesRepository.insert(savedSite.title, savedSite.url)
+                    }
                 }
             }
             is Favorite -> {
                 viewModelScope.launch(dispatcherProvider.io() + NonCancellable) {
-                    favoritesRepository.delete(savedSite)
-                    dao.insert(BookmarkEntity(title = savedSite.title, url = savedSite.url))
+                    appDatabase.withTransaction {
+                        favoritesRepository.delete(savedSite)
+                        dao.insert(BookmarkEntity(title = savedSite.title, url = savedSite.url))
+                    }
                 }
             }
         }
@@ -216,6 +223,7 @@ class BookmarksViewModel(
 class BookmarksViewModelFactory @Inject constructor(
     private val favoritesRepository: Provider<FavoritesRepository>,
     private val dao: Provider<BookmarksDao>,
+    private val appDatabase: AppDatabase,
     private val faviconManager: Provider<FaviconManager>,
     private val bookmarksManager: Provider<BookmarksManager>,
     private val dispatcherProvider: Provider<DispatcherProvider>
@@ -224,14 +232,15 @@ class BookmarksViewModelFactory @Inject constructor(
         with(modelClass) {
             return when {
                 isAssignableFrom(BookmarksViewModel::class.java) -> (
-                    BookmarksViewModel(
-                        favoritesRepository.get(),
-                        dao.get(),
-                        faviconManager.get(),
-                        bookmarksManager.get(),
-                        dispatcherProvider.get()
-                    ) as T
-                    )
+                        BookmarksViewModel(
+                            favoritesRepository.get(),
+                            dao.get(),
+                            appDatabase = appDatabase,
+                            faviconManager.get(),
+                            bookmarksManager.get(),
+                            dispatcherProvider.get()
+                        ) as T
+                        )
                 else -> null
             }
         }

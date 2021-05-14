@@ -38,6 +38,9 @@ interface BookmarksDao {
     @Delete
     fun delete(bookmark: BookmarkEntity)
 
+    @Query ("DELETE from bookmarks where id = :id")
+    fun delete(id: Long)
+
     @Update(onConflict = OnConflictStrategy.REPLACE)
     fun update(bookmarkEntity: BookmarkEntity)
 
