@@ -106,9 +106,12 @@ android {
     testOptions {
         unitTests.returnDefaultValues = true
 
-        println("Using test orchestrator: $USE_ORCHESTRATOR")
+
         if (USE_ORCHESTRATOR) {
+            println("Using test orchestrator")
             execution 'ANDROID_TEST_ORCHESTRATOR'
+        } else {
+            println("Not using test orchestrator")
         }
 
         devices {
