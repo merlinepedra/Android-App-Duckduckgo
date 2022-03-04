@@ -2516,7 +2516,10 @@ class BrowserTabFragment :
             viewModel.onCtaShown()
         }
 
-        private fun showHomeBackground(favorites: List<QuickAccessFavorite>, hideLogo: Boolean = false) {
+        private fun showHomeBackground(
+            favorites: List<QuickAccessFavorite>,
+            hideLogo: Boolean = false
+        ) {
             if (favorites.isEmpty()) {
                 if (hideLogo) homeBackgroundLogo.hideLogo() else homeBackgroundLogo.showLogo()
                 quickAccessRecyclerView.gone()

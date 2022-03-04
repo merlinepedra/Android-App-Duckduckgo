@@ -114,6 +114,8 @@ import com.duckduckgo.app.tabs.model.TabRepository
 import com.duckduckgo.app.trackerdetection.model.TrackingEvent
 import com.duckduckgo.app.usage.search.SearchCountDao
 import com.duckduckgo.di.scopes.AppScope
+import com.duckduckgo.feature.toggles.api.FeatureToggle
+import com.duckduckgo.feature.toggles.api.RemoteFeatureToggleName
 import com.duckduckgo.privacy.config.api.ContentBlocking
 import com.duckduckgo.privacy.config.api.Gpc
 import com.duckduckgo.privacy.config.api.AmpLinks
@@ -171,7 +173,8 @@ class BrowserTabViewModel(
     private val appLinksHandler: AppLinksHandler,
     private val variantManager: VariantManager,
     private val ampLinks: AmpLinks,
-    private val trackingParameters: TrackingParameters
+    private val trackingParameters: TrackingParameters,
+    private val featureToggle: FeatureToggle
 ) : WebViewClientListener, EditSavedSiteListener, HttpAuthenticationListener, SiteLocationPermissionDialog.SiteLocationPermissionDialogListener,
     SystemLocationPermissionDialog.SystemLocationPermissionDialogListener, UrlExtractionListener, ViewModel() {
 
@@ -201,9 +204,12 @@ class BrowserTabViewModel(
         val showPrivacyGrade: Boolean = false,
         val showSearchIcon: Boolean = false,
         val showClearButton: Boolean = false,
-        val showTabsButton: Boolean = true,
-        val fireButton: HighlightableButton = HighlightableButton.Visible(),
-        val showMenuButton: HighlightableButton = HighlightableButton.Visible(),
+        val showTabsButton: Boolean = false,
+        val fireButton: HighlightableButton = HighlightableButton.Gone,
+        val showMenuButton: HighlightableButton = HighlightableButton.Gone,
+        val showTabsButtonEnabled: Boolean = false,
+        val fireButtonEnabled: Boolean = false,
+        val showMenuButtonEnabled: Boolean = false,
         val canSharePage: Boolean = false,
         val canAddBookmarks: Boolean = false,
         val bookmark: SavedSite.Bookmark? = null,
@@ -1641,13 +1647,13 @@ class BrowserTabViewModel(
         browserViewState.value = currentBrowserViewState.copy(
             showPrivacyGrade = showPrivacyGrade,
             showSearchIcon = showSearchIcon,
-            showTabsButton = showControls,
-            fireButton = if (showControls) {
+            showTabsButton = currentBrowserViewState.showTabsButtonEnabled && showControls,
+            fireButton = if (currentBrowserViewState.fireButtonEnabled && showControls) {
                 HighlightableButton.Visible(highlighted = showPulseAnimation.value ?: false)
             } else {
                 HighlightableButton.Gone
             },
-            showMenuButton = if (showControls) {
+            showMenuButton = if (currentBrowserViewState.showMenuButtonEnabled && showControls) {
                 HighlightableButton.Visible()
             } else {
                 HighlightableButton.Gone
@@ -2002,7 +2008,24 @@ class BrowserTabViewModel(
 
     private fun initializeViewStates() {
         globalLayoutState.value = Browser()
-        browserViewState.value = BrowserViewState().copy(addToHomeVisible = addToHomeCapabilityDetector.isAddToHomeSupported())
+
+        val enableShowTabsButton = featureToggle.isFeatureEnabled(RemoteFeatureToggleName.FeatureFullEnabled(), false) ?: false
+        val enableFireButtonToggle = featureToggle.isFeatureEnabled(RemoteFeatureToggleName.FeatureNotEnabled(), false) ?: false
+        val enableShowMenuButtonToggle = featureToggle.isFeatureEnabled(RemoteFeatureToggleName.FeaturePartlyEnabled(), false) ?: false
+
+        val fireButtonToggle = if (enableFireButtonToggle) HighlightableButton.Visible() else HighlightableButton.Gone
+        val showMenuButtonToggle = if (enableShowMenuButtonToggle) HighlightableButton.Visible() else HighlightableButton.Gone
+
+        browserViewState.value = BrowserViewState().copy(
+            addToHomeVisible = addToHomeCapabilityDetector.isAddToHomeSupported(),
+            showTabsButton = enableShowTabsButton,
+            fireButton = fireButtonToggle,
+            showMenuButton = showMenuButtonToggle,
+            showTabsButtonEnabled = enableShowTabsButton,
+            fireButtonEnabled = enableFireButtonToggle,
+            showMenuButtonEnabled = enableShowMenuButtonToggle
+        )
+
         loadingViewState.value = LoadingViewState()
         autoCompleteViewState.value = AutoCompleteViewState()
         omnibarViewState.value = OmnibarViewState()
@@ -2568,7 +2591,10 @@ class BrowserTabViewModel(
         command.postValue(LoadExtractedUrl(extractedUrl = initialUrl))
     }
 
-    override fun onUrlExtracted(initialUrl: String, extractedUrl: String?) {
+    override fun onUrlExtracted(
+        initialUrl: String,
+        extractedUrl: String?
+    ) {
         val destinationUrl: String = if (extractedUrl != null) {
             ampLinks.lastAmpLinkInfo = AmpLinkInfo(ampLink = initialUrl)
             Timber.d("AMP link detection: Success! Loading extracted URL: $extractedUrl")
@@ -2629,7 +2655,8 @@ class BrowserTabViewModelFactory @Inject constructor(
     private val appLinksHandler: Provider<DuckDuckGoAppLinksHandler>,
     private val variantManager: Provider<VariantManager>,
     private val ampLinks: Provider<AmpLinks>,
-    private val trackingParameters: Provider<TrackingParameters>
+    private val trackingParameters: Provider<TrackingParameters>,
+    private val featureToggle: Provider<FeatureToggle>
 ) : ViewModelFactoryPlugin {
     override fun <T : ViewModel?> create(modelClass: Class<T>): T? {
         with(modelClass) {
@@ -2671,7 +2698,8 @@ class BrowserTabViewModelFactory @Inject constructor(
                     appLinksHandler.get(),
                     variantManager.get(),
                     ampLinks.get(),
-                    trackingParameters.get()
+                    trackingParameters.get(),
+                    featureToggle.get()
                 ) as T
                 else -> null
             }
