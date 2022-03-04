@@ -1,0 +1,52 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "14d763cc1d1c062ab17eba52750aa1ce",
+    "entities": [
+      {
+        "tableName": "remote_feature_toggle",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`featureName` TEXT NOT NULL, `rolloutToPercentage` INTEGER NOT NULL, `isEnabled` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, PRIMARY KEY(`featureName`))",
+        "fields": [
+          {
+            "fieldPath": "featureName",
+            "columnName": "featureName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rolloutToPercentage",
+            "columnName": "rolloutToPercentage",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isEnabled",
+            "columnName": "isEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "featureName"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '14d763cc1d1c062ab17eba52750aa1ce')"
+    ]
+  }
+}
