@@ -14,20 +14,10 @@
  * limitations under the License.
  */
 
-package com.duckduckgo.feature.toggles.impl.remote.models
+package com.duckduckgo.feature.toggles.impl.remote.filters
 
-data class RemoteFeatureToggleConfig(
-    val version: Int,
-    val rollouts: List<RemoteFeatureRollout>,
-)
+import com.duckduckgo.feature.toggles.impl.remote.models.Filters
 
-data class RemoteFeatureRollout(
-    val featureName: String,
-    val rolloutToPercentage: Int,
-    val filters: List<Filters>
-)
-
-data class Filters(
-    val key: String,
-    val value: String
-)
+interface RemoteFeatureToggleFilter {
+    fun handle(filter: Filters): Boolean
+}

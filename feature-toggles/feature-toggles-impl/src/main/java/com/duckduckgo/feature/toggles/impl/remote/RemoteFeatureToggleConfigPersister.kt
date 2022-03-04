@@ -20,6 +20,7 @@ import androidx.annotation.WorkerThread
 import com.duckduckgo.app.statistics.Probabilistic
 import com.duckduckgo.app.statistics.WeightedRandomizer
 import com.duckduckgo.di.scopes.AppScope
+import com.duckduckgo.feature.toggles.impl.remote.filters.RemoteFeatureToggleFilterEvaluator
 import com.duckduckgo.feature.toggles.impl.remote.models.RemoteFeatureRollout
 import com.duckduckgo.feature.toggles.impl.remote.models.RemoteFeatureToggleConfig
 import com.duckduckgo.feature.toggles.store.remote.RemoteFeatureToggle
@@ -35,15 +36,18 @@ interface RemoteFeatureToggleConfigPersister {
 @ContributesBinding(AppScope::class)
 class DefaultRemoteFeatureToggleConfigPersister @Inject constructor(
     private val repository: RemoteFeatureTogglesRepository,
-    private val weightedRandomizer: WeightedRandomizer
+    private val weightedRandomizer: WeightedRandomizer,
+    private val filterEvaluator: RemoteFeatureToggleFilterEvaluator
 ) : RemoteFeatureToggleConfigPersister {
 
     override suspend fun persistConfig(config: RemoteFeatureToggleConfig) {
         if (repository.configVersion() < config.version) {
             config.rollouts.forEach { configRollout ->
-                repository.getFeature(configRollout.featureName)?.also { localFeatureToggle ->
-                    updateFeatureToggle(configRollout, localFeatureToggle)
-                } ?: updateFeature(configRollout)
+                if (filterEvaluator.evaluate(configRollout.filters)) {
+                    repository.getFeature(configRollout.featureName)?.also { localFeatureToggle ->
+                        updateFeatureToggle(configRollout, localFeatureToggle)
+                    } ?: updateFeature(configRollout)
+                }
             }
             repository.updateConfigVersion(config.version)
         }
