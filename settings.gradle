@@ -18,6 +18,7 @@ include ':appbuildconfig-api'
 
 include ':feature-toggles-api'
 include ':feature-toggles-impl'
+include ':feature-toggles-store'
 
 include ':privacy-config-api'
 include ':privacy-config-impl'
@@ -38,6 +39,7 @@ include ':common-test'
 
 project(':feature-toggles-api').projectDir = new File('feature-toggles/feature-toggles-api')
 project(':feature-toggles-impl').projectDir = new File('feature-toggles/feature-toggles-impl')
+project(':feature-toggles-store').projectDir = new File('feature-toggles/feature-toggles-store')
 project(':privacy-config-api').projectDir = new File('privacy-config/privacy-config-api')
 project(':privacy-config-impl').projectDir = new File('privacy-config/privacy-config-impl')
 project(':privacy-config-store').projectDir = new File('privacy-config/privacy-config-store')

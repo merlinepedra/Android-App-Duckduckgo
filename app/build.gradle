@@ -138,6 +138,7 @@ dependencies {
 
     implementation project(path: ':feature-toggles-api')
     implementation project(path: ':feature-toggles-impl')
+    implementation project(path: ':feature-toggles-store')
     implementation project(path: ':privacy-config-api')
     implementation project(path: ':privacy-config-impl')
     implementation project(path: ':anrs-api')

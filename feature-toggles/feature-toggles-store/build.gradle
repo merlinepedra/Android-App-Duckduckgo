@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 DuckDuckGo
+ * Copyright (c) 2022 DuckDuckGo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,39 +17,32 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
-    id 'com.squareup.anvil'
+    id 'kotlin-kapt'
 }
 
 apply from: "$rootProject.projectDir/gradle/android-library.gradle"
 
+android {
+    defaultConfig {
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
+    }
+    sourceSets {
+        androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
+    }
+}
+
 dependencies {
-
-    implementation project(path: ':di')
-    implementation project(path: ':common')
-    implementation project(path: ':feature-toggles-api')
-    implementation project(path: ':statistics')
-    api project(path: ':feature-toggles-store')
-
-    implementation Kotlin.stdlib.jdk7
-    implementation AndroidX.appCompat
-    implementation Google.android.material
-    implementation AndroidX.constraintLayout
-    implementation JakeWharton.timber
+    implementation AndroidX.room.ktx
+    kapt AndroidX.room.compiler
     implementation Google.dagger
     implementation AndroidX.core.ktx
-    implementation Square.retrofit2.converter.moshi
-    implementation Square.okHttp3.okHttp
-    implementation KotlinX.coroutines.core
-
-    implementation AndroidX.room.ktx
-    implementation AndroidX.work.runtimeKtx
 
     // Testing dependencies
     testImplementation project(path: ':common-test')
     testImplementation Testing.junit4
-}
-
-anvil {
-    generateDaggerFactories = true // default is false
 }
 
