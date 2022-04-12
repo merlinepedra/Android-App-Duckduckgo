@@ -35,4 +35,6 @@ data class SurveyGroup(
 sealed class SurveyUrlParameter(val parameter: String) {
     object EmailCohortParam : SurveyUrlParameter("cohort")
     object AtpCohortParam : SurveyUrlParameter("atp_cohort")
+    object Android12Param : SurveyUrlParameter("android12")
+    object AtbCohortParam : SurveyUrlParameter("atb_cohort")
 }

@@ -17,13 +17,18 @@
 package com.duckduckgo.app.survey.api
 
 import android.net.Uri
+import android.os.Build
 import androidx.core.net.toUri
 import com.duckduckgo.app.email.EmailManager
+import com.duckduckgo.app.global.AppUrl.ParamKey
+import com.duckduckgo.app.statistics.VariantManager
+import com.duckduckgo.app.statistics.store.StatisticsDataStore
 import com.duckduckgo.app.survey.api.SurveyGroup.SurveyOption
 import com.duckduckgo.app.survey.db.SurveyDao
 import com.duckduckgo.app.survey.model.Survey
 import com.duckduckgo.app.survey.model.Survey.Status.NOT_ALLOCATED
 import com.duckduckgo.app.survey.model.Survey.Status.SCHEDULED
+import com.duckduckgo.appbuildconfig.api.AppBuildConfig
 import com.duckduckgo.mobile.android.vpn.cohort.AtpCohortManager
 import com.duckduckgo.mobile.android.vpn.waitlist.store.AtpWaitlistStateRepository
 import com.duckduckgo.mobile.android.vpn.waitlist.store.WaitlistState
@@ -40,6 +45,9 @@ class SurveyDownloader @Inject constructor(
     private val emailManager: EmailManager,
     private val atpCohortManager: AtpCohortManager,
     private val atpWaitlistStateRepository: AtpWaitlistStateRepository,
+    private val appBuildConfig: AppBuildConfig,
+    private val statisticsStore: StatisticsDataStore,
+    private val variantManager: VariantManager
 ) {
 
     private fun getSurveyResponse(): Response<SurveyGroup?> {
@@ -121,6 +129,14 @@ class SurveyDownloader @Inject constructor(
             when {
                 (SurveyUrlParameter.EmailCohortParam.parameter == it) -> builder.appendQueryParameter(it, emailManager.getCohort())
                 (SurveyUrlParameter.AtpCohortParam.parameter == it) -> builder.appendQueryParameter(it, atpCohortManager.getCohort())
+                (SurveyUrlParameter.Android12Param.parameter == it) -> builder.appendQueryParameter(
+                    it,
+                    (appBuildConfig.sdkInt >= Build.VERSION_CODES.S).toString()
+                )
+                (SurveyUrlParameter.AtbCohortParam.parameter == it) -> builder.appendQueryParameter(
+                    SurveyUrlParameter.EmailCohortParam.parameter,
+                    atbCohort()
+                )
                 else -> {
                     // NO OP
                 }
@@ -128,6 +144,11 @@ class SurveyDownloader @Inject constructor(
         }
 
         return builder.build().toString()
+    }
+
+    private fun atbCohort(): String {
+        val atb = statisticsStore.atb
+        return atb?.formatWithVariant(variantManager.getVariant()) ?: ""
     }
 
     private fun canSurveyBeScheduled(surveyOption: SurveyOption): Boolean {
