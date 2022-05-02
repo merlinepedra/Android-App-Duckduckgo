@@ -272,6 +272,12 @@
             android:name="com.duckduckgo.app.privacy.ui.PrivacyDashboardActivity"
             android:label="@string/privacyDashboardActivityTitle"
             android:parentActivityName=".BrowserActivity" />
+
+        <activity
+            android:name="com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridActivity"
+            android:label="@string/privacyDashboardActivityTitle"
+            android:parentActivityName=".BrowserActivity" />
+
         <activity
             android:name="com.duckduckgo.app.privacy.ui.ScorecardActivity"
             android:label="@string/scorecardActivityTitle"
