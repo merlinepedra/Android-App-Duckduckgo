@@ -26,11 +26,13 @@ import android.webkit.WebViewClient
 import com.duckduckgo.anvil.annotations.InjectWith
 import com.duckduckgo.app.browser.databinding.ActivityPrivacyHybridDashboardBinding
 import com.duckduckgo.app.global.DuckDuckGoActivity
+import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.ViewState
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.tabs.model.TabRepository
 import com.duckduckgo.app.tabs.tabId
 import com.duckduckgo.di.scopes.ActivityScope
 import com.duckduckgo.mobile.android.ui.viewbinding.viewBinding
+import com.squareup.moshi.Moshi
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -43,6 +45,9 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
     @Inject
     lateinit var pixel: Pixel
 
+    @Inject
+    lateinit var moshi: Moshi
+
     private val binding: ActivityPrivacyHybridDashboardBinding by viewBinding()
 
     private val toolbar
@@ -50,6 +55,8 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
 
     private val webView
         get() = binding.privacyDashboardWebview
+
+    private val viewModel: PrivacyDashboardHybridViewModel by bindViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,6 +93,23 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
     }
 
     private fun setupObservers() {
+        repository.retrieveSiteData(intent.tabId!!).observe(
+            this,
+            {
+                viewModel.onSiteChanged(it)
+            }
+        )
+        viewModel.viewState.observe(
+            this,
+            {
+                val adapter = moshi.adapter(ViewState::class.java)
+                val json = adapter.toJson(it)
+                Timber.i("PDHy: received $json")
+                webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.url}\", $json);", null)
+                webView.evaluateJavascript("javascript:onChangeUpgradedHttps(true);", null)
+                webView.evaluateJavascript("javascript:onChangeProtectionStatus(true);", null)
+            }
+        )
     }
 
     private fun setupClickListeners() {

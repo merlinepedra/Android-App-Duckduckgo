@@ -12625,10 +12625,10 @@ var convertTrackers = function convertTrackers(trackerList) {
 };
 
 var convertTrackerDataPayload = function convertTrackerDataPayload(tabUrl, upgradedHttps, whitelisted, data) {
-  var allTrackers = data.trackersDetected.concat(data.trackersBlocked);
-  var trackers = convertTrackers(allTrackers);
-  var trackersBlocked = convertTrackers(data.trackersBlocked);
+  var trackers = data.trackers;
+  var trackersBlocked = data.trackersBlocked;
   var tabDomain = new URL(tabUrl).host.replace(/^www\./, '');
+  console.error('reached 1');
   return {
     url: tabUrl,
     status: 'complete',
@@ -12745,10 +12745,12 @@ var resolveInitialRender = function resolveInitialRender() {
   var isIsProtectedSet = typeof isProtected === 'boolean';
   var isTrackerBlockingDataSet = _typeof(trackerBlockingData) === 'object';
 
+  console.error('reached 3');
+  console.error('assess: ' + isUpgradedHttpsSet + ' ' + isIsProtectedSet + ' ' + isTrackerBlockingDataSet);
   if (!isUpgradedHttpsSet || !isIsProtectedSet || !isTrackerBlockingDataSet) {
     return;
   }
-
+  console.error('reached 4');
   getBackgroundTabDataPromises.forEach(function (resolve) {
     return resolve(combineSources());
   });
@@ -12759,6 +12761,7 @@ var resolveInitialRender = function resolveInitialRender() {
 
 window.onChangeTrackerBlockingData = function (tabUrl, rawTrackerBlockingData) {
   trackerBlockingData = (0, _common.convertTrackerDataPayload)(tabUrl, upgradedHttps, !isProtected, rawTrackerBlockingData);
+  console.error('reached 2');
   resolveInitialRender();
 };
 

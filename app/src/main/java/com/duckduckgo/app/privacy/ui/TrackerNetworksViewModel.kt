@@ -68,6 +68,7 @@ class TrackerNetworksViewModel @Inject constructor(
     private fun distinctTrackersByEntity(trackingEvents: List<TrackingEvent>): SortedMap<Entity, List<TrackingEvent>> {
         val data = emptySortedTrackingEventMap()
         for (event: TrackingEvent in trackingEvents.distinctBy { Uri.parse(it.trackerUrl).baseHost }) {
+            // TODO: this logic is important, and should be in domain layer
             val network = event.entity ?: createEntity(event.trackerUrl)
             val events = (data[network] ?: emptyList()).toMutableList()
             events.add(event)
