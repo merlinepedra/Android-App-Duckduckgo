@@ -34,7 +34,6 @@ import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.di.scopes.ActivityScope
 import com.duckduckgo.privacy.config.api.ContentBlocking
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -58,6 +57,31 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
         val site: SiteViewState,
         val trackers: Map<String, TrackerViewState>,
         val trackersBlocked: Map<String, TrackerViewState>,
+        val certificate: CertificateViewState? = null
+    )
+
+    data class CertificateViewState(
+        val commonName: String,
+        val publicKey: PublicKeyViewState,
+        val emails: List<String> = emptyList(),
+        val summary: String
+    )
+
+    data class PublicKeyViewState(
+        val blockSize: Int,
+        val canEncrypt: Boolean,
+        val bitSize: Int,
+        val canSign: Boolean,
+        val canDerive: Boolean,
+        val canUnwrap: Boolean,
+        val canWrap: Boolean,
+        val canDecrypt: Boolean,
+        val effectiveSize: Int,
+        val isPermanent: Boolean,
+        val type: String,
+        val externalRepresentation: String,
+        val canVerify: Boolean,
+        val keyId: String
     )
 
     data class EntityViewState(
@@ -135,8 +159,12 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
 
     private suspend fun updateSite(site: Site) {
         Timber.i("PDHy: will generate viewstate for $site")
-        delay(5000)
+        // delay(5000)
         withContext(dispatchers.main()) {
+
+            val certificateViewState = site.certificate?.let {
+                it
+            }
             viewState.value = ViewState(
                 url = site.url,
                 upgradedHttps = true,

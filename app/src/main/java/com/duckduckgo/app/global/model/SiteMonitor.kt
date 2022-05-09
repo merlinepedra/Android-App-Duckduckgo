@@ -17,6 +17,7 @@
 package com.duckduckgo.app.global.model
 
 import android.net.Uri
+import android.net.http.SslCertificate
 import androidx.core.net.toUri
 import com.duckduckgo.app.global.isHttps
 import com.duckduckgo.app.global.model.Site.SiteGrades
@@ -60,6 +61,8 @@ class SiteMonitor(
     override var privacyPractices: PrivacyPractices.Practices = PrivacyPractices.UNKNOWN
 
     override var entity: Entity? = null
+
+    override var certificate: SslCertificate? = null
 
     override val trackingEvents = CopyOnWriteArrayList<TrackingEvent>()
 

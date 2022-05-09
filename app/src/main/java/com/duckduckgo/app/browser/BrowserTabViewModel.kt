@@ -19,6 +19,7 @@ package com.duckduckgo.app.browser
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.net.Uri
+import android.net.http.SslCertificate
 import android.os.Message
 import android.util.Patterns
 import android.view.ContextMenu
@@ -1572,6 +1573,10 @@ class BrowserTabViewModel @Inject constructor(
             site?.hasHttpResources = true
             onSiteChanged()
         }
+    }
+
+    override fun onCertificateReceived(certificate: SslCertificate?) {
+        site?.certificate = certificate
     }
 
     private fun enableUrlParametersRemovedFlag() {
