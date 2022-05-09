@@ -39,7 +39,6 @@ import com.duckduckgo.mobile.android.R as CommonR
 import com.duckduckgo.app.browser.databinding.DialogFragmentSavedSiteBinding
 import com.duckduckgo.app.global.view.TextChangedWatcher
 import com.duckduckgo.mobile.android.ui.view.showKeyboard
-import kotlinx.android.synthetic.main.include_find_in_page.*
 
 abstract class SavedSiteDialogFragment : DialogFragment() {
 
