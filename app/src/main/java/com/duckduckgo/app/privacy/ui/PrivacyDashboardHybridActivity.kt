@@ -62,11 +62,15 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         setupToolbar(toolbar)
-        setupObservers()
         setupClickListeners()
         configureWebView()
         Timber.i("")
         webView.loadUrl("file:///android_asset/html/popup.html")
+        repository.retrieveSiteData(intent.tabId!!).observe(
+            this
+        ) {
+            viewModel.onSiteChanged(it)
+        }
     }
 
     private fun configureWebView() {
@@ -89,20 +93,25 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
             ): Boolean {
                 return false
             }
+
+            override fun onPageFinished(
+                view: WebView?,
+                url: String?
+            ) {
+                super.onPageFinished(view, url)
+                Timber.i("PDHy: onPageFinished")
+                setupObservers()
+            }
         }
 
         webView.addJavascriptInterface(PrivacyDashboardJavascriptInterface(), PrivacyDashboardJavascriptInterface.JAVASCRIPT_INTERFACE_NAME)
     }
 
     private fun setupObservers() {
-        repository.retrieveSiteData(intent.tabId!!).observe(
-            this
-        ) {
-            viewModel.onSiteChanged(it)
-        }
         viewModel.viewState.observe(
             this
         ) {
+            Timber.i("PDHy: newEvent $it")
             val adapter = moshi.adapter(ViewState::class.java)
             val json = adapter.toJson(it)
             Timber.i("PDHy: received $json")

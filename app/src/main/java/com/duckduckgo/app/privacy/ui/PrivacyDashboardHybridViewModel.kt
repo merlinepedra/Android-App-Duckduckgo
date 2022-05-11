@@ -159,7 +159,6 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
 
     private suspend fun updateSite(site: Site) {
         Timber.i("PDHy: will generate viewstate for $site")
-        // delay(5000)
         withContext(dispatchers.main()) {
 
             val certificateViewState = site.certificate?.let {
