@@ -21,10 +21,6 @@
     android:orientation="vertical"
     tools:context="com.duckduckgo.app.privacy.ui.PrivacyDashboardActivity">
 
-    <include
-        android:id="@+id/includeToolbar"
-        layout="@layout/include_default_toolbar" />
-
     <WebView
         android:id="@+id/privacyDashboardWebview"
         android:layout_width="match_parent"

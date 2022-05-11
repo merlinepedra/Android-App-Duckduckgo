@@ -50,9 +50,6 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
 
     private val binding: ActivityPrivacyHybridDashboardBinding by viewBinding()
 
-    private val toolbar
-        get() = binding.includeToolbar.toolbar
-
     private val webView
         get() = binding.privacyDashboardWebview
 
@@ -61,7 +58,6 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        setupToolbar(toolbar)
         setupClickListeners()
         configureWebView()
         Timber.i("")
