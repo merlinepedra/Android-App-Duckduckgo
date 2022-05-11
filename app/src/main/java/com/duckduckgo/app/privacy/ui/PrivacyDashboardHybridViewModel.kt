@@ -31,6 +31,8 @@ import com.duckduckgo.app.privacy.db.NetworkLeaderboardDao
 import com.duckduckgo.app.privacy.db.NetworkLeaderboardEntry
 import com.duckduckgo.app.privacy.db.UserWhitelistDao
 import com.duckduckgo.app.statistics.pixels.Pixel
+import com.duckduckgo.app.trackerdetection.model.TdsEntity
+import com.duckduckgo.app.trackerdetection.model.TrackingEvent
 import com.duckduckgo.di.scopes.ActivityScope
 import com.duckduckgo.privacy.config.api.ContentBlocking
 import kotlinx.coroutines.CoroutineScope
@@ -157,13 +159,78 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     private fun resetViewState() {
     }
 
+    private fun createFakeEntity(
+        event: TrackingEvent,
+        string: String
+    ): TrackingEvent {
+        event.entity!!
+
+        val newEntity = TdsEntity(
+            name = event.entity.name + string,
+            displayName = event.entity.name + string,
+            prevalence = event.entity.prevalence
+        )
+        return event.copy(
+            entity = newEntity
+        )
+    }
+
     private suspend fun updateSite(site: Site) {
         Timber.i("PDHy: will generate viewstate for $site")
         withContext(dispatchers.main()) {
-
             val certificateViewState = site.certificate?.let {
                 it
             }
+
+            val trackingEvents: MutableMap<String, TrackerViewState> = mutableMapOf()
+
+            val trackinEventsFake = site.trackingEvents.flatMap {
+                if (it.entity == null) return@flatMap listOf(it)
+                listOf(
+                    it,
+                    createFakeEntity(it, "1"),
+                    createFakeEntity(it, "2"),
+                    createFakeEntity(it, "3"),
+                    createFakeEntity(it, "4"),
+                    createFakeEntity(it, "5"),
+                    createFakeEntity(it, "6"),
+                    createFakeEntity(it, "7")
+                )
+            }
+
+            trackinEventsFake.forEach {
+                if (it.entity == null) return@forEach
+
+                val trackerViewState: TrackerViewState = trackingEvents[it.entity.displayName]?.let { trackerViewState ->
+                    val urls = trackerViewState.urls + Pair(
+                        it.trackerUrl,
+                        TrackerEventViewState(
+                            isBlocked = it.blocked,
+                            reason = "first party",
+                            category = it.categories?.toSet() ?: emptySet()
+                        )
+                    )
+                    trackerViewState.copy(
+                        urls = urls,
+                        count = trackerViewState.count + 1
+                    )
+                } ?: TrackerViewState(
+                    displayName = it.entity.name,
+                    prevalence = it.entity.prevalence,
+                    urls = mutableMapOf(
+                        it.trackerUrl to TrackerEventViewState(
+                            isBlocked = it.blocked,
+                            reason = "first party",
+                            category = it.categories?.toSet() ?: emptySet()
+                        )
+                    ),
+                    count = 1,
+                    type = "here goes type" // TODO: ????
+                )
+
+                trackingEvents[it.entity.displayName] = trackerViewState
+            }
+
             viewState.value = ViewState(
                 url = site.url,
                 upgradedHttps = true,
@@ -176,8 +243,8 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                     domain = "site.domain",
                     trackersUrls = emptySet()
                 ),
-                trackers = emptyMap(),
-                trackersBlocked = emptyMap()
+                trackers = trackingEvents,
+                trackersBlocked = trackingEvents
             )
         }
     }
