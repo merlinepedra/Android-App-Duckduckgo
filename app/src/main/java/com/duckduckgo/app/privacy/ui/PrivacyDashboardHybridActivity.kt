@@ -90,26 +90,26 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
                 return false
             }
         }
+
+        webView.addJavascriptInterface(PrivacyDashboardJavascriptInterface(), PrivacyDashboardJavascriptInterface.JAVASCRIPT_INTERFACE_NAME)
     }
 
     private fun setupObservers() {
         repository.retrieveSiteData(intent.tabId!!).observe(
-            this,
-            {
-                viewModel.onSiteChanged(it)
-            }
-        )
+            this
+        ) {
+            viewModel.onSiteChanged(it)
+        }
         viewModel.viewState.observe(
-            this,
-            {
-                val adapter = moshi.adapter(ViewState::class.java)
-                val json = adapter.toJson(it)
-                Timber.i("PDHy: received $json")
-                webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.url}\", $json);", null)
-                webView.evaluateJavascript("javascript:onChangeUpgradedHttps(true);", null)
-                webView.evaluateJavascript("javascript:onChangeProtectionStatus(true);", null)
-            }
-        )
+            this
+        ) {
+            val adapter = moshi.adapter(ViewState::class.java)
+            val json = adapter.toJson(it)
+            Timber.i("PDHy: received $json")
+            webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.url}\", $json);", null)
+            webView.evaluateJavascript("javascript:onChangeUpgradedHttps(true);", null)
+            webView.evaluateJavascript("javascript:onChangeProtectionStatus(true);", null)
+        }
     }
 
     private fun setupClickListeners() {

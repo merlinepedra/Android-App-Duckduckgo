@@ -12821,21 +12821,16 @@ function getAdditionalParams() {
 }
 
 var fetch = function fetch(message) {
-  if (!window.webkit) {
-    console.error('window.webkit not available');
-    return;
-  }
-
   if (message.toggleWhitelist) {
     var _isProtected = message.toggleWhitelist.value;
-    window.webkit.messageHandlers.privacyDashboardSetProtection.postMessage(_isProtected); // Call as if this was an outside change. This will trigger events to
+    PrivacyDashboard.toggleWhitelist(_isProtected); // Call as if this was an outside change. This will trigger events to
     // have all models re-request data from background state.
 
     window.onChangeProtectionStatus(_isProtected);
   }
 
   if (message.updatePermission) {
-    window.webkit.messageHandlers.privacyDashboardSetPermission.postMessage({
+    PrivacyDashboard.updatePermission({
       permission: message.updatePermission.id,
       value: message.updatePermission.value
     });
@@ -12848,7 +12843,7 @@ var fetch = function fetch(message) {
     var args = message.firePixel.slice(1).concat(getAdditionalParams());
     var paramString = (0, _common.concatParams)(args); // Pass to native to send request
 
-    window.webkit.messageHandlers.privacyDashboardFirePixel.postMessage("".concat(pixelName).concat(paramString));
+    PrivacyDashboard.firePixel("".concat(pixelName).concat(paramString));
   }
 };
 
@@ -12864,7 +12859,7 @@ var getBackgroundTabData = function getBackgroundTabData() {
 };
 
 (0, _common.setupMutationObserver)(function (height) {
-  window.webkit.messageHandlers.privacyDashboardSetHeight.postMessage(height);
+
 });
 module.exports = {
   fetch: fetch,
