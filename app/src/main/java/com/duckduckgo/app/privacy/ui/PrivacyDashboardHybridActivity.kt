@@ -19,18 +19,26 @@ package com.duckduckgo.app.privacy.ui
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.duckduckgo.anvil.annotations.InjectWith
 import com.duckduckgo.app.browser.databinding.ActivityPrivacyHybridDashboardBinding
+import com.duckduckgo.app.browser.webview.enableDarkMode
+import com.duckduckgo.app.browser.webview.enableLightMode
 import com.duckduckgo.app.global.DuckDuckGoActivity
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.ViewState
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.tabs.model.TabRepository
 import com.duckduckgo.app.tabs.tabId
 import com.duckduckgo.di.scopes.ActivityScope
+import com.duckduckgo.mobile.android.ui.DuckDuckGoTheme
 import com.duckduckgo.mobile.android.ui.viewbinding.viewBinding
 import com.squareup.moshi.Moshi
 import timber.log.Timber
@@ -73,6 +81,7 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
         with(webView.settings) {
             builtInZoomControls = false
             javaScriptEnabled = true
+            configureDarkThemeSupport(this)
         }
 
         webView.webViewClient = object : WebViewClient() {
@@ -99,8 +108,57 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
                 setupObservers()
             }
         }
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onJsAlert(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult?
+            ): Boolean {
+                Timber.i("PDHy: onJsAlert")
+                return super.onJsAlert(view, url, message, result)
+            }
+
+            override fun onJsConfirm(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult?
+            ): Boolean {
+                Timber.i("PDHy: onJsConfirm")
+                return super.onJsConfirm(view, url, message, result)
+            }
+
+            override fun onJsPrompt(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                defaultValue: String?,
+                result: JsPromptResult?
+            ): Boolean {
+                Timber.i("PDHy: onJsPrompt")
+                return super.onJsPrompt(view, url, message, defaultValue, result)
+            }
+        }
 
         webView.addJavascriptInterface(PrivacyDashboardJavascriptInterface(), PrivacyDashboardJavascriptInterface.JAVASCRIPT_INTERFACE_NAME)
+    }
+
+    private fun configureDarkThemeSupport(webSettings: WebSettings) {
+        when (themingDataStore.theme) {
+            DuckDuckGoTheme.LIGHT -> webSettings.enableLightMode()
+            DuckDuckGoTheme.DARK -> webSettings.enableDarkMode()
+            DuckDuckGoTheme.SYSTEM_DEFAULT -> {
+                val currentNightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
+                    Timber.i("PDHy: trying night mode")
+                    webSettings.enableDarkMode()
+                } else {
+                    Timber.i("PDHy: trying light mode")
+                    webSettings.enableLightMode()
+                }
+            }
+        }
     }
 
     private fun setupObservers() {
