@@ -57,6 +57,19 @@
                     android:paddingStart="6dp"
                     android:paddingEnd="6dp">
 
+                        <com.airbnb.lottie.LottieAnimationView
+                            android:id="@+id/trackersAnimation"
+                            android:paddingStart="10dp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:scaleType="centerCrop"
+                            android:importantForAccessibility="no"
+                            app:lottie_imageAssetsFolder="images"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="@id/omnibarIconContainer"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:lottie_loop="true" />
+
                         <androidx.constraintlayout.widget.ConstraintLayout
                             android:id="@+id/animationContainer"
                             android:paddingStart="10dp"
