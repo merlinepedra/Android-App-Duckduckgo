@@ -345,8 +345,8 @@ class BrowserTabFragment :
         viewModel
     }
 
-    private val animatorHelper by lazy { BrowserLottieTrackersAnimatorHelper() }
-    private val animatorHelper2 by lazy { BrowserTrackersAnimatorHelper() }
+    private val animatorHelper by lazy { BrowserTrackersAnimatorHelper() }
+    private val animatorHelper2 by lazy { BrowserLottieTrackersAnimatorHelper() }
 
     private val smoothProgressAnimator by lazy { SmoothProgressAnimator(pageLoadingIndicator) }
 
@@ -2375,8 +2375,8 @@ class BrowserTabFragment :
                     val events = site?.orderedTrackingEntities()
 
                     activity?.let { activity ->
-                        animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, trackersAnimation, omnibarViews(), events)
-                        animatorHelper2.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
+                        animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
+                        animatorHelper2.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, trackersAnimation, omnibarViews(), events)
                     }
                 }
             }
