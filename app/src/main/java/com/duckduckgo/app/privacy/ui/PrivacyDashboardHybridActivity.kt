@@ -28,11 +28,17 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.lifecycle.Lifecycle.State.STARTED
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.duckduckgo.anvil.annotations.InjectWith
+import com.duckduckgo.app.brokensite.BrokenSiteActivity
 import com.duckduckgo.app.browser.databinding.ActivityPrivacyHybridDashboardBinding
 import com.duckduckgo.app.browser.webview.enableDarkMode
 import com.duckduckgo.app.browser.webview.enableLightMode
 import com.duckduckgo.app.global.DuckDuckGoActivity
+import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command
+import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command.LaunchReportBrokenSite
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.ViewState
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.tabs.model.TabRepository
@@ -41,6 +47,8 @@ import com.duckduckgo.di.scopes.ActivityScope
 import com.duckduckgo.mobile.android.ui.DuckDuckGoTheme
 import com.duckduckgo.mobile.android.ui.viewbinding.viewBinding
 import com.squareup.moshi.Moshi
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -68,12 +76,26 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
         setContentView(binding.root)
         setupClickListeners()
         configureWebView()
-        Timber.i("")
+        Timber.i("PDHy: onCreate")
         webView.loadUrl("file:///android_asset/html/popup.html")
         repository.retrieveSiteData(intent.tabId!!).observe(
             this
         ) {
             viewModel.onSiteChanged(it)
+        }
+
+        lifecycleScope.launch {
+            viewModel.commands()
+                .flowWithLifecycle(lifecycle, STARTED)
+                .collectLatest { processCommands(it) }
+        }
+    }
+
+    private fun processCommands(it: Command) {
+        when (it) {
+            is LaunchReportBrokenSite -> {
+                startActivity(BrokenSiteActivity.intent(this, it.data))
+            }
         }
     }
 
@@ -141,7 +163,13 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
             }
         }
 
-        webView.addJavascriptInterface(PrivacyDashboardJavascriptInterface(), PrivacyDashboardJavascriptInterface.JAVASCRIPT_INTERFACE_NAME)
+        webView.addJavascriptInterface(
+            PrivacyDashboardJavascriptInterface(
+                onBrokenSiteClicked = { viewModel.onReportBrokenSiteSelected() },
+                onClose = { finish() }
+            ),
+            PrivacyDashboardJavascriptInterface.JAVASCRIPT_INTERFACE_NAME
+        )
     }
 
     private fun configureDarkThemeSupport(webSettings: WebSettings) {

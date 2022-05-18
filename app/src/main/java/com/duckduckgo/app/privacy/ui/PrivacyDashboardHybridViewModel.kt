@@ -23,6 +23,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.duckduckgo.anvil.annotations.ContributesViewModel
+import com.duckduckgo.app.brokensite.BrokenSiteData
 import com.duckduckgo.app.di.AppCoroutineScope
 import com.duckduckgo.app.global.DispatcherProvider
 import com.duckduckgo.app.global.model.Site
@@ -30,12 +31,17 @@ import com.duckduckgo.app.pixels.AppPixelName.PRIVACY_DASHBOARD_OPENED
 import com.duckduckgo.app.privacy.db.NetworkLeaderboardDao
 import com.duckduckgo.app.privacy.db.NetworkLeaderboardEntry
 import com.duckduckgo.app.privacy.db.UserWhitelistDao
+import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command.LaunchReportBrokenSite
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.trackerdetection.model.TdsEntity
 import com.duckduckgo.app.trackerdetection.model.TrackingEvent
 import com.duckduckgo.di.scopes.ActivityScope
 import com.duckduckgo.privacy.config.api.ContentBlocking
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -47,9 +53,16 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     private val contentBlocking: ContentBlocking,
     networkLeaderboardDao: NetworkLeaderboardDao,
     private val pixel: Pixel,
+    private val dispatcher: DispatcherProvider,
     @AppCoroutineScope private val appCoroutineScope: CoroutineScope,
     private val dispatchers: DispatcherProvider
 ) : ViewModel() {
+
+    private val command = Channel<Command>(1, DROP_OLDEST)
+
+    sealed class Command {
+        class LaunchReportBrokenSite(val data: BrokenSiteData) : Command()
+    }
 
     data class ViewState(
         val url: String,
@@ -124,6 +137,16 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
         resetViewState()
         sitesVisited.observeForever(sitesVisitedObserver)
         trackerNetworkLeaderboard.observeForever(trackerNetworkActivityObserver)
+    }
+
+    fun commands(): Flow<Command> {
+        return command.receiveAsFlow()
+    }
+
+    fun onReportBrokenSiteSelected() {
+        viewModelScope.launch(dispatcher.io()) {
+            command.send(LaunchReportBrokenSite(BrokenSiteData.fromSite(site)))
+        }
     }
 
     @VisibleForTesting

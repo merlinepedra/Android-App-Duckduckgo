@@ -12732,6 +12732,10 @@ var fetch = function fetch(message) {
     return;
   }
 
+  if (message.showBreakageForm) {
+    window.PrivacyDashboard.showBreakageForm(); // Call as if this was an outside change. This will trigger events to
+  }
+
   if (message.toggleWhitelist) {
     var _isProtected = message.toggleWhitelist.value;
     window.PrivacyDashboard.toggleWhitelist(_isProtected); // Call as if this was an outside change. This will trigger events to
@@ -14086,6 +14090,11 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
     });
     return networks;
   },
+  showBreakageForm: function showBreakageForm() {
+    this.fetch({
+      showBreakageForm: true
+    });
+  },
   toggleWhitelist: function toggleWhitelist() {
     if (this.tab && this.tab.site) {
       this.isWhitelisted = !this.isWhitelisted;
@@ -14931,12 +14940,7 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
   },
   _onReportBrokenSiteClick: function _onReportBrokenSiteClick(e) {
     e.preventDefault();
-
-    if (this.model && this.model.disabled) {
-      return;
-    }
-
-    this.showBreakageForm('reportBrokenSite');
+    this.model.showBreakageForm();
   },
   // pass clickSource to specify whether page should reload
   // after submitting breakage form.
