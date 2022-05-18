@@ -12469,7 +12469,7 @@ module.exports = {
   "httpsMessages": {
     "secure": "Connection Is Secure",
     "upgraded": "Connection Is Secure",
-    "none": "Connection Could Not Be Secured"
+    "none": "Connection Is Not Secure"
   },
 
   /**
@@ -12592,14 +12592,221 @@ module.exports = {
 },{}],11:[function(require,module,exports){
 "use strict";
 
+var _common = require("./common.es6");
+
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+var convertTrackerDataPayload = function convertTrackerDataPayload(tabUrl, upgradedHttps, whitelisted, data) {
+  var trackers = data.trackers || {};
+  var trackersBlocked = data.trackerBlocked || {};
+  var tabDomain = new URL(tabUrl).host.replace(/^www\./, '');
+  return {
+    url: tabUrl,
+    status: 'complete',
+    upgradedHttps: upgradedHttps,
+    site: {
+      url: tabUrl,
+      domain: tabDomain,
+      whitelisted: whitelisted
+    },
+    trackers: trackers,
+    trackersBlocked: trackersBlocked
+  };
+};
+
+var channel = null;
+
+var backgroundMessage = function backgroundMessage(backgroundModel) {
+  channel = backgroundModel;
+};
+
+var setColorScheme = (0, _common.setupColorScheme)();
+var getBackgroundTabDataPromises = [];
+var trackerBlockingData;
+var permissionsData;
+var certificateData;
+var upgradedHttps;
+var isProtected;
+var isPendingUpdates;
+var parentEntity;
+var consentManaged;
+
+var combineSources = function combineSources() {
+  return Object.assign({
+    isPendingUpdates: isPendingUpdates,
+    parentEntity: parentEntity,
+    consentManaged: consentManaged
+  }, trackerBlockingData || {}, permissionsData ? {
+    permissions: permissionsData
+  } : {}, certificateData ? {
+    certificate: certificateData
+  } : {});
+};
+
+var resolveInitialRender = function resolveInitialRender() {
+  var _channel;
+
+  var isUpgradedHttpsSet = typeof upgradedHttps === 'boolean';
+  var isIsProtectedSet = typeof isProtected === 'boolean';
+  var isTrackerBlockingDataSet = _typeof(trackerBlockingData) === 'object';
+
+  if (!isUpgradedHttpsSet || !isIsProtectedSet || !isTrackerBlockingDataSet) {
+    return;
+  }
+
+  getBackgroundTabDataPromises.forEach(function (resolve) {
+    return resolve(combineSources());
+  });
+  (_channel = channel) === null || _channel === void 0 ? void 0 : _channel.send('updateTabData');
+}; // Change handlers
+// -----------------------------------------------------------------------------
+
+
+window.onChangeTheme = function (themeName) {
+  setColorScheme(themeName);
+};
+
+window.onChangeTrackerBlockingData = function (tabUrl, rawTrackerBlockingData) {
+  trackerBlockingData = convertTrackerDataPayload(tabUrl, upgradedHttps, !isProtected, rawTrackerBlockingData);
+  resolveInitialRender();
+};
+
+window.onChangeAllowedPermissions = function (data) {
+  var _channel2;
+
+  permissionsData = data;
+  (_channel2 = channel) === null || _channel2 === void 0 ? void 0 : _channel2.send('updateTabData');
+};
+
+window.onChangeUpgradedHttps = function (data) {
+  upgradedHttps = data;
+  if (trackerBlockingData) trackerBlockingData.upgradedHttps = upgradedHttps;
+  resolveInitialRender();
+};
+
+window.onChangeProtectionStatus = function (data) {
+  isProtected = data;
+  if (trackerBlockingData) trackerBlockingData.site.whitelisted = !isProtected;
+  resolveInitialRender();
+};
+
+window.onChangeCertificateData = function (data) {
+  var _channel3;
+
+  certificateData = data.secCertificateViewModels;
+  (_channel3 = channel) === null || _channel3 === void 0 ? void 0 : _channel3.send('updateTabData');
+};
+
+window.onIsPendingUpdates = function (data) {
+  var _channel4;
+
+  isPendingUpdates = data;
+  (_channel4 = channel) === null || _channel4 === void 0 ? void 0 : _channel4.send('updateTabData');
+};
+
+window.onChangeParentEntity = function (data) {
+  var _channel5;
+
+  parentEntity = data;
+  (_channel5 = channel) === null || _channel5 === void 0 ? void 0 : _channel5.send('updateTabData');
+};
+
+window.onChangeConsentManaged = function (data) {
+  var _channel6;
+
+  consentManaged = data;
+  (_channel6 = channel) === null || _channel6 === void 0 ? void 0 : _channel6.send('updateTabData');
+}; // -----------------------------------------------------------------------------
+
+
+function getAdditionalParams() {
+  var browser = 'macos_desktop';
+  var queryStringParams = {};
+  var result = [browser, queryStringParams];
+  return result;
+}
+
+var fetch = function fetch(message) {
+  if (!window.PrivacyDashboard) {
+    console.error('window.PrivacyDashboard not available');
+    return;
+  }
+
+  if (message.toggleWhitelist) {
+    var _isProtected = message.toggleWhitelist.value;
+    window.PrivacyDashboard.toggleWhitelist(_isProtected); // Call as if this was an outside change. This will trigger events to
+    // have all models re-request data from background state.
+
+    window.onChangeProtectionStatus(_isProtected);
+  }
+
+  if (message.updatePermission) {
+    window.PrivacyDashboard.updatePermission({
+      permission: message.updatePermission.id,
+      value: message.updatePermission.value
+    });
+  }
+
+  if (message.closePrivacyDashboard) {
+    window.PrivacyDashboard.close();
+  }
+
+  if (message.firePixel) {
+    var pixelName = message.firePixel[0]; // Only allow broken site reports
+
+    if (pixelName !== 'epbf') return;
+    var args = message.firePixel.slice(1).concat(getAdditionalParams());
+    var paramString = (0, _common.concatParams)(args); // Pass to native to send request
+
+    window.PrivacyDashboard.firePixel("".concat(pixelName).concat(paramString));
+  }
+};
+
+var getBackgroundTabData = function getBackgroundTabData() {
+  return new Promise(function (resolve) {
+    if (trackerBlockingData) {
+      resolve(combineSources());
+      return;
+    }
+
+    getBackgroundTabDataPromises.push(resolve);
+  });
+};
+
+module.exports = {
+  fetch: fetch,
+  backgroundMessage: backgroundMessage,
+  getBackgroundTabData: getBackgroundTabData
+};
+
+},{"./common.es6":12}],12:[function(require,module,exports){
+"use strict";
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.concatParams = concatParams;
 exports.setupMutationObserver = setupMutationObserver;
+exports.setupColorScheme = setupColorScheme;
 exports.getContentHeight = exports.convertTrackerDataPayload = void 0;
 
+var _oppositeTheme;
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+var getHostname = function getHostname(url) {
+  if (url.indexOf('//') === 0) {
+    url = "http:".concat(url);
+  }
+
+  try {
+    return new URL(url).hostname;
+  } catch (e) {
+    return null;
+  }
+};
 
 var convertTrackers = function convertTrackers(trackerList) {
   return trackerList.reduce(function (mapping, tracker) {
@@ -12614,7 +12821,8 @@ var convertTrackers = function convertTrackers(trackerList) {
       };
     }
 
-    var urlKey = new URL(tracker.url).hostname;
+    var urlKey = getHostname(tracker.url);
+    if (!urlKey) return mapping;
     mapping[key].urls[urlKey] = {
       isBlocked: tracker.blocked,
       categories: tracker.knownTracker.categories
@@ -12625,10 +12833,10 @@ var convertTrackers = function convertTrackers(trackerList) {
 };
 
 var convertTrackerDataPayload = function convertTrackerDataPayload(tabUrl, upgradedHttps, whitelisted, data) {
-  var trackers = data.trackers;
-  var trackersBlocked = data.trackersBlocked;
+  var allTrackers = data.trackersDetected.concat(data.trackersBlocked);
+  var trackers = convertTrackers(allTrackers);
+  var trackersBlocked = convertTrackers(data.trackersBlocked);
   var tabDomain = new URL(tabUrl).host.replace(/^www\./, '');
-  console.error('reached 1');
   return {
     url: tabUrl,
     status: 'complete',
@@ -12698,176 +12906,55 @@ function setupMutationObserver(callback) {
   mutationObserver.observe(window.document, config);
 }
 
-},{}],12:[function(require,module,exports){
-"use strict";
+var DARK_THEME = 'dark';
+var LIGHT_THEME = 'light';
+var explicitlySetTheme = '';
+var detectedTheme = LIGHT_THEME;
+var oppositeTheme = (_oppositeTheme = {}, _defineProperty(_oppositeTheme, LIGHT_THEME, DARK_THEME), _defineProperty(_oppositeTheme, DARK_THEME, LIGHT_THEME), _oppositeTheme);
 
-module.exports = require('./macos-communication.es6.js');
-
-},{"./macos-communication.es6.js":13}],13:[function(require,module,exports){
-"use strict";
-
-var _common = require("./common.es6");
-
-function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-var channel = null;
-
-var backgroundMessage = function backgroundMessage(backgroundModel) {
-  channel = backgroundModel;
-};
-
-var getBackgroundTabDataPromises = [];
-var trackerBlockingData;
-var permissionsData;
-var certificateData;
-var upgradedHttps;
-var isProtected;
-var isPendingUpdates;
-var parentEntity;
-var consentManaged;
-
-var combineSources = function combineSources() {
-  return Object.assign({
-    isPendingUpdates: isPendingUpdates,
-    parentEntity: parentEntity,
-    consentManaged: consentManaged
-  }, trackerBlockingData || {}, permissionsData ? {
-    permissions: permissionsData
-  } : {}, certificateData ? {
-    certificate: certificateData
-  } : {});
-};
-
-var resolveInitialRender = function resolveInitialRender() {
-  var _channel;
-
-  var isUpgradedHttpsSet = typeof upgradedHttps === 'boolean';
-  var isIsProtectedSet = typeof isProtected === 'boolean';
-  var isTrackerBlockingDataSet = _typeof(trackerBlockingData) === 'object';
-
-  console.error('reached 3');
-  console.error('assess: ' + isUpgradedHttpsSet + ' ' + isIsProtectedSet + ' ' + isTrackerBlockingDataSet);
-  if (!isUpgradedHttpsSet || !isIsProtectedSet || !isTrackerBlockingDataSet) {
-    return;
-  }
-  console.error('reached 4');
-  getBackgroundTabDataPromises.forEach(function (resolve) {
-    return resolve(combineSources());
-  });
-  (_channel = channel) === null || _channel === void 0 ? void 0 : _channel.send('updateTabData');
-}; // Change handlers
-// -----------------------------------------------------------------------------
-
-
-window.onChangeTrackerBlockingData = function (tabUrl, rawTrackerBlockingData) {
-  trackerBlockingData = (0, _common.convertTrackerDataPayload)(tabUrl, upgradedHttps, !isProtected, rawTrackerBlockingData);
-  console.error('reached 2');
-  resolveInitialRender();
-};
-
-window.onChangeAllowedPermissions = function (data) {
-  var _channel2;
-
-  permissionsData = data;
-  (_channel2 = channel) === null || _channel2 === void 0 ? void 0 : _channel2.send('updateTabData');
-};
-
-window.onChangeUpgradedHttps = function (data) {
-  upgradedHttps = data;
-  if (trackerBlockingData) trackerBlockingData.upgradedHttps = upgradedHttps;
-  resolveInitialRender();
-};
-
-window.onChangeProtectionStatus = function (data) {
-  isProtected = data;
-  if (trackerBlockingData) trackerBlockingData.site.whitelisted = !isProtected;
-  resolveInitialRender();
-};
-
-window.onChangeCertificateData = function (data) {
-  var _channel3;
-
-  certificateData = data.secCertificateViewModels;
-  (_channel3 = channel) === null || _channel3 === void 0 ? void 0 : _channel3.send('updateTabData');
-};
-
-window.onIsPendingUpdates = function (data) {
-  var _channel4;
-
-  isPendingUpdates = data;
-  (_channel4 = channel) === null || _channel4 === void 0 ? void 0 : _channel4.send('updateTabData');
-};
-
-window.onChangeParentEntity = function (data) {
-  var _channel5;
-
-  parentEntity = data;
-  (_channel5 = channel) === null || _channel5 === void 0 ? void 0 : _channel5.send('updateTabData');
-};
-
-window.onChangeConsentManaged = function (data) {
-  var _channel6;
-
-  consentManaged = data;
-  (_channel6 = channel) === null || _channel6 === void 0 ? void 0 : _channel6.send('updateTabData');
-}; // -----------------------------------------------------------------------------
-
-
-function getAdditionalParams() {
-  var browser = 'macos_desktop';
-  var queryStringParams = {};
-  var result = [browser, queryStringParams];
-  return result;
+function swapThemeTo(theme) {
+  document.body.classList.remove("body--theme-".concat(oppositeTheme[theme]));
+  document.body.classList.add("body--theme-".concat(theme));
 }
 
-var fetch = function fetch(message) {
-  if (message.toggleWhitelist) {
-    var _isProtected = message.toggleWhitelist.value;
-    PrivacyDashboard.toggleWhitelist(_isProtected); // Call as if this was an outside change. This will trigger events to
-    // have all models re-request data from background state.
+function updateTheme() {
+  if (explicitlySetTheme) {
+    swapThemeTo(explicitlySetTheme);
+  } else {
+    swapThemeTo(detectedTheme);
+  }
+}
 
-    window.onChangeProtectionStatus(_isProtected);
+function setupColorScheme() {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    detectedTheme = DARK_THEME;
   }
 
-  if (message.updatePermission) {
-    PrivacyDashboard.updatePermission({
-      permission: message.updatePermission.id,
-      value: message.updatePermission.value
-    });
-  }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (event) {
+    detectedTheme = event.matches ? DARK_THEME : LIGHT_THEME;
+    updateTheme();
+  });
+  updateTheme();
+  return function () {
+    var theme = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+    theme = theme.trim().toLowerCase();
 
-  if (message.firePixel) {
-    var pixelName = message.firePixel[0]; // Only allow broken site reports
-
-    if (pixelName !== 'epbf') return;
-    var args = message.firePixel.slice(1).concat(getAdditionalParams());
-    var paramString = (0, _common.concatParams)(args); // Pass to native to send request
-
-    PrivacyDashboard.firePixel("".concat(pixelName).concat(paramString));
-  }
-};
-
-var getBackgroundTabData = function getBackgroundTabData() {
-  return new Promise(function (resolve) {
-    if (trackerBlockingData) {
-      resolve(combineSources());
-      return;
+    if (theme === LIGHT_THEME || theme === DARK_THEME) {
+      explicitlySetTheme = theme;
+    } else {
+      explicitlySetTheme = '';
     }
 
-    getBackgroundTabDataPromises.push(resolve);
-  });
-};
+    updateTheme();
+  };
+}
 
-(0, _common.setupMutationObserver)(function (height) {
+},{}],13:[function(require,module,exports){
+"use strict";
 
-});
-module.exports = {
-  fetch: fetch,
-  backgroundMessage: backgroundMessage,
-  getBackgroundTabData: getBackgroundTabData
-};
+module.exports = require('./android-communication.es6.js');
 
-},{"./common.es6":11}],14:[function(require,module,exports){
+},{"./android-communication.es6.js":11}],14:[function(require,module,exports){
 "use strict";
 
 // create global $
@@ -13098,7 +13185,7 @@ BaseModel.prototype = $.extend({}, mixins.events, {
 });
 module.exports = BaseModel;
 
-},{"../../browser/communication.es6.js":12,"./mixins/index.es6.js":16,"./store.es6.js":20,"jquery":8}],18:[function(require,module,exports){
+},{"../../browser/communication.es6.js":13,"./mixins/index.es6.js":16,"./store.es6.js":20,"jquery":8}],18:[function(require,module,exports){
 "use strict";
 
 /**
@@ -13653,7 +13740,7 @@ BackgroundMessage.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = BackgroundMessage;
 
-},{"../../browser/communication.es6.js":12}],23:[function(require,module,exports){
+},{"../../browser/communication.es6.js":13}],23:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -13778,7 +13865,7 @@ SiteCompanyList.prototype = window.$.extend({}, Parent.prototype, normalizeCompa
 });
 module.exports = SiteCompanyList;
 
-},{"../../browser/communication.es6.js":12,"./mixins/normalize-company-name.es6":23}],25:[function(require,module,exports){
+},{"../../browser/communication.es6.js":13,"./mixins/normalize-company-name.es6":23}],25:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Model;
@@ -14112,11 +14199,16 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
     this.fetch({
       firePixel: pixelParams
     });
+  },
+  close: function close() {
+    this.fetch({
+      closePrivacyDashboard: true
+    });
   }
 });
 module.exports = Site;
 
-},{"../../../data/constants":10,"../../browser/communication.es6.js":12}],26:[function(require,module,exports){
+},{"../../../data/constants":10,"../../browser/communication.es6.js":13}],26:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Page;
@@ -14204,14 +14296,12 @@ function shuffle(arr) {
 function renderHero() {
   return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["", ""])), hero({
     status: 'breakage-form',
-    title: 'Report Broken Site',
-    showClose: true,
     className: 'js-breakage-form-close'
   }));
 }
 
 module.exports = function () {
-  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["<div class=\"breakage-form js-breakage-form\">\n        ", "\n        <div class=\"breakage-form__content\">\n            <div class=\"breakage-form__element js-breakage-form-element\">\n                <div class=\"breakage-form__explanation\">\n                    Select the option that best describes the problem you experienced.\n                </div>\n                <div class=\"form__group\">\n                    <div class=\"form__select breakage-form__input--dropdown\">\n                        <select class=\"js-breakage-form-dropdown\">\n                            <option value=''>Pick your issue from the list...</option>\n                            ", "\n                            <option value='Other'>Something else</option>\n                        </select>\n                    </div>\n                    <textarea class=\"form__textarea js-breakage-form-description\" placeholder=\"If you'd like, tell us about the problem you experienced\"></textarea>\n                    <button class=\"form__submit js-breakage-form-submit\" role=\"button\">Send report</button>\n                </div>\n                <div class=\"breakage-form__footer\">\n                    Reports sent to DuckDuckGo are 100% anonymous and only include your selection above, your optional description, the URL, and a list of trackers we found on the site.\n                </div>\n            </div>\n            <div class=\"breakage-form__message js-breakage-form-message is-transparent\">\n                <h2 class=\"breakage-form__success--title\">Thank you!</h2>\n                <div class=\"breakage-form__success--message\">Your report will help improve the browser and make the experience better for other people.</div>\n            </div>\n        </div>\n    </div>"])), renderHero(), shuffle(categories).map(function (item) {
+  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["<section class=\"sliding-subview\">\n        <div class=\"breakage-form js-breakage-form\">\n        ", "\n        <div class=\"breakage-form__content\">\n            <div class=\"breakage-form__element js-breakage-form-element\">\n                <div class=\"breakage-form__explanation\">\n                    Select the option that best describes the problem you experienced.\n                </div>\n                <div class=\"form__group\">\n                    <div class=\"form__select breakage-form__input--dropdown\">\n                        <select class=\"js-breakage-form-dropdown\">\n                            <option value=''>Pick your issue from the list...</option>\n                            ", "\n                            <option value='Other'>Something else</option>\n                        </select>\n                    </div>\n                    <textarea class=\"form__textarea js-breakage-form-description\" placeholder=\"If you'd like, tell us about the problem you experienced\"></textarea>\n                    <button class=\"form__submit js-breakage-form-submit\" role=\"button\">Send report</button>\n                </div>\n                <div class=\"breakage-form__footer\">\n                    Reports sent to DuckDuckGo are 100% anonymous and only include your selection above, your optional description, the URL, and a list of trackers we found on the site.\n                </div>\n            </div>\n            <div class=\"breakage-form__message js-breakage-form-message is-transparent\">\n                <h2 class=\"breakage-form__success--title\">Thank you!</h2>\n                <div class=\"breakage-form__success--message\">Your report will help improve our products and make the experience better for other people.</div>\n            </div>\n        </div>\n    </div>\n    </section>"])), renderHero(), shuffle(categories).map(function (item) {
     return bel(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["<option value=", ">", "</option>"])), item.value, item.category);
   }));
 };
@@ -14219,7 +14309,7 @@ module.exports = function () {
 },{"./shared/hero.es6.js":29,"bel":2}],28:[function(require,module,exports){
 "use strict";
 
-var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7;
+var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9;
 
 function _taggedTemplateLiteral(strings, raw) { if (!raw) { raw = strings.slice(0); } return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
@@ -14232,7 +14322,7 @@ module.exports = function () {
     return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["<section class=\"sliding-subview\"></section>"])));
   }
 
-  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["<div class=\"tracker-networks site-info card\">\n        <div class=\"js-tracker-networks-hero\">\n            ", "\n        </div>\n        <div class=\"tracker-networks__explainer text--center\">\n            ", "\n        </div>\n        <div class=\"padded\">\n            <div class=\"certificate-header border-light--bottom--inner border-light--top--inner\">\n                ", "\n            </div>\n        </div>\n        ", "\n    </div>"])), renderHero(this.model.site), renderConnectionDescription(this.model), renderHeader(this.model), renderCertificateDetails(this.model));
+  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["<div class=\"tracker-networks site-info card\">\n        <div class=\"js-tracker-networks-hero\">\n            ", "\n        </div>\n        <div class=\"tracker-networks__explainer text--center\">\n            ", "\n        </div>\n        <div class=\"padded\">\n            ", "\n        </div>\n        ", "\n    </div>"])), renderHero(this.model.site), renderConnectionDescription(this.model), renderHeader(this.model), renderCertificateDetails(this.model));
 };
 
 function getKeyUsage(key) {
@@ -14254,7 +14344,7 @@ function getKeyUsage(key) {
 }
 
 function renderCertificateDetails(model) {
-  if (!model.tab.certificate || model.tab.certificate.length === 0) return '';
+  if (model.site.httpsState === 'none' || !model.tab.certificate || model.tab.certificate.length === 0) return '';
   var certificate = model.tab.certificate[0];
   return bel(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["\n        <div class=\"page-connection__certificate\">\n            <div class=\"page-connection__certificate-details border--bottom-light--inner\">\n                <h3>Security Certificate Detail</h3>\n                <div>\n                    <span>Common Name</span>\n                    <span class=\"page-connection__certificate-value\">", "</span>\n                </div>\n                ", "\n            </div>\n            <div class=\"page-connection__certificate-details\">\n                <h3>Public Key</h3>\n                <div>\n                    <span>Algorithm</span>\n                    <span class=\"page-connection__certificate-value\">", "</span>\n                </div>\n                <div>\n                    <span>Key Size</span>\n                    <span class=\"page-connection__certificate-value\">", " bits</span>\n                </div>\n                ", "\n                <div>\n                    <span>Usage</span>\n                    <span class=\"page-connection__certificate-value\">", "</span>\n                </div>\n                ", "\n            </div>\n        </div>\n    "])), certificate.commonName, renderCertificateSummary(certificate), certificate.publicKey.type, certificate.publicKey.bitSize, renderCertificateEffectiveSize(certificate), getKeyUsage(certificate.publicKey), renderCertificateIsPermanent(certificate));
 }
@@ -14275,8 +14365,11 @@ function renderCertificateEffectiveSize(certificate) {
 }
 
 function renderHeader(model) {
-  if (model.site.httpsState === 'none') return 'Certificate not found';
-  return "Certificate for ".concat(model.domain);
+  if (model.site.httpsState === 'none') {
+    return bel(_templateObject7 || (_templateObject7 = _taggedTemplateLiteral(["<div class=\"certificate-header certificate-header--not-found border-light--bottom--inner border-light--top--inner\">\n            Certificate Not Found\n        </div>"])));
+  }
+
+  return bel(_templateObject8 || (_templateObject8 = _taggedTemplateLiteral(["<div class=\"certificate-header border-light--bottom--inner border-light--top--inner\">\n        Certificate for ", "\n    </div>"])), model.domain);
 }
 
 function renderConnectionDescription(model) {
@@ -14293,32 +14386,23 @@ function renderConnectionDescription(model) {
 
 function renderHero(site) {
   site = site || {};
-  return bel(_templateObject7 || (_templateObject7 = _taggedTemplateLiteral(["", ""])), hero({
-    status: "connection-".concat(site.httpsState),
-    title: 'Connection',
-    showClose: true
+  return bel(_templateObject9 || (_templateObject9 = _taggedTemplateLiteral(["", ""])), hero({
+    status: "connection-".concat(site.httpsState)
   }));
 }
 
 },{"./shared/hero.es6.js":29,"bel":2}],29:[function(require,module,exports){
 "use strict";
 
-var _templateObject, _templateObject2;
+var _templateObject;
 
 function _taggedTemplateLiteral(strings, raw) { if (!raw) { raw = strings.slice(0); } return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
 var bel = require('bel');
 
 module.exports = function (ops) {
-  var slidingSubviewClass = ops.showClose ? 'js-sliding-subview-close' : '';
-  return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n        <div>\n            <div class=\"hero text--center border--bottom ", " ", "\">\n                ", "\n                <h1 class=\"hero__title\">", "</h1>\n            </div>\n            <div class=\"hero__icon hero__icon--", "\"></div>\n        </div>\n    "])), slidingSubviewClass, ops.className || '', renderOpenOrCloseButton(ops.showClose), ops.title, ops.status);
+  return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n        <div class=\"hero-wrapper\">\n            <div class=\"hero text--center ", "\">\n                <a href=\"javascript:void(0)\"\n                    class=\"hero__close js-sliding-subview-close js-site-done\"\n                    role=\"button\"\n                    aria-label=\"Go back\"\n                >\n                    <span class=\"icon icon__back-arrow\"></span>\n                </a>\n                <a href=\"javascript:void(0)\"\n                    class=\"hero__done js-sliding-subview-done js-site-done link-action\"\n                    role=\"button\"\n                >\n                    Done\n                </a>\n            </div>\n             <div class=\"hero__icon hero__icon--", "\"></div>\n        </div>\n    "])), ops.className || '', ops.status);
 };
-
-function renderOpenOrCloseButton(isCloseButton) {
-  var openOrClose = isCloseButton ? 'close' : 'open';
-  var arrowIconClass = isCloseButton ? 'icon__back-arrow' : '';
-  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["\n        <a href=\"javascript:void(0)\"\n            class=\"hero__", "\"\n            role=\"button\"\n            aria-label=\"", "\"\n        >\n            <span class=\"icon ", "\"></span>\n        </a>\n    "])), openOrClose, isCloseButton ? 'Go back' : 'More details', arrowIconClass);
-}
 
 },{"bel":2}],30:[function(require,module,exports){
 "use strict";
@@ -14446,7 +14530,7 @@ module.exports = {
 },{}],34:[function(require,module,exports){
 "use strict";
 
-var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9, _templateObject10, _templateObject11, _templateObject12, _templateObject13, _templateObject14, _templateObject15, _templateObject16, _templateObject17, _templateObject18, _templateObject19, _templateObject20, _templateObject21, _templateObject22, _templateObject23, _templateObject24, _templateObject25;
+var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9, _templateObject10, _templateObject11, _templateObject12, _templateObject13, _templateObject14, _templateObject15, _templateObject16, _templateObject17, _templateObject18, _templateObject19, _templateObject20, _templateObject21, _templateObject22, _templateObject23, _templateObject24, _templateObject25, _templateObject26;
 
 function _taggedTemplateLiteral(strings, raw) { if (!raw) { raw = strings.slice(0); } return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
@@ -14455,6 +14539,8 @@ var bel = require('bel');
 var _require = require('../models/mixins/normalize-company-name.es6.js'),
     normalizeCompanyName = _require.normalizeCompanyName;
 
+var hero = require('./shared/hero.es6.js');
+
 var toggleButton = require('./shared/toggle-button.es6.js');
 
 var trackerNetworksIcon = require('./shared/tracker-network-icon.es6.js');
@@ -14462,56 +14548,30 @@ var trackerNetworksIcon = require('./shared/tracker-network-icon.es6.js');
 var trackerNetworksText = require('./shared/tracker-networks-text.es6.js');
 
 var _require2 = require('./shared/utils.es6.js'),
-    isSiteWithOnlyOwnTrackers = _require2.isSiteWithOnlyOwnTrackers,
     getColorId = _require2.getColorId;
 
 var renderUpdatingSpinner = function renderUpdatingSpinner() {
   return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["<img src=\"../img/spinner.svg\" style=\"height: 18px; width: 18px;\" alt=\"Updating protection list\" />"])));
 };
 
+function renderHero() {
+  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["", ""])), hero({
+    status: 'hidden'
+  }));
+}
+
 module.exports = function () {
-  var protectionStatus = this.model.isWhitelisted ? bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["<span>Protections have been <b>DISABLED</b></span>"]))) : bel(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["<span>Protections are <b>ENABLED</b> for this site</span>"])));
+  var protectionStatus = this.model.isWhitelisted ? bel(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["<span>Protections are <b>OFF</b> for this site</span>"]))) : bel(_templateObject4 || (_templateObject4 = _taggedTemplateLiteral(["<span>Protections are <b>ON</b> for this site</span>"])));
   var protectionToggle = this.model.tab.isPendingUpdates ? renderUpdatingSpinner() : toggleButton(!this.model.isWhitelisted, 'js-site-toggle pull-right');
-  return bel(_templateObject4 || (_templateObject4 = _taggedTemplateLiteral(["<div class=\"site-info site-info--main\">\n    <div class=\"popover-title border--bottom\">\n        <h1>", "</h1>\n    </div>\n    <ul class=\"default-list card-list\">\n        <li class=\"site-info__li--toggle padded ", "\">\n            <p class=\"site-info__protection js-site-protection\">", "</p>\n            <div class=\"site-info__toggle-container\">", "</div>\n        </li>\n        ", "\n        <li class=\"js-site-tracker-networks js-site-show-page-trackers site-info__li--trackers padded border-light--top\">\n            <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                ", "\n            </a>\n        </li>\n        <li class=\"js-site-show-page-connection site-info__li--https-status padded border-light--top\">\n            <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                ", "\n            </a>\n        </li>\n       ", "\n    </ul>\n    <ul class=\"default-list\">\n        <li class=\"site-info__li--manage-permissions\">\n            ", "\n        </li>\n    </ul>\n    <ul class=\"default-list\">\n        <li class=\"js-site-manage-whitelist-li site-info__li--manage-whitelist\">\n            ", "\n        </li>\n    </ul>\n</div>"])), this.model.tab.site.domain, this.model.isWhitelisted ? '' : 'is-active', protectionStatus, protectionToggle, renderKeyInsight(this.model), renderTrackerNetworks(this.model), renderConnection(this.model), renderCookieConsentManaged(this.model), renderManagePermissions(this.model), renderManageWhitelist(this.model));
-
-  function renderConnectionDescription(model) {
-    if (model.httpsState === 'none') {
-      return 'Others may be able to intercept sensitive information you send on this page.';
-    }
-
-    if (model.httpsState === 'upgraded') {
-      return 'We upgraded the connection on this page to protect information you send in transit.';
-    }
-
-    return 'The connection on this page is secure to protect information you send in transit.';
-  }
+  return bel(_templateObject5 || (_templateObject5 = _taggedTemplateLiteral(["<div class=\"site-info site-info--main\">\n    ", "\n    <div class=\"list-wrapper\">\n        <ul class=\"default-list card-list\">\n            ", "\n        </ul>\n    </div>\n    <div class=\"list-wrapper\">\n        <ul class=\"default-list card-list card-list--bordered\">\n            <li class=\"js-site-tracker-networks js-site-show-page-trackers site-info__li--trackers\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    ", "\n                </a>\n            </li>\n            <li class=\"js-site-show-page-connection site-info__li--https-status border-light--top\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    ", "\n                </a>\n            </li>\n        ", "\n        </ul>\n    </div>\n    <div class=\"list-wrapper site-info__protection-wrapper\">\n        <ul class=\"default-list\">\n            <li class=\"site-info__li--toggle padded ", "\">\n                <p class=\"site-info__protection js-site-protection\">", "</p>\n                <div class=\"site-info__toggle-container\">", "</div>\n            </li>\n        </ul>\n    </div>\n    <div class=\"list-wrapper card-list--last\">\n        <ul class=\"default-list\">\n            <li class=\"js-site-manage-whitelist-li site-info__li--manage-whitelist\">\n                ", "\n            </li>\n        </ul>\n    </div>\n    <ul class=\"default-list\">\n        <li class=\"site-info__li--manage-permissions\">\n            ", "\n        </li>\n    </ul>\n</div>"])), renderHero(), renderKeyInsight(this.model), renderTrackerNetworks(this.model), renderConnection(this.model), renderCookieConsentManaged(this.model), this.model.isWhitelisted ? '' : 'is-active', protectionStatus, protectionToggle, renderManageWhitelist(this.model), renderManagePermissions(this.model));
 
   function renderConnection(model) {
-    return bel(_templateObject5 || (_templateObject5 = _taggedTemplateLiteral(["<div>\n            <div class=\"site-info__trackers\">\n                <span class=\"site-info__https-status__icon is-", "\"></span>\n                <span class=\"bold\"> ", " </span>\n                <span class=\"icon icon__arrow pull-right\"></span>\n            </div>\n            <div class=\"action-description\">\n                ", "\n            </div>\n        </div>"])), model.httpsState, model.httpsStatusText, renderConnectionDescription(model));
-  }
-
-  function renderTrackerNetworksSummary(model) {
-    var networksCount = model.totalTrackerNetworksCount;
-
-    if (networksCount === 0) {
-      return bel(_templateObject6 || (_templateObject6 = _taggedTemplateLiteral(["<div class=\"action-description\">\n                We didn't find any companies trying to track you on this page.\n            </div>"])));
-    }
-
-    if (isSiteWithOnlyOwnTrackers(model)) {
-      var _model$tab$parentEnti;
-
-      var name = ((_model$tab$parentEnti = model.tab.parentEntity) === null || _model$tab$parentEnti === void 0 ? void 0 : _model$tab$parentEnti.displayName) || model.tab.site.domain;
-      return bel(_templateObject7 || (_templateObject7 = _taggedTemplateLiteral(["<div class=\"action-description\">\n                We only found trackers owned by ", ", which we didn't block.\n            </div>"])), name);
-    }
-
-    var displayCount = model.isWhitelisted ? model.trackersCount : model.trackersBlockedCount;
-    var companyCount = model.isWhitelisted ? networksCount : Object.keys(model.tab.trackersBlocked).length;
-    return bel(_templateObject8 || (_templateObject8 = _taggedTemplateLiteral(["<div class=\"action-description\">\n            We\n            ", "\n            ", " known\n            ", "\n            from ", "\n            ", "\n            on this page.\n        </div>"])), model.isWhitelisted ? 'found' : 'blocked', displayCount, displayCount === 1 ? 'tracker' : 'trackers', companyCount, companyCount === 1 ? 'company' : 'companies');
+    return bel(_templateObject6 || (_templateObject6 = _taggedTemplateLiteral(["<div>\n            <div class=\"site-info__trackers\">\n                <span class=\"site-info__https-status__icon is-", "\"></span>\n                <span>", "</span>\n                <span class=\"icon icon__arrow pull-right\"></span>\n            </div>\n        </div>"])), model.httpsState, model.httpsStatusText);
   }
 
   function renderTrackerNetworks(model) {
     var isActive = !model.isWhitelisted ? 'is-active' : '';
-    return bel(_templateObject9 || (_templateObject9 = _taggedTemplateLiteral(["\n        <div>\n            <div class=\"site-info__trackers\">\n                <span class=\"site-info__trackers-status__icon icon-", "\"></span>\n                <span class=\"", " bold\"> ", " </span>\n                <span class=\"icon icon__arrow pull-right\"></span>\n            </div>\n            ", "\n        </div>"])), trackerNetworksIcon(model), isActive, trackerNetworksText(model, false), renderTrackerNetworksSummary(model));
+    return bel(_templateObject7 || (_templateObject7 = _taggedTemplateLiteral(["\n        <div>\n            <div class=\"site-info__trackers\">\n                <span class=\"site-info__trackers-status__icon icon-", "\"></span>\n                <span class=\"", "\">", "</span>\n                <span class=\"icon icon__arrow pull-right\"></span>\n            </div>\n        </div>"])), trackerNetworksIcon(model), isActive, trackerNetworksText(model, false));
   }
 
   function renderManagePermissions(model) {
@@ -14524,34 +14584,43 @@ module.exports = function () {
           title = _ref.title,
           permission = _ref.permission,
           options = _ref.options;
-      return bel(_templateObject10 || (_templateObject10 = _taggedTemplateLiteral(["<div class=\"site-info__page-permission ", "\">\n                <label>\n                    <div>\n                        <div class=\"site-info__page-permission__icon ", "\"></div>\n                        ", "\n                    </div>\n                    <select class=\"js-site-permission\" name=\"", "\">\n                        ", "\n                    </select>\n                </label>\n            </div>"])), index !== model.permissions.length - 1 ? 'border-light--bottom--inner' : '', permissionId, title, permissionId, options.map(function (_ref2) {
+      return bel(_templateObject8 || (_templateObject8 = _taggedTemplateLiteral(["<div class=\"site-info__page-permission ", "\">\n                <label>\n                    <div>\n                        <div class=\"site-info__page-permission__icon ", "\"></div>\n                        ", "\n                    </div>\n                    <select class=\"js-site-permission\" name=\"", "\">\n                        ", "\n                    </select>\n                </label>\n            </div>"])), index !== model.permissions.length - 1 ? 'border-light--bottom--inner' : '', permissionId, title, permissionId, options.map(function (_ref2) {
         var id = _ref2.id,
             title = _ref2.title;
-        return bel(_templateObject11 || (_templateObject11 = _taggedTemplateLiteral(["<option value=\"", "\" ", ">", "</option>"])), id, permission === id ? 'selected' : '', title);
+        return bel(_templateObject9 || (_templateObject9 = _taggedTemplateLiteral(["<option value=\"", "\" ", ">", "</option>"])), id, permission === id ? 'selected' : '', title);
       }));
     });
   }
 
   function renderManageWhitelist(model) {
-    var hasPermissions = model.permissions && model.permissions.length > 0;
-    return bel(_templateObject12 || (_templateObject12 = _taggedTemplateLiteral(["<div class=\"manage-whitelist ", "\">\n            <a href=\"javascript:void(0)\" class=\"js-site-report-broken site-info__report-broken\">\n                Website not working as expected?\n            </a>\n        </div>"])), hasPermissions ? 'border--top' : '');
-  }
+    return bel(_templateObject10 || (_templateObject10 = _taggedTemplateLiteral(["<div class=\"manage-whitelist\">\n            <a href=\"javascript:void(0)\" class=\"js-site-report-broken site-info__report-broken\">\n                Website not working as expected?\n            </a>\n        </div>"])));
+  } // TODO: This needs updated for new copy
+
 
   function renderCompanyNamesList(model) {
     var companyNames = model.companyNames();
 
     switch (companyNames.length) {
       case 0:
-        return 'some companies';
+        return bel(_templateObject11 || (_templateObject11 = _taggedTemplateLiteral(["<span>Some companies</span>"])));
 
       case 1:
         return companyNames[0];
 
       case 2:
-        return "".concat(companyNames[0], " and ").concat(companyNames[1]);
+        return bel(_templateObject12 || (_templateObject12 = _taggedTemplateLiteral(["<span><b>", "</b> and <b>", "</b></span>"])), companyNames[0], companyNames[1]);
+
+      case 3:
+        return bel(_templateObject13 || (_templateObject13 = _taggedTemplateLiteral(["<span><b>", "</b>, <b>", "</b> and <b>", "</b></span>"])), companyNames[0], companyNames[1], companyNames[2]);
+
+      case 4:
+        return bel(_templateObject14 || (_templateObject14 = _taggedTemplateLiteral(["<span><b>", "</b>, <b>", "</b>, <b>", "</b> and <b>", "</b></span>"])), companyNames[0], companyNames[1], companyNames[2], companyNames[3]);
 
       default:
-        return "".concat(companyNames[0], ", ").concat(companyNames[1], " and others");
+        {
+          var otherCount = companyNames.length - 4;
+          return bel(_templateObject15 || (_templateObject15 = _taggedTemplateLiteral(["<span><b>", "</b>, <b>", "</b>, <b>", "</b>, <b>", "</b> and <b>", " other", "</b></span>"])), companyNames[0], companyNames[1], companyNames[2], companyNames[3], otherCount, otherCount === 1 ? '' : 's');
+        }
     }
   }
 
@@ -14560,52 +14629,53 @@ module.exports = function () {
     if (companyNames.length === 0) return '';
     var topCompanies = companyNames.slice(0, 4);
     var remainingCount = companyNames.length - topCompanies.length;
-    var remainingCountIcon = remainingCount <= 0 ? '' : bel(_templateObject13 || (_templateObject13 = _taggedTemplateLiteral(["\n                <span class=\"site-info__tracker__icon-wrapper\">\n                    <span class=\"site-info__tracker__count\">+", "</span>\n                </span>\n            "])), remainingCount);
-    var topCompaniesIcons = topCompanies.reverse().map(function (name) {
+    var remainingCountIcon = remainingCount <= 0 ? '' : bel(_templateObject16 || (_templateObject16 = _taggedTemplateLiteral(["\n            <span class=\"site-info__tracker__icon-positioner\">\n                <span class=\"site-info__tracker__icon-wrapper site-info__tracker__icon-wrapper--count\">\n                    <span class=\"site-info__tracker__count\">+", "</span>\n                </span>\n            </div>\n            "])), remainingCount);
+    var topCompaniesIcons = topCompanies.map(function (name, index) {
       var slug = normalizeCompanyName(name);
-      return bel(_templateObject14 || (_templateObject14 = _taggedTemplateLiteral(["\n                <span class=\"site-info__tracker__icon-wrapper\">\n                    <span class=\"site-info__tracker__icon ", " color-", " ", "\"></span>\n                </span>\n            "])), slug[0].toUpperCase(), getColorId(slug), slug);
+      var locationClass = index === topCompanies.length - 1 ? 'first' : 'other';
+      return bel(_templateObject17 || (_templateObject17 = _taggedTemplateLiteral(["\n            <span class=\"site-info__tracker__icon-positioner\">\n                <span class=\"site-info__tracker__icon-wrapper site-info__tracker__icon-wrapper--", "\">\n                    <span class=\"site-info__tracker__icon ", " color-", " ", "\"></span>\n                    <span class=\"site-info__tracker__blocked-icon\"></span>\n                </span>\n            </span>\n            "])), locationClass, slug[0].toUpperCase(), getColorId(slug), slug);
     });
-    return bel(_templateObject15 || (_templateObject15 = _taggedTemplateLiteral(["\n            <div class=\"site-info__key-insight_trackers-icons\">\n                ", "\n                ", "\n            </div>\n        "])), remainingCountIcon, topCompaniesIcons);
+    return bel(_templateObject18 || (_templateObject18 = _taggedTemplateLiteral(["\n            <div class=\"site-info__key-insight_trackers-icons\">\n                ", "\n                ", "\n            </div>\n        "])), topCompaniesIcons, remainingCountIcon);
   }
 
   function renderKeyInsight(model) {
     if (model.httpsState === 'none') {
-      return bel(_templateObject16 || (_templateObject16 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-connection site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--insecure-connection\">\n                            <h2>Take Precautions</h2>\n                            <div>Others may be able to intercept sensitive information you send on this page.</div>\n                        </div>\n                    </a>\n                </li>\n            "])));
+      return bel(_templateObject19 || (_templateObject19 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-connection site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--insecure-connection\">\n                            <h1>", "</h1>\n                            <div><b>This site is not secure</b> and may compromise any information you send on this page.</div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain);
     }
 
     if (model.isWhitelisted) {
-      return bel(_templateObject17 || (_templateObject17 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--protections-off\">\n                            <h2>Protections are DISABLED</h2>\n                            ", "\n                        </div>\n                    </a>\n                </li>\n            "])), model.trackersCount === 0 ? bel(_templateObject18 || (_templateObject18 = _taggedTemplateLiteral(["<div>We didn't find any companies trying to track you on this page.</div>"]))) : bel(_templateObject19 || (_templateObject19 = _taggedTemplateLiteral(["<div>We found ", " tracking and profiling you on this page.</div>"])), renderCompanyNamesList(model)));
+      return bel(_templateObject20 || (_templateObject20 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--protections-off\">\n                            <h1>", "</h1>\n                            <div>\n                                Protections are <b>OFF</b> for this site.\n                            </div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain);
     }
 
     if (model.isaMajorTrackingNetwork) {
       var company = model.tab.parentEntity;
-      return bel(_templateObject20 || (_templateObject20 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--tracker-network\">\n                            <h2>Tracker Network</h2>\n                            <div>\n                                ", " (owner of ", ")\n                                tracks you across ", "% of top sites.\n                                We can\u2019t block them on sites they own, but we can on other pages.\n                            </div>\n                        </div>\n                    </a>\n                </li>\n            "])), company.displayName, model.tab.site.domain, Math.round(company.prevalence));
+      return bel(_templateObject21 || (_templateObject21 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--tracker-network\">\n                            <h1>", "</h1>\n                            <div>\n                                <b>This site is owneed by ", "</b>, a tracker network\n                                that operates on ", "% of the top websites.\n                            </div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, company.displayName, Math.round(company.prevalence));
     }
 
     if (model.trackersCount === 0) {
-      return bel(_templateObject21 || (_templateObject21 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--no-activity\">\n                            <h2>No Activity to Report</h2>\n                            <div>We didn't find any companies trying to track you on this page.</div>\n                        </div>\n                    </a>\n                </li>\n            "])));
+      return bel(_templateObject22 || (_templateObject22 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--no-activity\">\n                            <h1>", "</h1>\n                            <div><b>We didn't find any companies</b> trying to track you on this page.</div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain);
     }
 
-    return bel(_templateObject22 || (_templateObject22 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    <div class=\"site-info__key-insight site-info__key-insight--trackers-blocked\">\n                        <h2>Who We Blocked</h2>\n                        <div>We blocked ", " from trying to track and profile you.</div>\n                    </div>\n                    ", "\n                </a>\n            </li>\n        "])), renderCompanyNamesList(model), renderCompanyIconsList(model));
+    return bel(_templateObject23 || (_templateObject23 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    <div class=\"site-info__key-insight site-info__key-insight--trackers-blocked\">\n                        ", "\n                        <h1>", "</h1>\n                        <div>", " tried to track you on this page.</div>\n                    </div>\n                </a>\n            </li>\n        "])), renderCompanyIconsList(model), model.tab.site.domain, renderCompanyNamesList(model));
   }
 
   function renderCookieConsentManaged(model) {
     var _model$tab;
 
-    if (!((_model$tab = model.tab) !== null && _model$tab !== void 0 && _model$tab.consentManaged)) return bel(_templateObject23 || (_templateObject23 = _taggedTemplateLiteral([""])));
+    if (!((_model$tab = model.tab) !== null && _model$tab !== void 0 && _model$tab.consentManaged)) return bel(_templateObject24 || (_templateObject24 = _taggedTemplateLiteral([""])));
     var _model$tab$consentMan = model.tab.consentManaged,
         consentManaged = _model$tab$consentMan.consentManaged,
         optoutFailed = _model$tab$consentMan.optoutFailed;
 
     if (consentManaged && !optoutFailed) {
-      return bel(_templateObject24 || (_templateObject24 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-consent-managed site-info__li--consent-managed padded border-light--top\">\n                <div>\n                    <div class=\"site-info__trackers\">\n                        <span class=\"site-info__https-status__icon is-secure\"></span>\n                        <span class=\"bold\">Cookies Minimized</span>\n                    </div>\n                    <div class=\"action-description\">\n                        We set your cookie preferences to maximize privacy and closed the consent pop-up.\n                    </div>\n                </div>\n            </li>\n            "])));
+      return bel(_templateObject25 || (_templateObject25 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-consent-managed site-info__li--consent-managed border-light--top\">\n                <div>\n                    <div class=\"site-info__trackers\">\n                        <span class=\"site-info__https-status__icon is-secure\"></span>\n                        <span>Cookies Minimized</span>\n                    </div>\n                </div>\n            </li>\n            "])));
     }
 
-    return bel(_templateObject25 || (_templateObject25 = _taggedTemplateLiteral([""])));
+    return bel(_templateObject26 || (_templateObject26 = _taggedTemplateLiteral([""])));
   }
 };
 
-},{"../models/mixins/normalize-company-name.es6.js":23,"./shared/toggle-button.es6.js":30,"./shared/tracker-network-icon.es6.js":31,"./shared/tracker-networks-text.es6.js":32,"./shared/utils.es6.js":33,"bel":2}],35:[function(require,module,exports){
+},{"../models/mixins/normalize-company-name.es6.js":23,"./shared/hero.es6.js":29,"./shared/toggle-button.es6.js":30,"./shared/tracker-network-icon.es6.js":31,"./shared/tracker-networks-text.es6.js":32,"./shared/utils.es6.js":33,"bel":2}],35:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8;
@@ -14638,9 +14708,7 @@ module.exports = function () {
 function renderHero(site) {
   site = site || {};
   return bel(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["", ""])), hero({
-    status: trackerNetworksIcon(site),
-    title: 'Trackers',
-    showClose: true
+    status: trackerNetworksIcon(site)
   }));
 }
 
@@ -14737,7 +14805,7 @@ function renderTrackerDetails(model) {
 },{"./../../../data/constants.js":10,"./shared/hero.es6.js":29,"./shared/tracker-network-icon.es6.js":31,"./shared/utils.es6.js":33,"bel":2}],36:[function(require,module,exports){
 "use strict";
 
-var Parent = window.DDG.base.View;
+var ParentSlidingSubview = require('./sliding-subview.es6.js');
 
 function BreakageForm(ops) {
   this.model = ops.model;
@@ -14745,12 +14813,12 @@ function BreakageForm(ops) {
   this.siteView = ops.siteView;
   this.clickSource = ops.clickSource;
   this.$root = window.$('.js-breakage-form');
-  Parent.call(this, ops);
+  ParentSlidingSubview.call(this, ops);
 
   this._setup();
 }
 
-BreakageForm.prototype = window.$.extend({}, Parent.prototype, {
+BreakageForm.prototype = window.$.extend({}, ParentSlidingSubview.prototype, {
   _setup: function _setup() {
     this._cacheElems('.js-breakage-form', ['close', 'submit', 'element', 'message', 'dropdown', 'description']);
 
@@ -14762,9 +14830,6 @@ BreakageForm.prototype = window.$.extend({}, Parent.prototype, {
 
     if (this.clickSource === 'toggle') {
       this.siteView.closePopupAndReload(500);
-      this.destroy();
-    } else {
-      this.destroy();
     }
   },
   _submitForm: function _submitForm() {
@@ -14786,7 +14851,7 @@ BreakageForm.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = BreakageForm;
 
-},{}],37:[function(require,module,exports){
+},{"./sliding-subview.es6.js":38}],37:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.View;
@@ -14838,9 +14903,9 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
   // NOTE: after ._setup() is called this view listens for changes to
   // site model and re-renders every time model properties change
   _setup: function _setup() {
-    this._cacheElems('.js-site', ['toggle', 'protection', 'show-page-connection', 'show-page-trackers', 'report-broken', 'permission']);
+    this._cacheElems('.js-site', ['toggle', 'protection', 'show-page-connection', 'show-page-trackers', 'report-broken', 'permission', 'done']);
 
-    this.bindEvents([[this.$toggle, 'click', this._onWhitelistClick], [this.$showpageconnection, 'click', this._showPageConnection], [this.$showpagetrackers, 'click', this._showPageTrackers], [this.$reportbroken, 'click', this._onReportBrokenSiteClick], [this.$permission, 'change', this._changePermission], [this.store.subscribe, 'change:site', this.rerender]]);
+    this.bindEvents([[this.$toggle, 'click', this._onWhitelistClick], [this.$showpageconnection, 'click', this._showPageConnection], [this.$showpagetrackers, 'click', this._showPageTrackers], [this.$reportbroken, 'click', this._onReportBrokenSiteClick], [this.$done, 'click', this._done], [this.$permission, 'change', this._changePermission], [this.store.subscribe, 'change:site', this.rerender]]);
   },
   rerender: function rerender() {
     // Prevent rerenders when confirmation form is active,
@@ -14895,6 +14960,9 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
     this.views.slidingSubview = new TrackerNetworksView({
       template: pageConnectionTemplate
     });
+  },
+  _done: function _done() {
+    this.model.close();
   }
 });
 module.exports = Site;
@@ -14903,28 +14971,79 @@ module.exports = Site;
 "use strict";
 
 var Parent = window.DDG.base.View;
+var count = 0;
 
 function SlidingSubview(ops) {
   ops.appendTo = window.$('.sliding-subview--root');
   Parent.call(this, ops);
   this.$root = window.$('.sliding-subview--root');
   this.$root.addClass('sliding-subview--open');
+  this.setupNavigationSupport();
   this.setupClose();
 }
 
 SlidingSubview.prototype = window.$.extend({}, Parent.prototype, {
   setupClose: function setupClose() {
-    this._cacheElems('.js-sliding-subview', ['close']);
+    this._cacheElems('.js-sliding-subview', ['close', 'done']);
 
-    this.bindEvents([[this.$close, 'click', this._destroy]]);
+    this.bindEvents([[this.$close, 'click', this._destroy], [this.$done, 'click', this._done]]);
   },
-  _destroy: function _destroy() {
+  setupNavigationSupport: function setupNavigationSupport() {
     var _this = this;
+
+    var url = new URL(window.location);
+    url.searchParams.set('open', 'true');
+    window.history.pushState({}, '', url);
+
+    if (this.popstateHandler) {
+      window.removeEventListener('popstate', this.popstateHandler);
+    }
+
+    this.popstateHandler = function (e) {
+      _this._destroy(null, {
+        fromNavigation: true
+      });
+    };
+
+    window.addEventListener('popstate', this.popstateHandler);
+  },
+  _destroy: function _destroy(e) {
+    var _this2 = this;
+
+    var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    if (this.popstateHandler) {
+      window.removeEventListener('popstate', this.popstateHandler);
+    }
+
+    var url = new URL(window.location);
+    url.searchParams["delete"]('open');
+    window.history.replaceState({}, '', url); // Don't animate out if we've navigated back to the root screen
+
+    if (opts.fromNavigation) {
+      this.$root.addClass('sliding-subview--immediate');
+      window.setTimeout(function () {
+        _this2.$root.removeClass('sliding-subview--open');
+
+        _this2.destroy();
+
+        window.history.replaceState({}, '', window.location);
+        window.setTimeout(function () {
+          _this2.$root.removeClass('sliding-subview--immediate');
+        }, 1);
+      }, 1);
+      return;
+    }
 
     this.$root.removeClass('sliding-subview--open');
     window.setTimeout(function () {
-      _this.destroy();
-    }, 400); // 400ms = 0.35s in .sliding-subview--root transition + 50ms padding
+      _this2.destroy();
+
+      window.history.replaceState({}, '', window.location);
+    }, 325); // 325ms = 0.3s in .sliding-subview--root transition + 25ms padding
+  },
+  _done: function _done() {
+    this.model.site.close();
   }
 });
 module.exports = SlidingSubview;
@@ -14988,8 +15107,7 @@ TrackerNetworks.prototype = window.$.extend({}, ParentSlidingSubview.prototype, 
       var trackerNetworksIconName = trackerNetworksIconTemplate(this.model.site);
       this.$hero.html(heroTemplate({
         status: trackerNetworksIconName,
-        title: 'Trackers',
-        showClose: true
+        title: 'Trackers'
       }));
     }
   },

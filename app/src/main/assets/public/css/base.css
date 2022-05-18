@@ -5,7 +5,6 @@
 /* Neutral Colors */
 /* #888 */
 /* #d0d0d0 */
-/* Popup */
 /* Cards */
 /* Popover */
 /* CSS Arrow */
@@ -16,7 +15,6 @@
 /* Neutral Colors */
 /* #888 */
 /* #d0d0d0 */
-/* Popup */
 /* Cards */
 /* Popover */
 /* CSS Arrow */
@@ -482,21 +480,18 @@ th {
 /**
  * DDG Extension Resets & Base Styles
  */
-html, body {
-  font-size: 13px;
+body {
+  font-size: 14px;
   line-height: 16px;
-}
-html.body--neutral, body.body--neutral {
   background: #eee;
 }
-@media (prefers-color-scheme: dark) {
-  html.body--neutral, body.body--neutral {
-    background-color: #444;
-  }
+body.body--theme-dark {
+  background-color: #444;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 h1, h2, h3, h4, h5, h5, p, div {
-  font-size: 13px;
+  font-size: 14px;
   margin: 0;
   padding: 0;
 }
@@ -531,31 +526,24 @@ input,
 textarea,
 select {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-size: 13px;
+  font-size: 14px;
   font-weight: normal;
   color: #333333;
 }
 
-@media (prefers-color-scheme: dark) {
-  body,
-input,
-textarea {
-    color: rgba(255, 255, 255, 0.9);
-  }
+.body--theme-dark input,
+.body--theme-dark textarea {
+  color: rgba(255, 255, 255, 0.9);
 }
 
-@media (prefers-color-scheme: dark) {
-  .environment--windows select {
-    background-color: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.9);
-  }
+.body--theme-dark.environment--windows select {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
 }
 
-@media (prefers-color-scheme: dark) {
-  .environment--windows select > option {
-    background-color: #333333;
-  }
+.body--theme-dark.environment--windows select > option {
+  background-color: #333333;
 }
 
 .bold {
@@ -567,10 +555,8 @@ a {
   color: #3969EF;
   text-decoration: none;
 }
-@media (prefers-color-scheme: dark) {
-  a {
-    color: #7295F6;
-  }
+.body--theme-dark a {
+  color: #7295F6;
 }
 a:hover {
   text-decoration: underline;
@@ -581,10 +567,8 @@ a.link-secondary {
 a.link-action {
   color: #333333;
 }
-@media (prefers-color-scheme: dark) {
-  a.link-action {
-    color: rgba(255, 255, 255, 0.9);
-  }
+.body--theme-dark a.link-action {
+  color: rgba(255, 255, 255, 0.9);
 }
 a.link-action:hover {
   text-decoration: none;
@@ -642,37 +626,29 @@ a.link-action:hover {
 .border--top {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
-@media (prefers-color-scheme: dark) {
-  .border--top {
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-  }
+.body--theme-dark .border--top {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .border--bottom {
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
-@media (prefers-color-scheme: dark) {
-  .border--bottom {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  }
+.body--theme-dark .border--bottom {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .border-light--top {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
-@media (prefers-color-scheme: dark) {
-  .border-light--top {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-  }
+.body--theme-dark .border-light--top {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .border-light--bottom {
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
-@media (prefers-color-scheme: dark) {
-  .border-light--bottom {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  }
+.body--theme-dark .border-light--bottom {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .border--bottom--inner {
@@ -686,10 +662,8 @@ a.link-action:hover {
   left: 0;
   right: 0;
 }
-@media (prefers-color-scheme: dark) {
-  .border--bottom--inner:after {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  }
+.body--theme-dark .border--bottom--inner:after {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .border--top--inner {
@@ -703,10 +677,8 @@ a.link-action:hover {
   left: 0;
   right: 0;
 }
-@media (prefers-color-scheme: dark) {
-  .border--top--inner:before {
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-  }
+.body--theme-dark .border--top--inner:before {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .border-light--bottom--inner {
@@ -720,10 +692,8 @@ a.link-action:hover {
   left: 0;
   right: 0;
 }
-@media (prefers-color-scheme: dark) {
-  .border-light--bottom--inner:after {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  }
+.body--theme-dark .border-light--bottom--inner:after {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .border-light--top--inner {
@@ -737,19 +707,17 @@ a.link-action:hover {
   left: 0;
   right: 0;
 }
-@media (prefers-color-scheme: dark) {
-  .border-light--top--inner:before {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-  }
+.body--theme-dark .border-light--top--inner:before {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Padding */
 .padded {
-  padding: 16px;
+  padding: 24px;
 }
 
 .padded--top {
-  padding: 16px 0 0;
+  padding: 24px 0 0;
 }
 
 .padded--no-bottom-padding {
@@ -763,14 +731,6 @@ a.link-action:hover {
   right: 16px;
   width: 22px;
   height: 22px;
-}
-.is-browser--chrome .hamburger-button {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/settings.svg");
-}
-.is-browser--moz .hamburger-button {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/settings.svg");
-}
-.is-browser--safari .hamburger-button {
   background-image: url("../../img/settings.svg");
 }
 
@@ -781,10 +741,8 @@ a.link-action:hover {
   padding: 0;
   margin: 7.5px 0 0 0;
 }
-@media (prefers-color-scheme: dark) {
-  .card {
-    background-color: #333333;
-  }
+.body--theme-dark .card {
+  background-color: #333333;
 }
 .card.card--transparent {
   background-color: transparent;
@@ -808,28 +766,12 @@ a.link-action:hover {
 .icon.icon__close {
   width: 14px;
   height: 14px;
-}
-.is-browser--chrome .icon.icon__close {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/close.svg");
-}
-.is-browser--moz .icon.icon__close {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/close.svg");
-}
-.is-browser--safari .icon.icon__close {
   background-image: url("../../img/close.svg");
 }
 .icon.icon__arrow {
   width: 12px;
   height: 12px;
   background-size: contain;
-}
-.is-browser--chrome .icon.icon__arrow {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/refresh-assets/chevron.svg");
-}
-.is-browser--moz .icon.icon__arrow {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/refresh-assets/chevron.svg");
-}
-.is-browser--safari .icon.icon__arrow {
   background-image: url("../../img/refresh-assets/chevron.svg");
 }
 .icon.icon__arrow.icon__arrow--left {
@@ -838,50 +780,18 @@ a.link-action:hover {
 .icon.icon__arrow.icon__arrow--large {
   width: 7px;
   margin-top: -20px;
-}
-.is-browser--chrome .icon.icon__arrow.icon__arrow--large {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/arrow--large.svg");
-}
-.is-browser--moz .icon.icon__arrow.icon__arrow--large {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/arrow--large.svg");
-}
-.is-browser--safari .icon.icon__arrow.icon__arrow--large {
   background-image: url("../../img/arrow--large.svg");
 }
 .icon.icon__back-arrow {
   background-size: contain;
-}
-.is-browser--chrome .icon.icon__back-arrow {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/refresh-assets/back-arrow.svg");
-}
-.is-browser--moz .icon.icon__back-arrow {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/refresh-assets/back-arrow.svg");
-}
-.is-browser--safari .icon.icon__back-arrow {
   background-image: url("../../img/refresh-assets/back-arrow.svg");
 }
-@media (prefers-color-scheme: dark) {
-  .is-browser--chrome .icon.icon__back-arrow {
-    background-image: url("chrome-extension://__MSG_@@extension_id__/img/refresh-assets/back-arrow--light.svg");
-  }
-  .is-browser--moz .icon.icon__back-arrow {
-    background-image: url("moz-extension://__MSG_@@extension_id__/img/refresh-assets/back-arrow--light.svg");
-  }
-  .is-browser--safari .icon.icon__back-arrow {
-    background-image: url("../../img/refresh-assets/back-arrow--light.svg");
-  }
+.body--theme-dark .icon.icon__back-arrow {
+  background-image: url("../../img/refresh-assets/back-arrow--light.svg");
 }
 .icon.icon__settings {
   width: 16px;
   height: 16px;
-}
-.is-browser--chrome .icon.icon__settings {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/settings-gear@2x.png");
-}
-.is-browser--moz .icon.icon__settings {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/settings-gear@2x.png");
-}
-.is-browser--safari .icon.icon__settings {
   background-image: url("../../img/settings-gear@2x.png");
 }
 .icon.icon__error {
@@ -889,14 +799,6 @@ a.link-action:hover {
   height: 24px;
   vertical-align: bottom;
   margin-left: -2px;
-}
-.is-browser--chrome .icon.icon__error {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/error.svg");
-}
-.is-browser--moz .icon.icon__error {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/error.svg");
-}
-.is-browser--safari .icon.icon__error {
   background-image: url("../../img/error.svg");
 }
 .icon.icon__check {
@@ -905,14 +807,6 @@ a.link-action:hover {
   margin-top: -2px;
   margin-left: 1px;
   vertical-align: top;
-}
-.is-browser--chrome .icon.icon__check {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/check.svg");
-}
-.is-browser--moz .icon.icon__check {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/check.svg");
-}
-.is-browser--safari .icon.icon__check {
   background-image: url("../../img/check.svg");
 }
 .icon.icon__shield {
@@ -921,14 +815,6 @@ a.link-action:hover {
   margin-top: -3px;
   margin-left: 1px;
   vertical-align: top;
-}
-.is-browser--chrome .icon.icon__shield {
-  background-image: url("chrome-extension://__MSG_@@extension_id__/img/shield.svg");
-}
-.is-browser--moz .icon.icon__shield {
-  background-image: url("moz-extension://__MSG_@@extension_id__/img/shield.svg");
-}
-.is-browser--safari .icon.icon__shield {
   background-image: url("../../img/shield.svg");
 }
 
@@ -957,7 +843,7 @@ a.link-action:hover {
 .popover .popover__inner {
   padding: 10px;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: normal;
   background-color: #333333;
   border-radius: 3px;
