@@ -14,7 +14,7 @@
   ~ limitations under the License.
   -->
 
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -79,4 +79,36 @@
 
     </LinearLayout>
 
-</FrameLayout>
+    <LinearLayout
+        android:id="@+id/fakeURLBarBig"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="center_vertical"
+        android:background="@color/yellow"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/privacyGradeContentDescription"
+            android:gravity="center"
+            android:src="@drawable/ic_ddg_logo" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/badgeIconBig"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            app:lottie_loop="false" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/trackersBlockedBig"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop"
+            app:lottie_loop="true" />
+
+    </LinearLayout>
+
+</LinearLayout>

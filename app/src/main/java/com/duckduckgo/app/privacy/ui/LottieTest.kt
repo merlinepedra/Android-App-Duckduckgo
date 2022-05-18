@@ -48,29 +48,28 @@ class LottieTest : DuckDuckGoActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         lifecycleScope.launchWhenCreated {
-            val animation = binding.badgeIcon.animation
-            binding.trackersBlocked.setAnimation(R.raw.dark_trackers)
-            /*binding.trackersBlocked.addLottieOnCompositionLoadedListener {
-                val im0 = it.images.get("image_0")
-                val im1 = it.images.get("image_1")
-                val im2 = it.images.get("image_2")
-                im0?.bitmap = ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
-                im1?.bitmap = ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
-                im2?.bitmap = ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
-                it.images["image_0"] = im0
-                it.images["image_1"] = im1
-                it.images["image_2"] = im2
+            binding.badgeIcon.setAnimation(R.raw.shield)
+            binding.badgeIcon.playAnimation()
 
-            }*/
+            binding.trackersBlocked.setAnimation(R.raw.dark_trackers)
             binding.trackersBlocked.setImageAssetDelegate { asset ->
                 Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
                 val generateDefaultDrawable = generateDefaultDrawable(this@LottieTest, "amazon.com")
                 // ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon)!!.toBitmap(24, 24)
                 generateDefaultDrawable.toBitmap(24, 24)
             }
-            binding.badgeIcon.setAnimation(R.raw.shield)
-            binding.badgeIcon.playAnimation()
             binding.trackersBlocked.playAnimation()
+
+            with(binding.trackersBlockedBig) {
+                this.setAnimation(R.raw.dark_trackers)
+                this.setImageAssetDelegate { asset ->
+                    Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
+                    val generateDefaultDrawable = generateDefaultDrawable(this@LottieTest, "amazon.com")
+                    // ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon)!!.toBitmap(24, 24)
+                    generateDefaultDrawable.toBitmap(24, 24)
+                }
+                this.playAnimation()
+            }
 
             val toBitmap = ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap(24, 24)
             binding.demoImg.setImageBitmap(toBitmap)
