@@ -407,6 +407,7 @@ class BrowserTabFragment :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Timber.i("PDHy: tabfragment onCreate")
         removeDaxDialogFromActivity()
         renderer = BrowserTabFragmentRenderer()
         decorator = BrowserTabFragmentDecorator()
@@ -433,12 +434,13 @@ class BrowserTabFragment :
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        Timber.i("PDHy: tabfragment onCreateView")
         return inflater.inflate(R.layout.fragment_browser_tab, container, false)
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-
+        Timber.i("PDHy: tabfragment onActivityCreated")
         configureObservers()
         configurePrivacyGrade()
         configureWebView()
@@ -509,7 +511,7 @@ class BrowserTabFragment :
 
     override fun onResume() {
         super.onResume()
-
+        Timber.i("PDHy: tabfragment onResume")
         appBarLayout.setExpanded(true)
         viewModel.onViewResumed()
 
@@ -714,6 +716,7 @@ class BrowserTabFragment :
         hideKeyboard()
         renderer.hideFindInPage()
         viewModel.registerDaxBubbleCtaDismissed()
+        Timber.i("PDHy: tabfragment loadUrl")
         webView?.loadUrl(url, headers)
     }
 
@@ -828,6 +831,7 @@ class BrowserTabFragment :
                 extractUrlFromAmpLink(it.initialUrl)
             }
             is Command.LoadExtractedUrl -> {
+                Timber.i("PDHy: tabfragment loadUrl")
                 webView?.loadUrl(it.extractedUrl)
                 destroyUrlExtractingWebView()
             }
@@ -1105,6 +1109,7 @@ class BrowserTabFragment :
                         launchDialogForIntent(it, pm, fallbackIntent, fallbackActivities, useFirstActivityFound)
                     }
                     fallbackUrl != null -> {
+                        Timber.i("PDHy: tabfragment loadUrl")
                         webView?.loadUrl(fallbackUrl, headers)
                     }
                     else -> {
@@ -1404,6 +1409,7 @@ class BrowserTabFragment :
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun configureWebView() {
+        Timber.i("PDHy: tabfragment configureWebView")
         webView = layoutInflater.inflate(
             R.layout.include_duckduckgo_browser_webview,
             webViewContainer,

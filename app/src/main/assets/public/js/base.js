@@ -12984,7 +12984,7 @@ window.DDG.base = {
 
 require('../pages/popup.es6.js');
 
-},{"../pages/popup.es6.js":26,"./mixins/index.es6.js":16,"./model.es6.js":17,"./page.es6.js":19,"./view.es6.js":21,"jquery":8}],15:[function(require,module,exports){
+},{"../pages/popup.es6.js":27,"./mixins/index.es6.js":16,"./model.es6.js":17,"./page.es6.js":19,"./view.es6.js":21,"jquery":8}],15:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -13710,6 +13710,21 @@ module.exports = BaseView;
 },{"./mixins/index.es6.js":16,"./store.es6.js":20,"jquery":8}],22:[function(require,module,exports){
 "use strict";
 
+var isEnvironment = function isEnvironment(environment) {
+  return 'android' === environment;
+};
+
+var isIOS = function isIOS() {
+  return isEnvironment('ios');
+};
+
+module.exports = {
+  isIOS: isIOS
+};
+
+},{}],23:[function(require,module,exports){
+"use strict";
+
 var Parent = window.DDG.base.Model;
 
 var browserUIWrapper = require('../../browser/communication.es6.js');
@@ -13744,7 +13759,7 @@ BackgroundMessage.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = BackgroundMessage;
 
-},{"../../browser/communication.es6.js":13}],23:[function(require,module,exports){
+},{"../../browser/communication.es6.js":13}],24:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -13757,7 +13772,7 @@ module.exports = {
   }
 };
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Model;
@@ -13869,7 +13884,7 @@ SiteCompanyList.prototype = window.$.extend({}, Parent.prototype, normalizeCompa
 });
 module.exports = SiteCompanyList;
 
-},{"../../browser/communication.es6.js":13,"./mixins/normalize-company-name.es6":23}],25:[function(require,module,exports){
+},{"../../browser/communication.es6.js":13,"./mixins/normalize-company-name.es6":24}],26:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Model;
@@ -14217,7 +14232,7 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = Site;
 
-},{"../../../data/constants":10,"../../browser/communication.es6.js":13}],26:[function(require,module,exports){
+},{"../../../data/constants":10,"../../browser/communication.es6.js":13}],27:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Page;
@@ -14252,7 +14267,7 @@ Trackers.prototype = window.$.extend({}, Parent.prototype, {
 window.DDG = window.DDG || {};
 window.DDG.page = new Trackers();
 
-},{"./../models/background-message.es6.js":22,"./../models/site.es6.js":25,"./../templates/site.es6.js":34,"./../views/site.es6.js":37}],27:[function(require,module,exports){
+},{"./../models/background-message.es6.js":23,"./../models/site.es6.js":26,"./../templates/site.es6.js":35,"./../views/site.es6.js":38}],28:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3;
@@ -14315,7 +14330,7 @@ module.exports = function () {
   }));
 };
 
-},{"./shared/hero.es6.js":29,"bel":2}],28:[function(require,module,exports){
+},{"./shared/hero.es6.js":30,"bel":2}],29:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9;
@@ -14400,7 +14415,7 @@ function renderHero(site) {
   }));
 }
 
-},{"./shared/hero.es6.js":29,"bel":2}],29:[function(require,module,exports){
+},{"./shared/hero.es6.js":30,"bel":2}],30:[function(require,module,exports){
 "use strict";
 
 var _templateObject;
@@ -14413,7 +14428,7 @@ module.exports = function (ops) {
   return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n        <div class=\"hero-wrapper\">\n            <div class=\"hero text--center ", "\">\n                <a href=\"javascript:void(0)\"\n                    class=\"hero__close js-sliding-subview-close js-site-done\"\n                    role=\"button\"\n                    aria-label=\"Go back\"\n                >\n                    <span class=\"icon icon__back-arrow\"></span>\n                </a>\n                <a href=\"javascript:void(0)\"\n                    class=\"hero__done js-sliding-subview-done js-site-done link-action\"\n                    role=\"button\"\n                >\n                    Done\n                </a>\n            </div>\n             <div class=\"hero__icon hero__icon--", "\"></div>\n        </div>\n    "])), ops.className || '', ops.status);
 };
 
-},{"bel":2}],30:[function(require,module,exports){
+},{"bel":2}],31:[function(require,module,exports){
 "use strict";
 
 var _templateObject;
@@ -14429,7 +14444,7 @@ module.exports = function (isActiveBoolean, klass, dataKey) {
   return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n<button class=\"toggle-button toggle-button--is-active-", " ", "\"\n    data-key=\"", "\"\n    type=\"button\"\n    aria-pressed=\"", "\"\n    >\n    <div class=\"toggle-button__bg\">\n    </div>\n    <div class=\"toggle-button__knob\"></div>\n</button>"])), isActiveBoolean, klass, dataKey, isActiveBoolean ? 'true' : 'false');
 };
 
-},{"bel":2}],31:[function(require,module,exports){
+},{"bel":2}],32:[function(require,module,exports){
 "use strict";
 
 var _templateObject;
@@ -14458,7 +14473,7 @@ module.exports = function (site) {
   return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["", ""])), iconName);
 };
 
-},{"./utils.es6.js":33,"bel":2}],32:[function(require,module,exports){
+},{"./utils.es6.js":34,"bel":2}],33:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5;
@@ -14492,7 +14507,7 @@ function trackersBlockedOrFound(site) {
   return bel(_templateObject5 || (_templateObject5 = _taggedTemplateLiteral(["Blocked"])));
 }
 
-},{"./utils.es6":33,"bel":2}],33:[function(require,module,exports){
+},{"./utils.es6":34,"bel":2}],34:[function(require,module,exports){
 "use strict";
 
 var isSiteWithOnlyOwnTrackers = function isSiteWithOnlyOwnTrackers(_ref) {
@@ -14536,7 +14551,7 @@ module.exports = {
   getColorId: getColorId
 };
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9, _templateObject10, _templateObject11, _templateObject12, _templateObject13, _templateObject14, _templateObject15, _templateObject16, _templateObject17, _templateObject18, _templateObject19, _templateObject20, _templateObject21, _templateObject22, _templateObject23, _templateObject24, _templateObject25, _templateObject26;
@@ -14684,7 +14699,7 @@ module.exports = function () {
   }
 };
 
-},{"../models/mixins/normalize-company-name.es6.js":23,"./shared/hero.es6.js":29,"./shared/toggle-button.es6.js":30,"./shared/tracker-network-icon.es6.js":31,"./shared/tracker-networks-text.es6.js":32,"./shared/utils.es6.js":33,"bel":2}],35:[function(require,module,exports){
+},{"../models/mixins/normalize-company-name.es6.js":24,"./shared/hero.es6.js":30,"./shared/toggle-button.es6.js":31,"./shared/tracker-network-icon.es6.js":32,"./shared/tracker-networks-text.es6.js":33,"./shared/utils.es6.js":34,"bel":2}],36:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8;
@@ -14811,7 +14826,7 @@ function renderTrackerDetails(model) {
   return bel(_templateObject8 || (_templateObject8 = _taggedTemplateLiteral(["\n        <div>\n            ", "\n            ", "\n        </div>\n    "])), trackerListWrapper('Trackers Owned by This Site (Allowed)', unblockedCompanies.map(renderCompanyTrackers(model))), trackerListWrapper("".concat(count, " Tracker").concat(count === 1 ? '' : 's', " ").concat(model.site.isWhitelisted ? 'Found' : 'Blocked', " on ").concat(model.domain), blockedCompanies.map(renderCompanyTrackers(model))));
 }
 
-},{"./../../../data/constants.js":10,"./shared/hero.es6.js":29,"./shared/tracker-network-icon.es6.js":31,"./shared/utils.es6.js":33,"bel":2}],36:[function(require,module,exports){
+},{"./../../../data/constants.js":10,"./shared/hero.es6.js":30,"./shared/tracker-network-icon.es6.js":32,"./shared/utils.es6.js":34,"bel":2}],37:[function(require,module,exports){
 "use strict";
 
 var ParentSlidingSubview = require('./sliding-subview.es6.js');
@@ -14860,7 +14875,7 @@ BreakageForm.prototype = window.$.extend({}, ParentSlidingSubview.prototype, {
 });
 module.exports = BreakageForm;
 
-},{"./sliding-subview.es6.js":38}],37:[function(require,module,exports){
+},{"./sliding-subview.es6.js":39}],38:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.View;
@@ -14971,11 +14986,13 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = Site;
 
-},{"./../templates/breakage-form.es6.js":27,"./../templates/page-connection.es6.js":28,"./../templates/tracker-networks.es6.js":35,"./../views/breakage-form.es6.js":36,"./../views/tracker-networks.es6.js":39}],38:[function(require,module,exports){
+},{"./../templates/breakage-form.es6.js":28,"./../templates/page-connection.es6.js":29,"./../templates/tracker-networks.es6.js":36,"./../views/breakage-form.es6.js":37,"./../views/tracker-networks.es6.js":40}],39:[function(require,module,exports){
 "use strict";
 
+var _require = require('../environment-check'),
+    isIOS = _require.isIOS;
+
 var Parent = window.DDG.base.View;
-var count = 0;
 
 function SlidingSubview(ops) {
   ops.appendTo = window.$('.sliding-subview--root');
@@ -15022,9 +15039,10 @@ SlidingSubview.prototype = window.$.extend({}, Parent.prototype, {
 
     var url = new URL(window.location);
     url.searchParams["delete"]('open');
-    window.history.replaceState({}, '', url); // Don't animate out if we've navigated back to the root screen
+    window.history.replaceState({}, '', url);
 
-    if (opts.fromNavigation) {
+    if (opts.fromNavigation && isIOS()) {
+      // Don't animate out if we've navigated back to the root screen
       this.$root.addClass('sliding-subview--immediate');
       window.setTimeout(function () {
         _this2.$root.removeClass('sliding-subview--open');
@@ -15052,7 +15070,7 @@ SlidingSubview.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = SlidingSubview;
 
-},{}],39:[function(require,module,exports){
+},{"../environment-check":22}],40:[function(require,module,exports){
 "use strict";
 
 var ParentSlidingSubview = require('./sliding-subview.es6.js');
@@ -15129,4 +15147,4 @@ TrackerNetworks.prototype = window.$.extend({}, ParentSlidingSubview.prototype, 
 });
 module.exports = TrackerNetworks;
 
-},{"./../models/site-company-list.es6.js":24,"./../models/site.es6.js":25,"./../templates/shared/hero.es6.js":29,"./../templates/shared/tracker-network-icon.es6.js":31,"./sliding-subview.es6.js":38}]},{},[14]);
+},{"./../models/site-company-list.es6.js":25,"./../models/site.es6.js":26,"./../templates/shared/hero.es6.js":30,"./../templates/shared/tracker-network-icon.es6.js":32,"./sliding-subview.es6.js":39}]},{},[14]);
