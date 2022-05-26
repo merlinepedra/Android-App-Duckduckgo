@@ -51,28 +51,34 @@ class LottieTest : DuckDuckGoActivity() {
             binding.badgeIcon.setAnimation(R.raw.shield)
             binding.badgeIcon.playAnimation()
 
-            binding.trackersBlocked.setAnimation(R.raw.dark_trackers)
+            /*binding.trackersBlocked.setAnimation(R.raw.dark_trackers)
             binding.trackersBlocked.setImageAssetDelegate { asset ->
                 Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
                 val generateDefaultDrawable = generateDefaultDrawable(this@LottieTest, "amazon.com")
                 // ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon)!!.toBitmap(24, 24)
                 generateDefaultDrawable.toBitmap(24, 24)
             }
-            binding.trackersBlocked.playAnimation()
+            binding.trackersBlocked.playAnimation()*/
 
             with(binding.trackersBlockedBig) {
                 this.setAnimation(R.raw.dark_trackers)
+                this.maintainOriginalImageBounds = true
                 this.setImageAssetDelegate { asset ->
                     Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
-                    val generateDefaultDrawable = generateDefaultDrawable(this@LottieTest, "amazon.com")
-                    // ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon)!!.toBitmap(24, 24)
-                    generateDefaultDrawable.toBitmap(24, 24)
+                    // val generateDefaultDrawable = generateDefaultDrawable(this@LottieTest, "amazon.com")
+                    // generateDefaultDrawable.toBitmap(96, 96)
+                    if (asset?.id == "image_3") {
+                        ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_blank)!!.toBitmap()
+                    } else {
+                        ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon)!!.toBitmap()
+                    }
                 }
                 this.playAnimation()
             }
 
             val toBitmap = ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap(24, 24)
             binding.demoImg.setImageBitmap(toBitmap)
+
         }
     }
 

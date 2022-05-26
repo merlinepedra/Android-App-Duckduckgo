@@ -58,25 +58,6 @@
             android:layout_height="match_parent"
             android:importantForAccessibility="no" />
 
-        <ImageView
-            android:id="@+id/demoImg2"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:importantForAccessibility="no"
-            android:src="@drawable/network_logo_amazon_technologies_inc" />
-
-        <FrameLayout
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:background="@drawable/background_tracker_logo">
-            <ImageView
-                android:id="@+id/demoImg3"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/network_logo_amazon_technologies_inc" />
-        </FrameLayout>
-
     </LinearLayout>
 
     <LinearLayout
@@ -95,18 +76,11 @@
             android:src="@drawable/ic_ddg_logo" />
 
         <com.airbnb.lottie.LottieAnimationView
-            android:id="@+id/badgeIconBig"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:importantForAccessibility="no"
-            app:lottie_loop="false" />
-
-        <com.airbnb.lottie.LottieAnimationView
             android:id="@+id/trackersBlockedBig"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:importantForAccessibility="no"
             android:scaleType="centerCrop"
+            android:importantForAccessibility="no"
             app:lottie_loop="true" />
 
     </LinearLayout>
