@@ -16,6 +16,8 @@
 
 package com.duckduckgo.app.browser
 
+import android.animation.Animator
+import android.animation.Animator.AnimatorListener
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
@@ -485,18 +487,23 @@ class BrowserTrackersAnimatorHelper {
 
 class BrowserLottieTrackersAnimatorHelper {
 
-    private var trackersAnimation: AnimatorSet = AnimatorSet()
     private var pulseAnimation: AnimatorSet = AnimatorSet()
     private var listener: TrackersAnimatorListener? = null
+    private lateinit var trackersAnimation: LottieAnimationView
+    private lateinit var shieldAnimation: LottieAnimationView
 
     fun startTrackersAnimation(
         cta: Cta?,
         activity: Activity,
-        lottieAnimationView: LottieAnimationView,
+        shieldAnimationView: LottieAnimationView,
+        trackersAnimationView: LottieAnimationView,
         omnibarViews: List<View>,
         entities: List<Entity>?
     ) {
-        if (lottieAnimationView.isAnimating) return
+        this.trackersAnimation = trackersAnimationView
+        this.shieldAnimation = shieldAnimationView
+
+        if (trackersAnimationView.isAnimating) return
 
         if (entities.isNullOrEmpty()) { // no badge nor tracker animations
             listener?.onAnimationFinished()
@@ -509,15 +516,35 @@ class BrowserLottieTrackersAnimatorHelper {
             return
         }
 
-        with(lottieAnimationView) {
+        with(trackersAnimationView) {
             this.setAnimation(R.raw.light_trackers)
             this.maintainOriginalImageBounds = true
             this.setImageAssetDelegate { asset ->
                 Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
                 // val generateDefaultDrawable = generateDefaultDrawable(activity, "amazon.com")
                 // generateDefaultDrawable.toBitmap(24, 24)
-                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon)!!.toBitmap()
+                if (asset?.id == "image_3") {
+                    ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
+                } else {
+                    ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon)!!.toBitmap()
+                }
             }
+            this.addAnimatorListener(object : AnimatorListener{
+                override fun onAnimationStart(animation: Animator?) {
+                    animateOmnibarOut(omnibarViews).start()
+                }
+
+                override fun onAnimationEnd(animation: Animator?) {
+                    animateOmnibarIn(omnibarViews).start()
+                }
+
+                override fun onAnimationCancel(animation: Animator?) {
+                }
+
+                override fun onAnimationRepeat(animation: Animator?) {
+                }
+            })
+            shieldAnimationView.playAnimation()
             this.playAnimation()
         }
         /*if (!lottieAnimationView.isAnimating) {
@@ -592,12 +619,6 @@ class BrowserLottieTrackersAnimatorHelper {
         }
     }
 
-    fun stopPulseAnimation() {
-        if (pulseAnimation.isRunning) {
-            pulseAnimation.end()
-        }
-    }
-
     fun removeListener() {
         listener = null
     }
@@ -611,7 +632,6 @@ class BrowserLottieTrackersAnimatorHelper {
         container: ViewGroup
     ) {
         stopTrackersAnimation()
-        stopPulseAnimation()
         listener?.onAnimationFinished()
         omnibarViews.forEach { it.alpha = 1f }
         container.alpha = 0f
@@ -621,13 +641,7 @@ class BrowserLottieTrackersAnimatorHelper {
         omnibarViews: List<View>,
         container: ViewGroup
     ) {
-        trackersAnimation = AnimatorSet().apply {
-            play(animateLogosSlideOut(container.children.toList()))
-                .before(animateOmnibarIn(omnibarViews))
-                .before(animateFadeOut(container))
-            start()
-            addListener(onEnd = { listener?.onAnimationFinished() })
-        }
+        TODO()
     }
 
     private fun getLogosViewListInContainer(
@@ -863,9 +877,9 @@ class BrowserLottieTrackersAnimatorHelper {
     private fun calculateMarginInPx(position: Int): Int = START_MARGIN_IN_DP.toPx() + (position * LOGO_SIZE_IN_DP.toPx())
 
     private fun stopTrackersAnimation() {
-        if (trackersAnimation.isRunning) {
-            trackersAnimation.end()
-        }
+        if (!::trackersAnimation.isInitialized || !::shieldAnimation.isInitialized ) return
+        trackersAnimation.cancelAnimation()
+        shieldAnimation.cancelAnimation()
     }
 
     private fun animateOmnibarOut(views: List<View>): AnimatorSet {

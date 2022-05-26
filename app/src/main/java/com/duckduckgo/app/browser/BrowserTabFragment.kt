@@ -455,6 +455,7 @@ class BrowserTabFragment :
         decorator.decorateWithFeatures()
 
         animatorHelper.setListener(this)
+        animatorHelper2.setListener(this)
 
         if (savedInstanceState == null) {
             viewModel.onViewReady()
@@ -1342,6 +1343,9 @@ class BrowserTabFragment :
         toolbar.privacyGradeButton.setOnClickListener {
             browserActivity?.launchPrivacyDashboard()
         }
+        toolbar.shieldIcon.setOnClickListener {
+            browserActivity?.launchPrivacyDashboard()
+        }
     }
 
     private fun configureFindInPage() {
@@ -1808,6 +1812,7 @@ class BrowserTabFragment :
         dismissAppLinkSnackBar()
         pulseAnimation.stop()
         animatorHelper.removeListener()
+        animatorHelper2.removeListener()
         supervisorJob.cancel()
         popupMenu.dismiss()
         loginDetectionDialog?.dismiss()
@@ -2279,11 +2284,11 @@ class BrowserTabFragment :
 
                 privacyGradeButton?.isEnabled = viewState.isEnabled
 
-                if (viewState.shouldAnimate) {
+                /*if (viewState.shouldAnimate) {
                     animatorHelper.startPulseAnimation(privacyGradeButton)
                 } else {
                     animatorHelper.stopPulseAnimation()
-                }
+                }*/
             }
         }
 
@@ -2381,15 +2386,16 @@ class BrowserTabFragment :
                     val events = site?.orderedTrackingEntities()
 
                     activity?.let { activity ->
-                        animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
-                        animatorHelper2.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, trackersAnimation, omnibarViews(), events)
+                        //animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
+                        animatorHelper2.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, shieldIcon, trackersAnimation, omnibarViews(), events)
                     }
                 }
             }
         }
 
         fun cancelTrackersAnimation() {
-            animatorHelper.cancelAnimations(omnibarViews(), animationContainer)
+            //animatorHelper.cancelAnimations(omnibarViews(), animationContainer)
+            animatorHelper2.cancelAnimations(omnibarViews(), animationContainer)
         }
 
         fun renderGlobalViewState(viewState: GlobalLayoutViewState) {
@@ -2469,12 +2475,14 @@ class BrowserTabFragment :
         private fun renderToolbarMenus(viewState: BrowserViewState) {
             if (viewState.browserShowing) {
                 daxIcon?.isVisible = viewState.showDaxIcon
-                privacyGradeButton?.isInvisible = !viewState.showPrivacyGrade || viewState.showDaxIcon
+                //privacyGradeButton?.isInvisible = !viewState.showPrivacyGrade || viewState.showDaxIcon
+                shieldIcon?.isInvisible = !viewState.showPrivacyGrade || viewState.showDaxIcon
                 clearTextButton?.isVisible = viewState.showClearButton
                 searchIcon?.isVisible = viewState.showSearchIcon
             } else {
                 daxIcon.isVisible = false
                 privacyGradeButton?.isVisible = false
+                shieldIcon?.isVisible = false
                 clearTextButton?.isVisible = viewState.showClearButton
                 searchIcon?.isVisible = true
             }

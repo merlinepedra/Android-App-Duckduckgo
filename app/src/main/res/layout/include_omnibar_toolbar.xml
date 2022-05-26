@@ -53,22 +53,28 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_margin="8dp"
-                    android:background="@drawable/omnibar_field_background"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp">
+                    android:background="@drawable/omnibar_field_background">
 
                         <com.airbnb.lottie.LottieAnimationView
                             android:id="@+id/trackersAnimation"
-                            android:paddingStart="10dp"
+                            android:paddingStart="16dp"
                             android:layout_width="wrap_content"
                             android:layout_height="0dp"
                             android:scaleType="centerCrop"
                             android:importantForAccessibility="no"
-                            app:lottie_imageAssetsFolder="images"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintStart_toStartOf="@id/omnibarIconContainer"
+                            app:layout_constraintStart_toStartOf="@id/omniBarContainer"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <com.airbnb.lottie.LottieAnimationView
+                            android:id="@+id/shieldIcon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:importantForAccessibility="no"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="@id/omniBarContainer"
                             app:layout_constraintTop_toTopOf="parent"
-                            app:lottie_loop="true" />
+                            app:lottie_rawRes="@raw/shield" />
 
                         <androidx.constraintlayout.widget.ConstraintLayout
                             android:id="@+id/animationContainer"
@@ -85,9 +91,21 @@
                             android:id="@+id/omnibarIconContainer"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toTopOf="parent">
+
+                            <ImageView
+                                android:id="@+id/daxIcon1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:contentDescription="@string/privacyGradeContentDescription"
+                                android:padding="4dp"
+                                android:visibility="gone"
+                                android:src="@drawable/ic_ddg_logo" />
 
                             <ImageView
                                 android:id="@+id/daxIcon"
@@ -105,6 +123,7 @@
                                 android:layout_height="match_parent"
                                 android:gravity="center"
                                 android:padding="4dp"
+                                android:visibility="gone"
                                 android:background="?attr/selectableItemBackgroundBorderless"
                                 android:contentDescription="@string/privacyGradeContentDescription"
                                 android:src="@drawable/privacygrade_icon_loading" />
@@ -118,6 +137,13 @@
                                 android:padding="4dp"
                                 android:src="@drawable/ic_loupe_24dp" />
 
+                            <ImageView
+                                android:id="@+id/fakeView"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:gravity="center"
+                                android:padding="4dp"/>
+
                         </FrameLayout>
 
                         <com.duckduckgo.mobile.android.ui.view.KeyboardAwareEditText
@@ -126,6 +152,8 @@
                             android:layout_width="0dp"
                             android:layout_height="0dp"
                             android:background="@null"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp"
                             android:fontFamily="sans-serif"
                             android:hint="@string/omnibarInputHint"
                             android:imeOptions="flagNoExtractUi|actionGo|flagNoPersonalizedLearning"
@@ -152,6 +180,8 @@
                             android:contentDescription="@string/voiceSearchIconContentDescription"
                             android:padding="@dimen/keyline_2"
                             android:visibility="gone"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toStartOf="@+id/clearTextButton"
                             app:layout_constraintTop_toTopOf="parent"
@@ -166,6 +196,8 @@
                             android:padding="3dp"
                             android:src="@drawable/ic_close"
                             android:visibility="gone"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
