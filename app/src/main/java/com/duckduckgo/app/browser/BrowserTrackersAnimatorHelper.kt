@@ -510,14 +510,13 @@ class BrowserLottieTrackersAnimatorHelper {
         }
 
         with(lottieAnimationView) {
-            this.setAnimation(R.raw.dark_trackers)
+            this.setAnimation(R.raw.light_trackers)
             this.maintainOriginalImageBounds = true
             this.setImageAssetDelegate { asset ->
                 Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
-
                 // val generateDefaultDrawable = generateDefaultDrawable(activity, "amazon.com")
                 // generateDefaultDrawable.toBitmap(24, 24)
-                ContextCompat.getDrawable(activity, R.drawable.network_logo_facebook)!!.toBitmap()
+                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon)!!.toBitmap()
             }
             this.playAnimation()
         }
