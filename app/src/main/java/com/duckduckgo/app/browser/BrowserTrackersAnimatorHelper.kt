@@ -879,7 +879,9 @@ class BrowserLottieTrackersAnimatorHelper {
     private fun stopTrackersAnimation() {
         if (!::trackersAnimation.isInitialized || !::shieldAnimation.isInitialized ) return
         trackersAnimation.cancelAnimation()
+        trackersAnimation.progress = 1f
         shieldAnimation.cancelAnimation()
+        shieldAnimation.progress = 0f
     }
 
     private fun animateOmnibarOut(views: List<View>): AnimatorSet {
@@ -951,6 +953,12 @@ class BrowserLottieTrackersAnimatorHelper {
     }
 
     private fun animateFadeIn(view: View): ObjectAnimator {
+        if (view.alpha == 1f) {
+            return ObjectAnimator.ofFloat(view, "alpha", 1f, 1f).apply {
+                duration = DEFAULT_ANIMATION_DURATION
+            }
+        }
+
         return ObjectAnimator.ofFloat(view, "alpha", 0f, 1f).apply {
             duration = DEFAULT_ANIMATION_DURATION
         }
