@@ -48,7 +48,7 @@ class LottieTest : DuckDuckGoActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         lifecycleScope.launchWhenCreated {
-            binding.badgeIcon.setAnimation(R.raw.shield)
+            binding.badgeIcon.setAnimation(R.raw.protected_shield)
             binding.badgeIcon.playAnimation()
 
             /*binding.trackersBlocked.setAnimation(R.raw.dark_trackers)
@@ -70,7 +70,7 @@ class LottieTest : DuckDuckGoActivity() {
                     if (asset?.id == "image_3") {
                         ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_blank)!!.toBitmap()
                     } else {
-                        ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon)!!.toBitmap()
+                        ContextCompat.getDrawable(this@LottieTest, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
                     }
                 }
                 this.playAnimation()
