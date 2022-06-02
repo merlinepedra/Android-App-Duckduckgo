@@ -119,9 +119,11 @@ class AutofillJavascriptInterface(
             savedCredentials.isNotEmpty()
         }
 
+        val emailAvailable = false;
+
         Timber.v("Credentials available for %s: %s", url, credentialsAvailable)
 
-        val json = autofillResponseWriter.generateResponseGetAvailableInputTypes(credentialsAvailable).also {
+        val json = autofillResponseWriter.generateResponseGetAvailableInputTypes(credentialsAvailable, emailAvailable).also {
             Timber.i("xxx: \n%s", it)
         }
         return "availableInputTypes = $json"

@@ -36,8 +36,8 @@ class AutofillResponseWriter(val moshi: Moshi) {
         }
     }
 
-    fun generateResponseGetAvailableInputTypes(credentialsAvailable: Boolean): String {
-        val availableInputTypes = AvailableInputSuccessResponse(credentialsAvailable)
+    fun generateResponseGetAvailableInputTypes(credentialsAvailable: Boolean, emailAvailable: Boolean): String {
+        val availableInputTypes = AvailableInputSuccessResponse(credentialsAvailable, emailAvailable)
         // val topLevelResponse = AutofillAvailableInputTypesResponse(availableInputTypes)
         return availableInputTypesAdapterx.toJson(availableInputTypes)
     }
