@@ -23,6 +23,7 @@ import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.Paint
@@ -46,6 +47,9 @@ import androidx.core.view.children
 import androidx.core.widget.TextViewCompat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.airbnb.lottie.LottieAnimationView
+import com.duckduckgo.app.browser.TrackerLogo.ImageLogo
+import com.duckduckgo.app.browser.TrackerLogo.LetterLogo
+import com.duckduckgo.app.browser.TrackerLogo.StackedLogo
 import com.duckduckgo.app.cta.ui.Cta
 import com.duckduckgo.app.cta.ui.DaxDialogCta
 import com.duckduckgo.app.global.baseHost
@@ -171,7 +175,7 @@ class BrowserTrackersAnimatorHelper {
         return resourcesId.map {
             val frameLayout = when (it) {
                 is TrackerLogo.ImageLogo -> createTrackerImageLogo(activity, it)
-                is TrackerLogo.LetterLogo -> createTrackerTextLogo(activity, it)
+                is LetterLogo -> createTrackerTextLogo(activity, it)
                 is TrackerLogo.StackedLogo -> createTrackerStackedLogo(activity, it)
             }
             container.addView(frameLayout)
@@ -221,7 +225,7 @@ class BrowserTrackersAnimatorHelper {
 
     private fun createTrackerTextLogo(
         activity: Activity,
-        trackerLogo: TrackerLogo.LetterLogo
+        trackerLogo: LetterLogo
     ): FrameLayout {
         val animatedDrawable = createAnimatedDrawable(activity)
 
@@ -279,7 +283,7 @@ class BrowserTrackersAnimatorHelper {
             .map {
                 val resId = TrackersRenderer().networkLogoIcon(activity, it.name)
                 if (resId == null) {
-                    TrackerLogo.LetterLogo(it.displayName.take(1))
+                    LetterLogo(it.displayName.take(1))
                 } else {
                     TrackerLogo.ImageLogo(resId)
                 }
@@ -487,7 +491,6 @@ class BrowserTrackersAnimatorHelper {
 
 class BrowserLottieTrackersAnimatorHelper {
 
-    private var pulseAnimation: AnimatorSet = AnimatorSet()
     private var listener: TrackersAnimatorListener? = null
     private lateinit var trackersAnimation: LottieAnimationView
     private lateinit var shieldAnimation: LottieAnimationView
@@ -506,27 +509,48 @@ class BrowserLottieTrackersAnimatorHelper {
         if (trackersAnimationView.isAnimating) return
 
         if (entities.isNullOrEmpty()) { // no badge nor tracker animations
+            Timber.i("Lottie: entities.isNullOrEmpty()")
             listener?.onAnimationFinished()
             return
         }
 
-        val logos = getLogosViewListInContainer(activity, entities)
-        if (logos.isEmpty()) {
+        entities.forEach {
+            Timber.i("Lottie: entities ${it.name}")
+        }
+        val logos = getLogos(activity, entities)
+        /*if (logos.isEmpty()) {
+            Timber.i("Lottie: logos empty")
             listener?.onAnimationFinished()
             return
-        }
+        }*/
 
         with(trackersAnimationView) {
+            this.setCacheComposition(false) //ensure assets are not cached
             this.setAnimation(R.raw.light_trackers)
             this.maintainOriginalImageBounds = true
             this.setImageAssetDelegate { asset ->
                 Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
-                // val generateDefaultDrawable = generateDefaultDrawable(activity, "amazon.com")
-                // generateDefaultDrawable.toBitmap(24, 24)
-                if (asset?.id == "image_3") {
-                    ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
-                } else {
-                    ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon)!!.toBitmap()
+                when(asset?.id) {
+                    "image_0" -> {
+                        kotlin.runCatching { logos[0].asDrawable(activity) }
+                            .getOrDefault(
+                                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
+                            )
+                    }
+                    "image_1" -> {
+                        kotlin.runCatching { logos[1].asDrawable(activity) }
+                            .getOrDefault(
+                                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
+                            )
+                    }
+                    "image_2" -> {
+                        kotlin.runCatching { logos[2].asDrawable(activity) }
+                            .getOrDefault(
+                                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
+                            )
+                    }
+                    "image_3" -> ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
+                    else -> TODO()
                 }
             }
             this.addAnimatorListener(object : AnimatorListener{
@@ -535,6 +559,7 @@ class BrowserLottieTrackersAnimatorHelper {
                 }
 
                 override fun onAnimationEnd(animation: Animator?) {
+                    Timber.i("Lottie: onAnimationEnd")
                     animateOmnibarIn(omnibarViews).start()
                 }
 
@@ -547,32 +572,55 @@ class BrowserLottieTrackersAnimatorHelper {
             shieldAnimationView.playAnimation()
             this.playAnimation()
         }
-        /*if (!lottieAnimationView.isAnimating) {
-            trackersAnimation = if (cta is DaxDialogCta.DaxTrackersBlockedCta) {
-                createPartialTrackersAnimation(container, omnibarViews, logoViews).apply {
-                    start()
-                }
-            } else {
-                createFullTrackersAnimation(container, omnibarViews, logoViews).apply {
-                    start()
-                }
+    }
+
+    private fun TrackerLogo.asDrawable(activity: Activity): Bitmap {
+        return kotlin.runCatching {
+            when(this) {
+                is ImageLogo -> ContextCompat.getDrawable(activity, resId)!!.toBitmap()
+                is LetterLogo -> generateDefaultDrawable(activity, this.trackerLetter).toBitmap(24.toPx(), 24.toPx())
+                is StackedLogo -> TODO()
             }
-        }*/
+        }.getOrThrow()
+    }
+
+    private fun getLogos(
+        activity: Activity,
+        entities: List<Entity>
+    ): List<TrackerLogo> {
+        if (activity.packageName == null) return emptyList()
+        val trackerLogoList = entities
+            .asSequence()
+            .distinct()
+            .take(MAX_LOGOS_SHOWN + 1)
+            .sortedWithDisplayNamesStartingWithVowelsToTheEnd()
+            .map {
+                val resId = TrackersRenderer().networkLogoIcon(activity, it.name)
+                if (resId == null) {
+                    LetterLogo(it.displayName.take(1))
+                } else {
+                    ImageLogo(resId)
+                }
+            }.toMutableList()
+
+        return if (trackerLogoList.size <= MAX_LOGOS_SHOWN) {
+            trackerLogoList
+        } else {
+            trackerLogoList.take(MAX_LOGOS_SHOWN)
+                .toMutableList()
+                .apply { add(StackedLogo()) }
+        }
     }
 
     fun generateDefaultDrawable(
         context: Context,
-        domain: String
+        letter: String
     ): Drawable {
+        Timber.i("Lottie: will create logo for $letter")
         return object : Drawable() {
-            private val baseHost: String = domain.toUri().baseHost ?: ""
-
-            private val letter
-                get() = baseHost.firstOrNull()?.toString()?.toUpperCase(Locale.getDefault()) ?: ""
 
             private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = context.getColorFromAttr(com.duckduckgo.mobile.android.R.attr.toolbarIconColor)
-                // color = ContextCompat.getColor(context, com.duckduckgo.mobile.android.R.color.red50)
             }
 
             private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -588,6 +636,7 @@ class BrowserLottieTrackersAnimatorHelper {
                 val textBaseLineHeight = textPaint.fontMetrics.ascent * -0.4f
                 canvas.drawCircle(centerX, centerY, centerX, backgroundPaint)
                 canvas.drawText(letter, centerX - textWidth, centerY + textBaseLineHeight, textPaint)
+                Timber.i("Lottie: will create logo for $letter")
             }
 
             override fun setAlpha(alpha: Int) {
@@ -598,23 +647,6 @@ class BrowserLottieTrackersAnimatorHelper {
 
             override fun getOpacity(): Int {
                 return PixelFormat.TRANSPARENT
-            }
-        }
-    }
-
-    fun startPulseAnimation(view: ImageButton) {
-        if (!pulseAnimation.isRunning) {
-            val scaleDown = ObjectAnimator.ofPropertyValuesHolder(
-                view,
-                PropertyValuesHolder.ofFloat("scaleX", 1f, 0.9f, 1f),
-                PropertyValuesHolder.ofFloat("scaleY", 1f, 0.9f, 1f)
-            )
-            scaleDown.repeatCount = ObjectAnimator.INFINITE
-            scaleDown.duration = PULSE_ANIMATION_DURATION
-
-            pulseAnimation = AnimatorSet().apply {
-                play(scaleDown)
-                start()
             }
         }
     }
@@ -631,6 +663,7 @@ class BrowserLottieTrackersAnimatorHelper {
         omnibarViews: List<View>,
         container: ViewGroup
     ) {
+        Timber.i("Lottie: cancelAnimations")
         stopTrackersAnimation()
         listener?.onAnimationFinished()
         omnibarViews.forEach { it.alpha = 1f }
@@ -644,247 +677,18 @@ class BrowserLottieTrackersAnimatorHelper {
         TODO()
     }
 
-    private fun getLogosViewListInContainer(
-        activity: Activity,
-        entities: List<Entity>
-    ): List<TrackerLogo> {
-        return createTrackerLogoList(activity, entities)
-    }
-
-    private fun createLogosViewList(
-        activity: Activity,
-        container: ViewGroup,
-        resourcesId: List<TrackerLogo>
-    ): List<View> {
-        return resourcesId.map {
-            val frameLayout = when (it) {
-                is TrackerLogo.ImageLogo -> createTrackerImageLogo(activity, it)
-                is TrackerLogo.LetterLogo -> createTrackerTextLogo(activity, it)
-                is TrackerLogo.StackedLogo -> createTrackerStackedLogo(activity, it)
-            }
-            container.addView(frameLayout)
-            return@map frameLayout
-        }
-    }
-
-    private fun getParams(): FrameLayout.LayoutParams {
-        val params = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT)
-        params.gravity = Gravity.CENTER
-        return params
-    }
-
-    private fun createAnimatedDrawable(context: Context): AnimatedVectorDrawableCompat? {
-        return AnimatedVectorDrawableCompat.create(context, R.drawable.network_cross_anim)
-    }
-
-    private fun createFrameLayoutContainer(context: Context): FrameLayout {
-        val frameLayout = FrameLayout(context)
-        frameLayout.alpha = 0f
-        frameLayout.id = View.generateViewId()
-        frameLayout.layoutParams = getParams()
-        frameLayout.setBackgroundResource(R.drawable.background_tracker_logo)
-        return frameLayout
-    }
-
-    private fun createImageView(
-        context: Context,
-        resId: Int
-    ): ImageView {
-        val imageView = ImageView(context)
-        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-        imageView.setBackgroundResource(resId)
-        imageView.id = View.generateViewId()
-        imageView.layoutParams = getParams()
-        return imageView
-    }
-
-    private fun createTextView(context: Context): AppCompatTextView {
-        val textView = AppCompatTextView(context)
-        textView.gravity = Gravity.CENTER
-        TextViewCompat.setTextAppearance(textView, R.style.UnknownTrackerText)
-        textView.layoutParams = getParams()
-
-        return textView
-    }
-
-    private fun createTrackerTextLogo(
-        activity: Activity,
-        trackerLogo: TrackerLogo.LetterLogo
-    ): FrameLayout {
-        val animatedDrawable = createAnimatedDrawable(activity)
-
-        val animationView = ImageView(activity)
-        animationView.setImageDrawable(animatedDrawable)
-        animationView.layoutParams = getParams()
-
-        val textView = createTextView(activity)
-        textView.setBackgroundResource(trackerLogo.resId)
-        textView.text = trackerLogo.trackerLetter
-
-        val frameLayout = createFrameLayoutContainer(activity)
-        frameLayout.addView(textView)
-        frameLayout.addView(animationView)
-
-        return frameLayout
-    }
-
-    private fun createTrackerStackedLogo(
-        activity: Activity,
-        trackerLogo: TrackerLogo.StackedLogo
-    ): FrameLayout {
-        val imageView = createImageView(activity, trackerLogo.resId)
-        val frameLayout = createFrameLayoutContainer(activity)
-
-        frameLayout.addView(imageView)
-
-        return frameLayout
-    }
-
-    private fun createTrackerImageLogo(
-        activity: Activity,
-        trackerLogo: TrackerLogo.ImageLogo
-    ): FrameLayout {
-        val imageView = createImageView(activity, trackerLogo.resId)
-        val animatedDrawable = createAnimatedDrawable(activity)
-        imageView.setImageDrawable(animatedDrawable)
-
-        val frameLayout = createFrameLayoutContainer(activity)
-        frameLayout.addView(imageView)
-
-        return frameLayout
-    }
-
-    private fun createTrackerLogoList(
-        activity: Activity,
-        entities: List<Entity>
-    ): List<TrackerLogo> {
-        if (activity.packageName == null) return emptyList()
-        val trackerLogoList = entities
-            .asSequence()
-            .distinct()
-            .take(MAX_LOGOS_SHOWN + 1)
-            .sortedWithDisplayNamesStartingWithVowelsToTheEnd()
-            .map {
-                val resId = TrackersRenderer().networkLogoIcon(activity, it.name)
-                if (resId == null) {
-                    TrackerLogo.LetterLogo(it.displayName.take(1))
-                } else {
-                    TrackerLogo.ImageLogo(resId)
-                }
-            }
-            .toMutableList()
-
-        return if (trackerLogoList.size <= MAX_LOGOS_SHOWN) {
-            trackerLogoList
-        } else {
-            trackerLogoList.take(MAX_LOGOS_SHOWN)
-                .toMutableList()
-                .apply { add(TrackerLogo.StackedLogo()) }
-        }
-    }
-
-    private fun animateLogosBlocked(views: List<View>) {
-        views.map {
-            if (it is FrameLayout) {
-                val view: ImageView? = it.children.filter { child -> child is ImageView }.firstOrNull() as ImageView?
-                view?.let {
-                    val animatedVectorDrawableCompat = view.drawable as? AnimatedVectorDrawableCompat
-                    animatedVectorDrawableCompat?.start()
-                }
-            }
-        }
-    }
-
-    private fun createFullTrackersAnimation(
-        container: ConstraintLayout,
-        omnibarViews: List<View>,
-        logoViews: List<View>
-    ): AnimatorSet {
-        val finalAnimation = AnimatorSet().apply {
-            play(animateLogosSlideOut(logoViews))
-                .after(TRACKER_LOGOS_DELAY_ON_SCREEN)
-                .before(animateFadeOut(container))
-                .before(animateOmnibarIn(omnibarViews))
-        }
-
-        return AnimatorSet().apply {
-            playSequentially(
-                createPartialTrackersAnimation(container, omnibarViews, logoViews),
-                finalAnimation
-            )
-            start()
-            addListener(onEnd = { listener?.onAnimationFinished() })
-        }
-    }
-
-    private fun createPartialTrackersAnimation(
-        container: ConstraintLayout,
-        omnibarViews: List<View>,
-        logoViews: List<View>
-    ): AnimatorSet {
-        applyConstraintSet(container, logoViews)
-        container.alpha = 1f
-        animateLogosBlocked(logoViews)
-
-        return AnimatorSet().apply {
-            play(animateLogosSlideIn(logoViews)).after(animateOmnibarOut(omnibarViews))
-        }
-    }
-
-    private fun applyConstraintSet(
-        container: ConstraintLayout,
-        views: List<View>
-    ) {
-        val constraints = ConstraintSet()
-        constraints.clone(container)
-
-        views.mapIndexed { index, view ->
-            constraints.connect(view.id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
-            constraints.connect(view.id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM)
-            if (index == 0) {
-                constraints.connect(view.id, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, FIRST_LOGO_MARGIN_IN_DP.toPx())
-            } else {
-                constraints.setTranslationX(view.id, (NORMAL_LOGO_MARGIN_IN_DP.toPx() * index))
-                constraints.connect(view.id, ConstraintSet.START, views[index - 1].id, ConstraintSet.END, 0)
-            }
-            if (index == views.size - 1) {
-                if (views.size == MAX_LOGOS_SHOWN + 1) {
-                    constraints.setTranslationX(view.id, (STACKED_LOGO_MARGIN_IN_DP.toPx() * index))
-                }
-                constraints.connect(view.id, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
-            }
-        }
-
-        views.reversed().map { it.bringToFront() }
-
-        val viewIds = views.map { it.id }.toIntArray()
-
-        if (viewIds.size > 1) {
-            constraints.createHorizontalChain(
-                ConstraintSet.PARENT_ID,
-                ConstraintSet.LEFT,
-                ConstraintSet.PARENT_ID,
-                ConstraintSet.RIGHT,
-                viewIds,
-                null,
-                ConstraintSet.CHAIN_SPREAD
-            )
-        }
-
-        constraints.applyTo(container)
-    }
-
-    private fun calculateMarginInPx(position: Int): Int = START_MARGIN_IN_DP.toPx() + (position * LOGO_SIZE_IN_DP.toPx())
-
     private fun stopTrackersAnimation() {
         if (!::trackersAnimation.isInitialized || !::shieldAnimation.isInitialized ) return
         trackersAnimation.cancelAnimation()
         trackersAnimation.progress = 1f
-        shieldAnimation.cancelAnimation()
-        shieldAnimation.progress = 0f
+        if(shieldAnimation.isAnimating) {
+            shieldAnimation.cancelAnimation()
+            shieldAnimation.progress = 0f
+        }
     }
 
     private fun animateOmnibarOut(views: List<View>): AnimatorSet {
+        Timber.i("Lottie: animateOmnibarOut")
         val animators = views.map {
             animateFadeOut(it)
         }
@@ -894,6 +698,7 @@ class BrowserLottieTrackersAnimatorHelper {
     }
 
     private fun animateOmnibarIn(views: List<View>): AnimatorSet {
+        Timber.i("Lottie: animateOmnibarIn")
         val animators = views.map {
             animateFadeIn(it)
         }
@@ -902,57 +707,18 @@ class BrowserLottieTrackersAnimatorHelper {
         }
     }
 
-    private fun animateLogosSlideIn(views: List<View>): AnimatorSet {
-        val initialMargin = (views.first().layoutParams as ConstraintLayout.LayoutParams).marginStart.toFloat()
-        val slideInAnimators = views.mapIndexed { index, it ->
-            val margin = calculateMarginInPx(index) + initialMargin
-            animateSlideIn(it, margin)
-        }
-        val fadeInAnimators = views.map {
-            animateFadeIn(it)
-        }
-        return AnimatorSet().apply {
-            playTogether(slideInAnimators + fadeInAnimators)
-        }
-    }
-
-    private fun animateLogosSlideOut(views: List<View>): AnimatorSet {
-        val slideOutAnimators = views.map {
-            animateSlideOut(it)
-        }
-        val fadeOutAnimators = views.map {
-            animateFadeOut(it)
-        }
-        return AnimatorSet().apply {
-            playTogether(slideOutAnimators + fadeOutAnimators)
-        }
-    }
-
-    private fun animateSlideIn(
-        view: View,
-        margin: Float
-    ): ObjectAnimator {
-        return ObjectAnimator.ofFloat(view, "x", 0f, margin + view.translationX).apply {
-            duration = DEFAULT_ANIMATION_DURATION
-        }
-    }
-
-    private fun animateSlideOut(view: View): ObjectAnimator {
-        return ObjectAnimator.ofFloat(view, "x", 0f).apply {
-            duration = DEFAULT_ANIMATION_DURATION
-        }
-    }
-
     private fun animateFadeOut(
         view: View,
         durationInMs: Long = DEFAULT_ANIMATION_DURATION
     ): ObjectAnimator {
+        Timber.i("Lottie: animateFadeOut")
         return ObjectAnimator.ofFloat(view, "alpha", 1f, 0f).apply {
             duration = durationInMs
         }
     }
 
     private fun animateFadeIn(view: View): ObjectAnimator {
+        Timber.i("Lottie: animateFadeIn")
         if (view.alpha == 1f) {
             return ObjectAnimator.ofFloat(view, "alpha", 1f, 1f).apply {
                 duration = DEFAULT_ANIMATION_DURATION
@@ -969,15 +735,8 @@ class BrowserLottieTrackersAnimatorHelper {
     }
 
     companion object {
-        private const val TRACKER_LOGOS_DELAY_ON_SCREEN = 2400L
         private const val DEFAULT_ANIMATION_DURATION = 150L
-        private const val PULSE_ANIMATION_DURATION = 1500L
         private const val MAX_LOGOS_SHOWN = 3
-        private const val LOGO_SIZE_IN_DP = 26
-        private const val START_MARGIN_IN_DP = 10
-        private const val STACKED_LOGO_MARGIN_IN_DP = -11.5f
-        private const val NORMAL_LOGO_MARGIN_IN_DP = -7f
-        private const val FIRST_LOGO_MARGIN_IN_DP = 25
     }
 }
 
