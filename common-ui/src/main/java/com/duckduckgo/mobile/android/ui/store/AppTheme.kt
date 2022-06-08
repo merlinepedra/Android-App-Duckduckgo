@@ -43,9 +43,13 @@ class BrowserAppTheme @Inject constructor(
             DuckDuckGoTheme.LIGHT -> true
             DuckDuckGoTheme.DARK -> false
             DuckDuckGoTheme.SYSTEM_DEFAULT -> {
-                val currentNightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-                currentNightMode != Configuration.UI_MODE_NIGHT_YES
+                !isNightMode(context)
             }
         }
+    }
+
+    private fun isNightMode(context: Context): Boolean {
+        val nightModeMasked = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return nightModeMasked == Configuration.UI_MODE_NIGHT_YES
     }
 }
