@@ -42,7 +42,6 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.animation.addListener
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
-import androidx.core.net.toUri
 import androidx.core.view.children
 import androidx.core.widget.TextViewCompat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
@@ -52,9 +51,9 @@ import com.duckduckgo.app.browser.TrackerLogo.LetterLogo
 import com.duckduckgo.app.browser.TrackerLogo.StackedLogo
 import com.duckduckgo.app.cta.ui.Cta
 import com.duckduckgo.app.cta.ui.DaxDialogCta
-import com.duckduckgo.app.global.baseHost
 import com.duckduckgo.app.privacy.renderer.TrackersRenderer
 import com.duckduckgo.app.trackerdetection.model.Entity
+import com.duckduckgo.mobile.android.ui.store.AppTheme
 import com.duckduckgo.mobile.android.ui.view.getColorFromAttr
 import com.duckduckgo.mobile.android.ui.view.toPx
 import timber.log.Timber
@@ -501,7 +500,8 @@ class BrowserLottieTrackersAnimatorHelper {
         shieldAnimationView: LottieAnimationView,
         trackersAnimationView: LottieAnimationView,
         omnibarViews: List<View>,
-        entities: List<Entity>?
+        entities: List<Entity>?,
+        theme: AppTheme
     ) {
         this.trackersAnimation = trackersAnimationView
         this.shieldAnimation = shieldAnimationView
@@ -524,9 +524,11 @@ class BrowserLottieTrackersAnimatorHelper {
             return
         }*/
 
+        val animationRawRes = getAnimationRawRes(logos, theme)
+
         with(trackersAnimationView) {
             this.setCacheComposition(false) //ensure assets are not cached
-            this.setAnimation(R.raw.light_trackers)
+            this.setAnimation(animationRawRes)
             this.maintainOriginalImageBounds = true
             this.setImageAssetDelegate { asset ->
                 Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
@@ -571,6 +573,19 @@ class BrowserLottieTrackersAnimatorHelper {
             })
             shieldAnimationView.playAnimation()
             this.playAnimation()
+        }
+    }
+
+    private fun getAnimationRawRes(
+        logos: List<TrackerLogo>,
+        theme: AppTheme
+    ): Int {
+        val trackers = logos.size
+        return when {
+            trackers == 1 -> if (theme.isLightModeEnabled()) R.raw.light_trackers_1 else R.raw.dark_trackers_1
+            trackers == 2 -> if (theme.isLightModeEnabled()) R.raw.light_trackers_2 else R.raw.dark_trackers_2
+            trackers >= 3 -> if (theme.isLightModeEnabled()) R.raw.light_trackers else R.raw.dark_trackers
+            else -> TODO()
         }
     }
 

@@ -185,6 +185,7 @@ import com.duckduckgo.downloads.api.DownloadCommand
 import com.duckduckgo.downloads.api.DownloadFailReason
 import com.duckduckgo.downloads.api.FileDownloader
 import com.duckduckgo.downloads.api.FileDownloader.PendingFileDownload
+import com.duckduckgo.mobile.android.ui.store.BrowserAppTheme
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import kotlinx.coroutines.flow.cancellable
 import javax.inject.Provider
@@ -274,7 +275,7 @@ class BrowserTabFragment :
     lateinit var gridViewColumnCalculator: GridViewColumnCalculator
 
     @Inject
-    lateinit var themingDataStore: ThemingDataStore
+    lateinit var appTheme: BrowserAppTheme
 
     @Inject
     lateinit var accessibilitySettingsDataStore: AccessibilitySettingsDataStore
@@ -1473,17 +1474,9 @@ class BrowserTabFragment :
     }
 
     private fun configureDarkThemeSupport(webSettings: WebSettings) {
-        when (themingDataStore.theme) {
-            DuckDuckGoTheme.LIGHT -> webSettings.enableLightMode()
-            DuckDuckGoTheme.DARK -> webSettings.enableDarkMode()
-            DuckDuckGoTheme.SYSTEM_DEFAULT -> {
-                val currentNightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-                if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
-                    webSettings.enableDarkMode()
-                } else {
-                    webSettings.enableLightMode()
-                }
-            }
+        when (appTheme.isLightModeEnabled()) {
+            true -> webSettings.enableLightMode()
+            false -> webSettings.enableDarkMode()
         }
     }
 
@@ -2387,7 +2380,8 @@ class BrowserTabFragment :
 
                     activity?.let { activity ->
                         //animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
-                        animatorHelper2.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, shieldIcon, trackersAnimation, omnibarViews(), events)
+                        animatorHelper2.startTrackersAnimation(lastSeenCtaViewState?.cta, activity,
+                            shieldIcon, trackersAnimation, omnibarViews(), events, appTheme)
                     }
                 }
             }
