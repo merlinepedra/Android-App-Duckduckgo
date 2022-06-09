@@ -527,12 +527,12 @@ class BrowserLottieTrackersAnimatorHelper {
         val animationRawRes = getAnimationRawRes(logos, theme)
 
         with(trackersAnimationView) {
-            this.setCacheComposition(false) //ensure assets are not cached
+            this.setCacheComposition(false) // ensure assets are not cached
             this.setAnimation(animationRawRes)
             this.maintainOriginalImageBounds = true
             this.setImageAssetDelegate { asset ->
                 Timber.i("Lottie: ${asset?.id} ${asset?.fileName}")
-                when(asset?.id) {
+                when (asset?.id) {
                     "image_0" -> {
                         kotlin.runCatching { logos[0].asDrawable(activity) }
                             .getOrDefault(
@@ -555,7 +555,7 @@ class BrowserLottieTrackersAnimatorHelper {
                     else -> TODO()
                 }
             }
-            this.addAnimatorListener(object : AnimatorListener{
+            this.addAnimatorListener(object : AnimatorListener {
                 override fun onAnimationStart(animation: Animator?) {
                     animateOmnibarOut(omnibarViews).start()
                 }
@@ -591,7 +591,7 @@ class BrowserLottieTrackersAnimatorHelper {
 
     private fun TrackerLogo.asDrawable(activity: Activity): Bitmap {
         return kotlin.runCatching {
-            when(this) {
+            when (this) {
                 is ImageLogo -> ContextCompat.getDrawable(activity, resId)!!.toBitmap()
                 is LetterLogo -> generateDefaultDrawable(activity, this.trackerLetter).toBitmap(24.toPx(), 24.toPx())
                 is StackedLogo -> TODO()
@@ -693,10 +693,10 @@ class BrowserLottieTrackersAnimatorHelper {
     }
 
     private fun stopTrackersAnimation() {
-        if (!::trackersAnimation.isInitialized || !::shieldAnimation.isInitialized ) return
+        if (!::trackersAnimation.isInitialized || !::shieldAnimation.isInitialized) return
         trackersAnimation.cancelAnimation()
         trackersAnimation.progress = 1f
-        if(shieldAnimation.isAnimating) {
+        if (shieldAnimation.isAnimating) {
             shieldAnimation.cancelAnimation()
             shieldAnimation.progress = 0f
         }
