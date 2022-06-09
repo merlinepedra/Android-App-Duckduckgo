@@ -2295,7 +2295,7 @@ class BrowserTabFragment :
                     }
                 }
 
-                privacyGradeButton?.isEnabled = viewState.isEnabled
+                // privacyGradeButton?.isEnabled = viewState.isEnabled
             }
         }
 

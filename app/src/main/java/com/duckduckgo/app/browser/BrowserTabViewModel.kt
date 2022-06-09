@@ -280,10 +280,9 @@ class BrowserTabViewModel @Inject constructor(
     )
 
     data class PrivacyGradeViewState(
-        val privacyShield: PrivacyShield = PrivacyShield.UNKNOWN,
-        val clickable: Boolean = false
+        val privacyShield: PrivacyShield = PrivacyShield.UNKNOWN
     ) {
-        val isEnabled: Boolean = privacyShield != PrivacyShield.UNKNOWN
+        // val isEnabled: Boolean = privacyShield != PrivacyShield.UNKNOWN
     }
 
     data class AutoCompleteViewState(
