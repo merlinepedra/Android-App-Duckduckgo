@@ -921,26 +921,26 @@ class BrowserTabViewModelTest {
     @Test
     fun whenUrlClearedThenPrivacyGradeIsCleared() = runTest {
         loadUrl("https://duckduckgo.com")
-        assertNotNull(privacyGradeState().privacyGrade)
+        assertNotNull(privacyGradeState().privacyShield)
         loadUrl(null)
-        assertNull(privacyGradeState().privacyGrade)
+        assertNull(privacyGradeState().privacyShield)
     }
 
     @Test
     fun whenUrlLoadedThenPrivacyGradeIsReset() = runTest {
         loadUrl("https://duckduckgo.com")
-        assertNotNull(privacyGradeState().privacyGrade)
+        assertNotNull(privacyGradeState().privacyShield)
     }
 
     @Test
     fun whenEnoughTrackersDetectedThenPrivacyGradeIsUpdated() {
-        val grade = privacyGradeState().privacyGrade
+        val grade = privacyGradeState().privacyShield
         loadUrl("https://example.com")
         val entity = TestEntity("Network1", "Network1", 10.0)
         for (i in 1..10) {
             testee.trackerDetected(TrackingEvent("https://example.com", "", null, entity, false, null))
         }
-        assertNotEquals(grade, privacyGradeState().privacyGrade)
+        assertNotEquals(grade, privacyGradeState().privacyShield)
     }
 
     @Test
@@ -3652,7 +3652,7 @@ class BrowserTabViewModelTest {
     fun whenLoadUrlAndSiteIsInContentBlockingExceptionsListThenDoNotChangePrivacyGrade() {
         whenever(mockContentBlocking.isAnException(any())).thenReturn(true)
         loadUrl("https://example.com")
-        assertNull(privacyGradeState().privacyGrade)
+        assertNull(privacyGradeState().privacyShield)
     }
 
     @Test
