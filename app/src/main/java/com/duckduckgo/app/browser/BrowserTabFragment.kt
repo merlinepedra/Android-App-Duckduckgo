@@ -116,7 +116,6 @@ import com.duckduckgo.app.location.data.LocationPermissionType
 import com.duckduckgo.app.location.ui.SiteLocationPermissionDialog
 import com.duckduckgo.app.location.ui.SystemLocationPermissionDialog
 import com.duckduckgo.app.pixels.AppPixelName
-import com.duckduckgo.app.privacy.renderer.icon
 import com.duckduckgo.app.statistics.VariantManager
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.statistics.pixels.Pixel.PixelParameter.FIRE_BUTTON_STATE
@@ -125,8 +124,6 @@ import com.duckduckgo.app.survey.ui.SurveyActivity
 import com.duckduckgo.app.tabs.model.TabEntity
 import com.duckduckgo.app.tabs.ui.GridViewColumnCalculator
 import com.duckduckgo.app.tabs.ui.TabSwitcherActivity
-import com.duckduckgo.mobile.android.ui.DuckDuckGoTheme
-import com.duckduckgo.mobile.android.ui.store.ThemingDataStore
 import com.google.android.material.snackbar.Snackbar
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.android.synthetic.main.fragment_browser_tab.*
@@ -165,12 +162,17 @@ import com.duckduckgo.app.browser.BrowserTabViewModel.LoadingViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.OmnibarViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.PrivacyGradeViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.SavedSiteChangedViewState
+import com.duckduckgo.app.browser.R.raw
 import com.duckduckgo.app.downloads.DownloadsFileActions
 import com.duckduckgo.app.browser.menu.BrowserPopupMenu
 import com.duckduckgo.app.browser.remotemessage.asMessage
 import com.duckduckgo.app.global.FragmentViewModelFactory
 import com.duckduckgo.app.global.view.launchDefaultAppActivity
 import com.duckduckgo.app.playstore.PlayStoreUtils
+import com.duckduckgo.app.privacy.model.PrivacyShield.PROTECTED
+import com.duckduckgo.app.privacy.model.PrivacyShield.UNKNOWN
+import com.duckduckgo.app.privacy.model.PrivacyShield.UNPROTECTED
+import com.duckduckgo.app.privacy.model.PrivacyShield.WARNING
 import com.duckduckgo.app.statistics.isFireproofExperimentEnabled
 import com.duckduckgo.app.utils.ConflatedJob
 import com.duckduckgo.app.widget.AddWidgetLauncher
@@ -733,7 +735,10 @@ class BrowserTabFragment :
 
     private fun processCommand(it: Command?) {
         if (it !is Command.DaxCommand) {
-            renderer.cancelTrackersAnimation()
+            Timber.i("Lottie: will cancel animations $it")
+            if (it == Command.Refresh) {
+                renderer.cancelTrackersAnimation()
+            }
         }
         when (it) {
             is Command.Refresh -> refresh()
@@ -1781,6 +1786,7 @@ class BrowserTabFragment :
      */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        Timber.e("onConfigurationChanged Lottie")
         ddgLogo.setImageResource(R.drawable.logo_full)
         if (ctaContainer.isNotEmpty()) {
             renderer.renderHomeCta()
@@ -1949,6 +1955,7 @@ class BrowserTabFragment :
     }
 
     private fun finishTrackerAnimation() {
+        Timber.i("Lottie: finishTrackerAnimation")
         animatorHelper.finishTrackerAnimation(omnibarViews(), animationContainer)
     }
 
@@ -1996,7 +2003,8 @@ class BrowserTabFragment :
     fun omnibarViews(): List<View> = listOf(clearTextButton, omnibarTextInput, searchIcon)
 
     override fun onAnimationFinished() {
-        viewModel.stopShowingEmptyGrade()
+        Timber.i("Lottie: onAnimationFinished")
+        // viewModel.stopShowingEmptyGrade()
     }
 
     private fun showEmailTooltip(address: String) {
@@ -2254,34 +2262,40 @@ class BrowserTabFragment :
 
         fun renderPrivacyGrade(viewState: PrivacyGradeViewState) {
 
+            Timber.i("Shield: event received with ${viewState.privacyShield}")
             renderIfChanged(viewState, lastSeenPrivacyGradeViewState) {
 
-                val oldGrade = lastSeenPrivacyGradeViewState?.privacyGrade
-                val oldShowEmptyGrade = lastSeenPrivacyGradeViewState?.showEmptyGrade
-                val grade = viewState.privacyGrade
-                val newShowEmptyGrade = viewState.showEmptyGrade
-
-                val canChangeGrade = (oldGrade != grade && !newShowEmptyGrade) || (oldGrade == grade && oldShowEmptyGrade != newShowEmptyGrade)
+                if (viewState.privacyShield == lastSeenPrivacyGradeViewState?.privacyShield) return
+                val oldShield = lastSeenPrivacyGradeViewState?.privacyShield
                 lastSeenPrivacyGradeViewState = viewState
 
-                if (canChangeGrade) {
-                    context?.let {
-                        val drawable = if (viewState.showEmptyGrade || viewState.shouldAnimate) {
-                            ContextCompat.getDrawable(it, R.drawable.privacygrade_icon_loading)
-                        } else {
-                            ContextCompat.getDrawable(it, viewState.privacyGrade.icon())
-                        }
-                        privacyGradeButton?.setImageDrawable(drawable)
+                val privacyShield = viewState.privacyShield
+
+                Timber.i("Shield: old $oldShield new $privacyShield ")
+                // TODO: put unprotected animation
+                // TODO: put dark/light animation
+                when (privacyShield) {
+                    PROTECTED -> {
+                        shieldIcon.setAnimation(raw.protected_shield)
+                        Timber.i("Shield: PROTECTED")
+                    }
+                    UNPROTECTED -> {
+                        shieldIcon.setAnimation(raw.unprotected_shield)
+                        shieldIcon.progress = 1.0f
+                        Timber.i("Shield: UNPROTECTED")
+                    }
+                    UNKNOWN -> {
+                        shieldIcon.setAnimation(raw.protected_shield)
+                        Timber.i("Shield: UNKNOWN")
+                    }
+                    WARNING -> {
+                        shieldIcon.setAnimation(raw.unprotected_shield)
+                        shieldIcon.progress = 1.0f
+                        Timber.i("Shield: WARNING")
                     }
                 }
 
                 privacyGradeButton?.isEnabled = viewState.isEnabled
-
-                /*if (viewState.shouldAnimate) {
-                    animatorHelper.startPulseAnimation(privacyGradeButton)
-                } else {
-                    animatorHelper.stopPulseAnimation()
-                }*/
             }
         }
 
@@ -2379,16 +2393,18 @@ class BrowserTabFragment :
                     val events = site?.orderedTrackingEntities()
 
                     activity?.let { activity ->
-                        //animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
-                        animatorHelper2.startTrackersAnimation(lastSeenCtaViewState?.cta, activity,
-                            shieldIcon, trackersAnimation, omnibarViews(), events, appTheme)
+                        // animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
+                        animatorHelper2.startTrackersAnimation(
+                            lastSeenCtaViewState?.cta, activity,
+                            shieldIcon, trackersAnimation, omnibarViews(), events, appTheme
+                        )
                     }
                 }
             }
         }
 
         fun cancelTrackersAnimation() {
-            //animatorHelper.cancelAnimations(omnibarViews(), animationContainer)
+            // animatorHelper.cancelAnimations(omnibarViews(), animationContainer)
             animatorHelper2.cancelAnimations(omnibarViews(), animationContainer)
         }
 
@@ -2469,7 +2485,7 @@ class BrowserTabFragment :
         private fun renderToolbarMenus(viewState: BrowserViewState) {
             if (viewState.browserShowing) {
                 daxIcon?.isVisible = viewState.showDaxIcon
-                //privacyGradeButton?.isInvisible = !viewState.showPrivacyGrade || viewState.showDaxIcon
+                // privacyGradeButton?.isInvisible = !viewState.showPrivacyGrade || viewState.showDaxIcon
                 shieldIcon?.isInvisible = !viewState.showPrivacyGrade || viewState.showDaxIcon
                 clearTextButton?.isVisible = viewState.showClearButton
                 searchIcon?.isVisible = viewState.showSearchIcon

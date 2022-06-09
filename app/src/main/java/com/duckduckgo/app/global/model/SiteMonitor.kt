@@ -22,19 +22,26 @@ import androidx.core.net.toUri
 import com.duckduckgo.app.global.isHttps
 import com.duckduckgo.app.global.model.Site.SiteGrades
 import com.duckduckgo.app.global.model.SiteFactory.SitePrivacyData
-import com.duckduckgo.app.privacy.model.Grade
+import com.duckduckgo.app.privacy.db.UserWhitelistDao
 import com.duckduckgo.app.privacy.model.HttpsStatus
-import com.duckduckgo.app.privacy.model.PrivacyGrade
 import com.duckduckgo.app.privacy.model.PrivacyPractices
+import com.duckduckgo.app.privacy.model.PrivacyShield
+import com.duckduckgo.app.privacy.model.PrivacyShield.PROTECTED
+import com.duckduckgo.app.privacy.model.PrivacyShield.UNKNOWN
+import com.duckduckgo.app.privacy.model.PrivacyShield.UNPROTECTED
 import com.duckduckgo.app.surrogates.SurrogateResponse
 import com.duckduckgo.app.trackerdetection.model.Entity
 import com.duckduckgo.app.trackerdetection.model.TrackingEvent
+import com.duckduckgo.privacy.config.api.ContentBlocking
+import timber.log.Timber
 import java.util.concurrent.CopyOnWriteArrayList
 
 class SiteMonitor(
     url: String,
     override var title: String?,
-    override var upgradedHttps: Boolean = false
+    override var upgradedHttps: Boolean = false,
+    private val userWhitelistDao: UserWhitelistDao,
+    private val contentBlocking: ContentBlocking
 ) : Site {
 
     override var url: String = url
@@ -77,19 +84,26 @@ class SiteMonitor(
     override val allTrackersBlocked: Boolean
         get() = trackingEvents.none { !it.blocked }
 
-    private val gradeCalculator: Grade
+    // private val gradeCalculator: Shield
+
+    private var fullSiteDetailsAvailable: Boolean = false
+
+    private var currentProtection: PrivacyShield = PrivacyShield.UNKNOWN
+
+    private val isHttps = https != HttpsStatus.NONE
 
     init {
-        val isHttps = https != HttpsStatus.NONE
-
         // httpsAutoUpgrade is not supported yet; for now, keep it equal to isHttps and don't penalise sites
-        gradeCalculator = Grade(https = isHttps, httpsAutoUpgrade = isHttps)
+        // gradeCalculator = Shield(https = isHttps, httpsAutoUpgrade = isHttps)
     }
 
     override fun updatePrivacyData(sitePrivacyData: SitePrivacyData) {
         this.privacyPractices = sitePrivacyData.practices
         this.entity = sitePrivacyData.entity
-        gradeCalculator.updateData(privacyPractices.score, entity)
+
+        Timber.i("Shield: fullSiteDetailsAvailable for ${sitePrivacyData.entity}")
+        fullSiteDetailsAvailable = true
+        // gradeCalculator.updateData(entity) //TODO: do we need this call?
     }
 
     private fun httpsStatus(): HttpsStatus {
@@ -111,46 +125,40 @@ class SiteMonitor(
         trackingEvents.add(event)
 
         val entity = event.entity ?: return
-        if (event.blocked) {
+        /*if (event.blocked) {
             gradeCalculator.addEntityBlocked(entity)
         } else {
             gradeCalculator.addEntityNotBlocked(entity)
+        }*/
+    }
+
+    // TODO: remove?
+    override fun calculateGrades(): SiteGrades {
+        TODO()
+        /*val scores = gradeCalculator.calculateScore()
+        val privacyGradeOriginal = privacyGrade(scores)
+        val privacyGradeImproved = privacyGradeImproved(scores)
+        return SiteGrades(privacyGradeOriginal, privacyGradeImproved)*/
+    }
+
+    override fun privacyProtection(): PrivacyShield {
+        if (!fullSiteDetailsAvailable) {
+            Timber.i("Shield: not fullSiteDetailsAvailable")
+            return UNKNOWN
+        }
+        val isMajorNetwork = entity?.isMajor == true
+        Timber.i("Shield: isMajor ${entity?.isMajor} prev ${entity?.prevalence}")
+        val userAllowList: Boolean = domain?.let { isWhitelisted(it) } ?: false
+
+        return when {
+            !userAllowList && !isMajorNetwork && isHttps -> PROTECTED
+            else -> UNPROTECTED
         }
     }
 
-    override fun calculateGrades(): SiteGrades {
-        val scores = gradeCalculator.calculateScore()
-        val privacyGradeOriginal = privacyGrade(scores)
-        val privacyGradeImproved = privacyGradeImproved(scores)
-        return SiteGrades(privacyGradeOriginal, privacyGradeImproved)
+    private fun isWhitelisted(domain: String): Boolean {
+        return userWhitelistDao.contains(domain) || contentBlocking.isAnException(domain)
     }
 
     override var urlParametersRemoved: Boolean = false
-
-    private fun privacyGrade(scores: Grade.Scores): PrivacyGrade {
-        return when (scores) {
-            Grade.Scores.ScoresUnavailable -> PrivacyGrade.UNKNOWN
-            is Grade.Scores.ScoresAvailable -> privacyGrade(scores.site.grade)
-        }
-    }
-
-    private fun privacyGradeImproved(scores: Grade.Scores): PrivacyGrade {
-        return when (scores) {
-            Grade.Scores.ScoresUnavailable -> PrivacyGrade.UNKNOWN
-            is Grade.Scores.ScoresAvailable -> privacyGrade(scores.enhanced.grade)
-        }
-    }
-
-    private fun privacyGrade(grade: Grade.Grading): PrivacyGrade {
-        return when (grade) {
-            Grade.Grading.A -> PrivacyGrade.A
-            Grade.Grading.B_PLUS -> PrivacyGrade.B_PLUS
-            Grade.Grading.B -> PrivacyGrade.B
-            Grade.Grading.C_PLUS -> PrivacyGrade.C_PLUS
-            Grade.Grading.C -> PrivacyGrade.C
-            Grade.Grading.D -> PrivacyGrade.D
-            Grade.Grading.D_MINUS -> PrivacyGrade.D
-            Grade.Grading.UNKNOWN -> PrivacyGrade.UNKNOWN
-        }
-    }
 }

@@ -199,3 +199,83 @@ class Grade(
         const val MAX_PRIVACY_SCORE = 10
     }
 }
+
+/*class Shield(
+    val https: Boolean = false,
+    val httpsAutoUpgrade: Boolean = false
+) {
+
+    enum class Grading {
+        PROTECTED,
+        UNPROTECTED,
+        UNKNOWN
+    }
+
+    data class Score(
+        val https: Boolean,
+        val majorTrackerSite: Boolean,
+        val privacyProtection: Boolean
+    )
+
+    sealed class Scores {
+
+        data class ScoresAvailable(
+            val grading: Grading
+        ) : Scores()
+
+        object ScoresUnavailable : Scores()
+    }
+
+    private var fullSiteDetailsAvailable: Boolean = false
+    private var entitiesNotBlocked: Map<String, Double> = mapOf()
+    private var entitiesBlocked: Map<String, Double> = mapOf()
+
+    fun updateData(parentEntity: Entity?) {
+        parentEntity?.let {
+            setParentEntity(parentEntity)
+        }
+
+        fullSiteDetailsAvailable = true
+    }
+
+    fun calculateScore(): Shield.Scores {
+
+        if (!fullSiteDetailsAvailable) {
+            Timber.d("Full site details are not available")
+            return scoresUnavailable()
+        }
+
+        val https = when {
+            httpsAutoUpgrade -> true
+            https -> true
+            else -> false
+        }
+
+        val grading = if (https) Grading.PROTECTED else UNPROTECTED
+
+        return Scores.ScoresAvailable(grading = grading)
+    }
+
+    private fun scoresUnavailable() = Shield.Scores.ScoresUnavailable
+
+    private fun setParentEntity(parentEntity: Entity) {
+        addEntityNotBlocked(parentEntity)
+    }
+
+    fun addEntityNotBlocked(entity: Entity?) {
+        entity?.let {
+            entitiesNotBlocked = entitiesNotBlocked.plus(entity.name to entity.prevalence)
+        }
+    }
+
+    fun addEntityBlocked(entity: Entity?) {
+        entity?.let {
+            entitiesBlocked = entitiesBlocked.plus(entity.name to entity.prevalence)
+        }
+    }
+
+    companion object {
+        const val UNKNOWN_PRIVACY_SCORE = 2
+        const val MAX_PRIVACY_SCORE = 10
+    }
+}*/
