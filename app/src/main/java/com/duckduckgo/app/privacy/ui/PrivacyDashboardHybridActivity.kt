@@ -197,9 +197,10 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
             val adapter = moshi.adapter(ViewState::class.java)
             val json = adapter.toJson(it)
             Timber.i("PDHy: received $json")
-            webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.url}\", $json);", null)
-            webView.evaluateJavascript("javascript:onChangeUpgradedHttps(true);", null)
-            webView.evaluateJavascript("javascript:onChangeProtectionStatus(true);", null)
+            webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.siteProtectionsViewState.url}\", $json);", null)
+            webView.evaluateJavascript("javascript:onChangeUpgradedHttps(${it.siteProtectionsViewState.upgradedHttps});", null)
+            webView.evaluateJavascript("javascript:onChangeProtectionStatus(${it.userSettingsViewState.privacyProtectionEnabled});", null)
+            webView.evaluateJavascript("javascript:onChangeParentEntity(${it.siteProtectionsViewState});", null)
         }
     }
 

@@ -18,6 +18,7 @@ package com.duckduckgo.app.global.model
 
 import android.net.Uri
 import android.net.http.SslCertificate
+import androidx.annotation.WorkerThread
 import androidx.core.net.toUri
 import com.duckduckgo.app.global.isHttps
 import com.duckduckgo.app.global.model.Site.SiteGrades
@@ -33,6 +34,8 @@ import com.duckduckgo.app.surrogates.SurrogateResponse
 import com.duckduckgo.app.trackerdetection.model.Entity
 import com.duckduckgo.app.trackerdetection.model.TrackingEvent
 import com.duckduckgo.privacy.config.api.ContentBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -41,7 +44,8 @@ class SiteMonitor(
     override var title: String?,
     override var upgradedHttps: Boolean = false,
     private val userWhitelistDao: UserWhitelistDao,
-    private val contentBlocking: ContentBlocking
+    private val contentBlocking: ContentBlocking,
+    private val appCoroutineScope: CoroutineScope
 ) : Site {
 
     override var url: String = url
@@ -92,16 +96,21 @@ class SiteMonitor(
 
     private val isHttps = https != HttpsStatus.NONE
 
+    override var userAllowList: Boolean = false
+
     init {
         // httpsAutoUpgrade is not supported yet; for now, keep it equal to isHttps and don't penalise sites
         // gradeCalculator = Shield(https = isHttps, httpsAutoUpgrade = isHttps)
+        appCoroutineScope.launch {
+            domain?.let { userAllowList = isWhitelisted(it) }
+        }
     }
 
     override fun updatePrivacyData(sitePrivacyData: SitePrivacyData) {
         this.privacyPractices = sitePrivacyData.practices
         this.entity = sitePrivacyData.entity
 
-        Timber.i("Shield: fullSiteDetailsAvailable for ${sitePrivacyData.entity}")
+        Timber.i("PDHy: fullSiteDetailsAvailable for ${sitePrivacyData.entity}")
         fullSiteDetailsAvailable = true
         // gradeCalculator.updateData(entity) //TODO: do we need this call?
     }
@@ -148,7 +157,7 @@ class SiteMonitor(
         }
         val isMajorNetwork = entity?.isMajor == true
         Timber.i("Shield: isMajor ${entity?.isMajor} prev ${entity?.prevalence}")
-        val userAllowList: Boolean = domain?.let { isWhitelisted(it) } ?: false
+        userAllowList = domain?.let { isWhitelisted(it) } ?: false
 
         return when {
             !userAllowList && !isMajorNetwork && isHttps -> PROTECTED
@@ -156,6 +165,7 @@ class SiteMonitor(
         }
     }
 
+    @WorkerThread
     private fun isWhitelisted(domain: String): Boolean {
         return userWhitelistDao.contains(domain) || contentBlocking.isAnException(domain)
     }

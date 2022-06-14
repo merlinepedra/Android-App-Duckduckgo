@@ -48,6 +48,7 @@ interface Site {
     val https: HttpsStatus
     var hasHttpResources: Boolean
     var upgradedHttps: Boolean
+    var userAllowList: Boolean
 
     val privacyPractices: PrivacyPractices.Practices
     val entity: Entity?
