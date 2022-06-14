@@ -29,6 +29,8 @@ import com.duckduckgo.app.global.DispatcherProvider
 import com.duckduckgo.app.global.model.Site
 import com.duckduckgo.app.global.model.domain
 import com.duckduckgo.app.pixels.AppPixelName.PRIVACY_DASHBOARD_OPENED
+import com.duckduckgo.app.pixels.AppPixelName.PRIVACY_DASHBOARD_WHITELIST_ADD
+import com.duckduckgo.app.pixels.AppPixelName.PRIVACY_DASHBOARD_WHITELIST_REMOVE
 import com.duckduckgo.app.privacy.db.NetworkLeaderboardDao
 import com.duckduckgo.app.privacy.db.NetworkLeaderboardEntry
 import com.duckduckgo.app.privacy.db.UserWhitelistDao
@@ -66,7 +68,8 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
 
     data class ViewState(
         val userSettingsViewState: UserSettingsViewState,
-        val siteProtectionsViewState: SiteProtectionsViewState
+        val siteProtectionsViewState: SiteProtectionsViewState,
+        val userChangedValues: Boolean = false
     )
 
     data class UserSettingsViewState(
@@ -297,6 +300,22 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                     privacyProtectionEnabled = !site.userAllowList
                 )
             )
+        }
+    }
+
+    fun onPrivacyProtectionsClicked(enabled: Boolean) {
+        Timber.i("PDHy: onPrivacyProtectionsClicked newValue $enabled")
+        appCoroutineScope.launch(dispatchers.io()) {
+            if (enabled) {
+                userWhitelistDao.delete(viewState.value!!.siteProtectionsViewState.site.domain)
+                pixel.fire(PRIVACY_DASHBOARD_WHITELIST_REMOVE)
+            } else {
+                userWhitelistDao.insert(viewState.value!!.siteProtectionsViewState.site.domain)
+                pixel.fire(PRIVACY_DASHBOARD_WHITELIST_ADD)
+            }
+            withContext(dispatcher.main()) {
+                viewState.value = viewState.value!!.copy(userChangedValues = true)
+            }
         }
     }
 

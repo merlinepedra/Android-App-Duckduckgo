@@ -166,6 +166,9 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
         webView.addJavascriptInterface(
             PrivacyDashboardJavascriptInterface(
                 onBrokenSiteClicked = { viewModel.onReportBrokenSiteSelected() },
+                onPrivacyProtectionsClicked = { newValue ->
+                    viewModel.onPrivacyProtectionsClicked(newValue)
+                },
                 onClose = { finish() }
             ),
             PrivacyDashboardJavascriptInterface.JAVASCRIPT_INTERFACE_NAME
@@ -197,6 +200,7 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
             val adapter = moshi.adapter(ViewState::class.java)
             val json = adapter.toJson(it)
             Timber.i("PDHy: received $json")
+            updateActivityResult(it.userChangedValues)
             webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.siteProtectionsViewState.url}\", $json);", null)
             webView.evaluateJavascript("javascript:onChangeUpgradedHttps(${it.siteProtectionsViewState.upgradedHttps});", null)
             webView.evaluateJavascript("javascript:onChangeProtectionStatus(${it.userSettingsViewState.privacyProtectionEnabled});", null)
@@ -208,6 +212,7 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
     }
 
     private fun updateActivityResult(shouldReload: Boolean) {
+        Timber.i("PDHy: updateActivityResult $shouldReload")
         if (shouldReload) {
             setResult(RELOAD_RESULT_CODE)
         } else {

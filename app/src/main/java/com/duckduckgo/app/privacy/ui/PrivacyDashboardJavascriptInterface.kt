@@ -21,11 +21,13 @@ import timber.log.Timber
 
 class PrivacyDashboardJavascriptInterface constructor(
     val onBrokenSiteClicked: () -> Unit,
+    val onPrivacyProtectionsClicked: (Boolean) -> Unit,
     val onClose: () -> Unit
 ) {
     @JavascriptInterface
-    fun toggleWhitelist(message: String) {
-        Timber.i("PDHy: JavascriptInterface toggleWhitelist $message")
+    fun toggleWhitelist(newValue: String) {
+        Timber.i("PDHy: JavascriptInterface toggleWhitelist $newValue")
+        onPrivacyProtectionsClicked(newValue.toBoolean())
     }
 
     @JavascriptInterface
