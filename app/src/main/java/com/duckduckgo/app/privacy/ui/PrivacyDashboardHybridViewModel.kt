@@ -294,7 +294,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                     trackersBlocked = trackersBlocked
                 ),
                 userSettingsViewState = UserSettingsViewState(
-                    privacyProtectionEnabled = site.userAllowList
+                    privacyProtectionEnabled = !site.userAllowList
                 )
             )
         }
