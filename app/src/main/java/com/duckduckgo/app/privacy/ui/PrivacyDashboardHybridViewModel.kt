@@ -207,6 +207,8 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
             val trackersBlocked: MutableMap<String, TrackerViewState> = mutableMapOf()
             val trackerUrls: MutableSet<String> = mutableSetOf()
 
+            Timber.i("PDHy: site had ${site.trackingEvents.size} events / ${site.trackerCount}")
+
             site.trackingEvents.forEach {
                 if (it.entity == null) return@forEach
 

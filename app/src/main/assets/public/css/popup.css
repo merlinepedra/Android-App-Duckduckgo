@@ -221,7 +221,8 @@ body.environment--example {
 }
 #popup-container .site-info .site-info__li--manage-permissions .site-info__page-permission__icon.camera {
   background-image: url("../../img/refresh-assets/permissions-camera.svg");
-  height: 13px;
+  width: 16px;
+  height: 12px;
   margin-top: -2px;
 }
 .body--theme-dark #popup-container .site-info .site-info__li--manage-permissions .site-info__page-permission__icon.camera {
@@ -242,6 +243,7 @@ body.environment--example {
 }
 #popup-container .site-info .site-info__li--manage-permissions .site-info__page-permission__icon.notification {
   background-image: url("../../img/refresh-assets/permissions-notification.svg");
+  width: 16px;
   height: 14px;
   margin-top: -4px;
 }
@@ -1146,7 +1148,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   background-image: url("../../img/refresh-assets/tracker-icons/linkedin.svg");
   background-color: transparent;
 }
-.site-info__tracker__icon.lotame {
+.site-info__tracker__icon.lotamesolutions {
   margin: 0 4px 0 0;
   background-repeat: no-repeat;
   background-size: cover;
@@ -1154,7 +1156,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   width: 18px;
   height: 18px;
   vertical-align: middle;
-  background-image: url("../../img/refresh-assets/tracker-icons/lotame.svg");
+  background-image: url("../../img/refresh-assets/tracker-icons/lotamesolutions.svg");
   background-color: transparent;
 }
 .site-info__tracker__icon.mediamath {
@@ -1166,6 +1168,17 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   height: 18px;
   vertical-align: middle;
   background-image: url("../../img/refresh-assets/tracker-icons/mediamath.svg");
+  background-color: transparent;
+}
+.site-info__tracker__icon.microsoft {
+  margin: 0 4px 0 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  background-image: url("../../img/refresh-assets/tracker-icons/microsoft.svg");
   background-color: transparent;
 }
 .site-info__tracker__icon.neustar {
@@ -1188,17 +1201,6 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   height: 18px;
   vertical-align: middle;
   background-image: url("../../img/refresh-assets/tracker-icons/newrelic.svg");
-  background-color: transparent;
-}
-.site-info__tracker__icon.thenielsencompany {
-  margin: 0 4px 0 0;
-  background-repeat: no-repeat;
-  background-size: cover;
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  vertical-align: middle;
-  background-image: url("../../img/refresh-assets/tracker-icons/thenielsencompany.svg");
   background-color: transparent;
 }
 .site-info__tracker__icon.openx {
@@ -1234,7 +1236,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   background-image: url("../../img/refresh-assets/tracker-icons/pubmatic.svg");
   background-color: transparent;
 }
-.site-info__tracker__icon.qwantcast {
+.site-info__tracker__icon.quantcast {
   margin: 0 4px 0 0;
   background-repeat: no-repeat;
   background-size: cover;
@@ -1242,7 +1244,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   width: 18px;
   height: 18px;
   vertical-align: middle;
-  background-image: url("../../img/refresh-assets/tracker-icons/qwantcast.svg");
+  background-image: url("../../img/refresh-assets/tracker-icons/quantcast.svg");
   background-color: transparent;
 }
 .site-info__tracker__icon.rubicon {
@@ -1322,6 +1324,17 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   background-image: url("../../img/refresh-assets/tracker-icons/tapad.svg");
   background-color: transparent;
 }
+.site-info__tracker__icon.thenielsencompany {
+  margin: 0 4px 0 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  background-image: url("../../img/refresh-assets/tracker-icons/thenielsencompany.svg");
+  background-color: transparent;
+}
 .site-info__tracker__icon.thetradedesk {
   margin: 0 4px 0 0;
   background-repeat: no-repeat;
@@ -1364,17 +1377,6 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   height: 18px;
   vertical-align: middle;
   background-image: url("../../img/refresh-assets/tracker-icons/verizonmedia.svg");
-  background-color: transparent;
-}
-.site-info__tracker__icon.windows {
-  margin: 0 4px 0 0;
-  background-repeat: no-repeat;
-  background-size: cover;
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  vertical-align: middle;
-  background-image: url("../../img/refresh-assets/tracker-icons/windows.svg");
   background-color: transparent;
 }
 .site-info__tracker__icon.xaxis {
