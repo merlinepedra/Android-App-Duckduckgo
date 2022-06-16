@@ -83,7 +83,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
         val parentEntity: EntityViewState?,
         val site: SiteViewState,
         val trackers: Map<String, TrackerViewState>,
-        val trackersBlocked: Map<String, TrackerViewState>,
+        val trackerBlocked: Map<String, TrackerViewState>,
         val certificate: CertificateViewState? = null,
         val locale: String = Locale.getDefault().language
     )
@@ -135,7 +135,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     data class TrackerEventViewState(
         val isBlocked: Boolean,
         val reason: String,
-        val category: Set<String> = emptySet()
+        val categories: Set<String> = emptySet()
     )
 
     val viewState: MutableLiveData<ViewState> = MutableLiveData()
@@ -220,7 +220,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                         TrackerEventViewState(
                             isBlocked = it.blocked,
                             reason = "first party",
-                            category = it.categories?.toSet() ?: emptySet()
+                            categories = it.categories?.toSet() ?: emptySet()
                         )
                     )
                     trackerViewState.copy(
@@ -228,13 +228,13 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                         count = trackerViewState.count + 1
                     )
                 } ?: TrackerViewState(
-                    displayName = it.entity.name,
+                    displayName = it.entity.displayName,
                     prevalence = it.entity.prevalence,
                     urls = mutableMapOf(
                         it.trackerUrl to TrackerEventViewState(
                             isBlocked = it.blocked,
                             reason = "first party",
-                            category = it.categories?.toSet() ?: emptySet()
+                            categories = it.categories?.toSet() ?: emptySet()
                         )
                     ),
                     count = 1,
@@ -253,7 +253,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                         TrackerEventViewState(
                             isBlocked = it.blocked,
                             reason = "first party",
-                            category = it.categories?.toSet() ?: emptySet()
+                            categories = it.categories?.toSet() ?: emptySet()
                         )
                     )
                     trackerViewState.copy(
@@ -261,13 +261,13 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                         count = trackerViewState.count + 1
                     )
                 } ?: TrackerViewState(
-                    displayName = it.entity.name,
+                    displayName = it.entity.displayName,
                     prevalence = it.entity.prevalence,
                     urls = mutableMapOf(
                         it.trackerUrl to TrackerEventViewState(
                             isBlocked = it.blocked,
                             reason = "first party",
-                            category = it.categories?.toSet() ?: emptySet()
+                            categories = it.categories?.toSet() ?: emptySet()
                         )
                     ),
                     count = 1,
@@ -296,7 +296,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                         whitelisted = site.userAllowList
                     ),
                     trackers = trackingEvents,
-                    trackersBlocked = trackersBlocked
+                    trackerBlocked = trackersBlocked
                 ),
                 userSettingsViewState = UserSettingsViewState(
                     privacyProtectionEnabled = !site.userAllowList

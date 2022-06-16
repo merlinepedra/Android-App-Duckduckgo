@@ -39,7 +39,7 @@ import com.duckduckgo.app.browser.webview.enableLightMode
 import com.duckduckgo.app.global.DuckDuckGoActivity
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command.LaunchReportBrokenSite
-import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.ViewState
+import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.SiteProtectionsViewState
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.tabs.model.TabRepository
 import com.duckduckgo.app.tabs.tabId
@@ -197,8 +197,8 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
             this
         ) {
             Timber.i("PDHy: newEvent $it")
-            val adapter = moshi.adapter(ViewState::class.java)
-            val json = adapter.toJson(it)
+            val adapter = moshi.adapter(SiteProtectionsViewState::class.java)
+            val json = adapter.toJson(it.siteProtectionsViewState)
             Timber.i("PDHy: received $json")
             updateActivityResult(it.userChangedValues)
             webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.siteProtectionsViewState.url}\", $json);", null)
