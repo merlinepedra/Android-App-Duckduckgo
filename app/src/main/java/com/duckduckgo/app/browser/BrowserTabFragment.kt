@@ -146,6 +146,8 @@ import com.duckduckgo.app.browser.urlextraction.DOMUrlExtractor
 import com.duckduckgo.app.browser.urlextraction.UrlExtractingWebView
 import com.duckduckgo.app.browser.urlextraction.UrlExtractingWebViewClient
 import android.content.pm.ResolveInfo
+import android.print.PrintAttributes
+import android.print.PrintManager
 import android.webkit.URLUtil
 import com.duckduckgo.app.bookmarks.model.SavedSite.Bookmark
 import com.duckduckgo.app.bookmarks.model.SavedSite.Favorite
@@ -154,6 +156,8 @@ import com.duckduckgo.app.browser.BrowserTabViewModel.AccessibilityViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.AutoCompleteViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.BrowserViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.Command
+import com.duckduckgo.app.browser.BrowserTabViewModel.Command.NavigateToHistory
+import com.duckduckgo.app.browser.BrowserTabViewModel.Command.ShowBackNavigationHistory
 import com.duckduckgo.app.browser.BrowserTabViewModel.CtaViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.FindInPageViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.GlobalLayoutViewState
@@ -162,9 +166,12 @@ import com.duckduckgo.app.browser.BrowserTabViewModel.LoadingViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.OmnibarViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.PrivacyGradeViewState
 import com.duckduckgo.app.browser.BrowserTabViewModel.SavedSiteChangedViewState
+import com.duckduckgo.app.browser.history.NavigationHistorySheet
+import com.duckduckgo.app.browser.history.NavigationHistorySheet.NavigationHistorySheetListener
 import com.duckduckgo.app.browser.R.raw
 import com.duckduckgo.app.downloads.DownloadsFileActions
 import com.duckduckgo.app.browser.menu.BrowserPopupMenu
+import com.duckduckgo.app.browser.print.PrintInjector
 import com.duckduckgo.app.browser.remotemessage.asMessage
 import com.duckduckgo.app.global.FragmentViewModelFactory
 import com.duckduckgo.app.global.view.launchDefaultAppActivity
@@ -310,6 +317,9 @@ class BrowserTabFragment :
     @Inject
     lateinit var voiceSearchLauncher: VoiceSearchLauncher
 
+    @Inject
+    lateinit var printInjector: PrintInjector
+
     private var urlExtractingWebView: UrlExtractingWebView? = null
 
     var messageFromPreviousTab: Message? = null
@@ -398,6 +408,8 @@ class BrowserTabFragment :
     private var appLinksSnackBar: Snackbar? = null
 
     private var loginDetectionDialog: AlertDialog? = null
+
+    private var automaticFireproofDialog: AlertDialog? = null
 
     private var emailAutofillTooltipDialog: EmailAutofillTooltipFragment? = null
 
@@ -491,6 +503,8 @@ class BrowserTabFragment :
     private fun processMessage(message: Message) {
         val transport = message.obj as WebView.WebViewTransport
         transport.webView = webView
+
+        viewModel.onMessageReceived()
         message.sendToTarget()
 
         decorator.animateTabsCount()
@@ -561,42 +575,42 @@ class BrowserTabFragment :
     private fun configureObservers() {
         viewModel.autoCompleteViewState.observe(
             viewLifecycleOwner,
-            Observer<AutoCompleteViewState> {
+            Observer {
                 it?.let { renderer.renderAutocomplete(it) }
             }
         )
 
         viewModel.globalLayoutState.observe(
             viewLifecycleOwner,
-            Observer<GlobalLayoutViewState> {
+            Observer {
                 it?.let { renderer.renderGlobalViewState(it) }
             }
         )
 
         viewModel.browserViewState.observe(
             viewLifecycleOwner,
-            Observer<BrowserViewState> {
+            Observer {
                 it?.let { renderer.renderBrowserViewState(it) }
             }
         )
 
         viewModel.loadingViewState.observe(
             viewLifecycleOwner,
-            Observer<LoadingViewState> {
+            Observer {
                 it?.let { renderer.renderLoadingIndicator(it) }
             }
         )
 
         viewModel.omnibarViewState.observe(
             viewLifecycleOwner,
-            Observer<OmnibarViewState> {
+            Observer {
                 it?.let { renderer.renderOmnibar(it) }
             }
         )
 
         viewModel.findInPageViewState.observe(
             viewLifecycleOwner,
-            Observer<FindInPageViewState> {
+            Observer {
                 it?.let { renderer.renderFindInPageState(it) }
             }
         )
@@ -619,7 +633,7 @@ class BrowserTabFragment :
 
         viewModel.survey.observe(
             viewLifecycleOwner,
-            Observer<Survey> {
+            Observer {
                 it.let { viewModel.onSurveyChanged(it) }
             }
         )
@@ -677,7 +691,7 @@ class BrowserTabFragment :
     private fun addTabsObserver() {
         viewModel.tabs.observe(
             viewLifecycleOwner,
-            Observer<List<TabEntity>> {
+            Observer {
                 it?.let {
                     decorator.renderTabIcon(it)
                 }
@@ -861,6 +875,7 @@ class BrowserTabFragment :
             is Command.AskDomainPermission -> askSiteLocationPermission(it.domain)
             is Command.RefreshUserAgent -> refreshUserAgent(it.url, it.isDesktop)
             is Command.AskToFireproofWebsite -> askToFireproofWebsite(requireContext(), it.fireproofWebsite)
+            is Command.AskToAutomateFireproofWebsite -> askToAutomateFireproofWebsite(requireContext(), it.fireproofWebsite)
             is Command.AskToDisableLoginDetection -> askToDisableLoginDetection(requireContext())
             is Command.ShowDomainHasPermissionMessage -> showDomainHasLocationPermission(it.domain)
             is Command.ConvertBlobToDataUri -> convertBlobToDataUri(it)
@@ -873,6 +888,12 @@ class BrowserTabFragment :
                 omnibarTextInput.setText(it.query)
                 omnibarTextInput.setSelection(it.query.length)
             }
+            is ShowBackNavigationHistory -> showBackNavigationHistory(it)
+            is NavigateToHistory -> navigateBackHistoryStack(it.historyStackIndex)
+            is Command.EmailSignEvent -> {
+                notifyEmailSignEvent()
+            }
+            is Command.PrintLink -> launchPrint(it.url)
         }
     }
 
@@ -899,6 +920,12 @@ class BrowserTabFragment :
     private fun injectEmailAddress(alias: String) {
         webView?.let {
             emailInjector.injectAddressInEmailField(it, alias, it.url)
+        }
+    }
+
+    private fun notifyEmailSignEvent() {
+        webView?.let {
+            emailInjector.notifyWebAppSignEvent(it, it.url)
         }
     }
 
@@ -1166,6 +1193,30 @@ class BrowserTabFragment :
                 }.setOnCancelListener {
                     viewModel.onUserDismissedFireproofLoginDialog()
                 }.show()
+
+            viewModel.onFireproofLoginDialogShown()
+        }
+    }
+
+    private fun askToAutomateFireproofWebsite(
+        context: Context,
+        fireproofWebsite: FireproofWebsiteEntity
+    ) {
+        val isShowing = automaticFireproofDialog?.isShowing
+
+        if (isShowing != true) {
+            automaticFireproofDialog = AlertDialog.Builder(context)
+                .setTitle(getString(R.string.automaticFireproofWebsiteLoginDialogTitle))
+                .setMessage(R.string.automaticFireproofWebsiteLoginDialogDescription)
+                .setPositiveButton(R.string.automaticFireproofWebsiteLoginDialogFirstOption) { _, _ ->
+                    viewModel.onUserEnabledAutomaticFireproofLoginDialog(fireproofWebsite.domain)
+                }.setNegativeButton(R.string.automaticFireproofWebsiteLoginDialogSecondOption) { _, _ ->
+                    viewModel.onUserFireproofSiteInAutomaticFireproofLoginDialog(fireproofWebsite.domain)
+                }.setNeutralButton(R.string.automaticFireproofWebsiteLoginDialogThirdOption) { dialog, _ ->
+                    dialog.dismiss()
+                    viewModel.onUserDismissedAutomaticFireproofLoginDialog()
+                }.setOnCancelListener { it.dismiss() }
+                .show()
 
             viewModel.onFireproofLoginDialogShown()
         }
@@ -1471,6 +1522,7 @@ class BrowserTabFragment :
             loginDetector.addLoginDetection(it) { viewModel.loginDetected() }
             blobConverterInjector.addJsInterface(it) { url, mimeType -> viewModel.requestFileDownload(url, null, mimeType, true) }
             emailInjector.addJsInterface(it) { viewModel.showEmailTooltip() }
+            printInjector.addJsInterface(it) { viewModel.printFromWebView() }
         }
 
         if (appBuildConfig.isDebug) {
@@ -1572,8 +1624,8 @@ class BrowserTabFragment :
 
     private fun savedSiteAdded(savedSiteChangedViewState: SavedSiteChangedViewState) {
         val snackbarMessage = when (savedSiteChangedViewState.savedSite) {
-            is SavedSite.Bookmark -> R.string.bookmarkAddedMessage
-            is SavedSite.Favorite -> R.string.favoriteAddedMessage
+            is Bookmark -> R.string.bookmarkAddedMessage
+            is Favorite -> R.string.favoriteAddedMessage
         }
         browserLayout.makeSnackbarWithNoBottomInset(snackbarMessage, Snackbar.LENGTH_LONG)
             .setAction(R.string.edit) {
@@ -1607,31 +1659,12 @@ class BrowserTabFragment :
     }
 
     private fun fireproofWebsiteConfirmation(entity: FireproofWebsiteEntity) {
-        val snackbar = rootView.makeSnackbarWithNoBottomInset(
+        rootView.makeSnackbarWithNoBottomInset(
             HtmlCompat.fromHtml(getString(R.string.fireproofWebsiteSnackbarConfirmation, entity.website()), FROM_HTML_MODE_LEGACY),
             Snackbar.LENGTH_LONG
-        )
-
-        snackbar.setAction(R.string.fireproofWebsiteSnackbarAction) {
+        ).setAction(R.string.fireproofWebsiteSnackbarAction) {
             viewModel.onFireproofWebsiteSnackbarUndoClicked(entity)
-        }
-
-        if (variantManager.isFireproofExperimentEnabled()) {
-            snackbar.addCallback(object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
-                override fun onShown(transientBottomBar: Snackbar?) {
-                    super.onShown(transientBottomBar)
-                    pixel.fire(AppPixelName.FIREPROOF_SNACKBAR_SHOWN)
-                }
-
-                override fun onDismissed(
-                    transientBottomBar: Snackbar?,
-                    event: Int
-                ) {
-                    super.onDismissed(transientBottomBar, event)
-                }
-            })
-        }
-        snackbar.show()
+        }.show()
     }
 
     private fun removeFireproofWebsiteConfirmation(entity: FireproofWebsiteEntity) {
@@ -1815,6 +1848,7 @@ class BrowserTabFragment :
         supervisorJob.cancel()
         popupMenu.dismiss()
         loginDetectionDialog?.dismiss()
+        automaticFireproofDialog?.dismiss()
         emailAutofillTooltipDialog?.dismiss()
         destroyWebView()
         super.onDestroy()
@@ -1901,8 +1935,13 @@ class BrowserTabFragment :
         startActivityForResult(intent, REQUEST_CODE_CHOOSE_FILE)
     }
 
+    private fun minSdk29(): Boolean {
+        return appBuildConfig.sdkInt >= Build.VERSION_CODES.Q
+    }
+
     private fun hasWriteStoragePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        return minSdk29() ||
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestWriteStoragePermission() {
@@ -1979,6 +2018,34 @@ class BrowserTabFragment :
 
     override fun onDaxDialogSecondaryCtaClick() {
         viewModel.onUserClickCtaSecondaryButton()
+    }
+
+    private fun showBackNavigationHistory(history: ShowBackNavigationHistory) {
+        activity?.let { context ->
+            NavigationHistorySheet(
+                context, viewLifecycleOwner, faviconManager, tabId, history,
+                object : NavigationHistorySheetListener {
+                    override fun historicalPageSelected(stackIndex: Int) {
+                        viewModel.historicalPageSelected(stackIndex)
+                    }
+                }
+            ).show()
+        }
+    }
+
+    private fun navigateBackHistoryStack(index: Int) {
+        val stepsToMove = (index + 1) * -1
+        webView?.goBackOrForward(stepsToMove)
+    }
+
+    fun onLongPressBackButton() {
+        /*
+         It is possible that this can be invoked before Fragment is attached
+         If viewModelFactory isn't initialized, ignore long press
+         */
+        if (this::viewModelFactory.isInitialized) {
+            viewModel.onUserLongPressedBack()
+        }
     }
 
     private fun launchHideTipsDialog(
@@ -2146,6 +2213,9 @@ class BrowserTabFragment :
                     pixel.fire(AppPixelName.MENU_ACTION_NAVIGATE_BACK_PRESSED)
                     activity?.onBackPressed()
                 }
+                onMenuItemLongClicked(view.backMenuItem) {
+                    viewModel.onUserLongPressedBack()
+                }
                 onMenuItemClicked(view.refreshMenuItem) {
                     viewModel.onRefreshRequested()
                     pixel.fire(AppPixelName.MENU_ACTION_REFRESH_PRESSED.pixelName)
@@ -2199,6 +2269,9 @@ class BrowserTabFragment :
                 onMenuItemClicked(view.openInAppMenuItem) {
                     pixel.fire(AppPixelName.MENU_ACTION_APP_LINKS_OPEN_PRESSED)
                     viewModel.openAppLink()
+                }
+                onMenuItemClicked(view.printPageMenuItem) {
+                    viewModel.onPrintSelected()
                 }
             }
             view.menuScrollableContent.setOnScrollChangeListener { _, _, _, _, _ ->
@@ -2602,10 +2675,6 @@ class BrowserTabFragment :
             configuration.showCta(daxCtaContainer)
             newTabLayout.setOnClickListener { daxCtaContainer.dialogTextCta.finishAnimation() }
 
-            if (configuration is DaxBubbleCta.DaxFireproofCta) {
-                configureFireproofButtons()
-            }
-
             viewModel.onCtaShown()
         }
 
@@ -2663,22 +2732,6 @@ class BrowserTabFragment :
 
         private fun hideHomeCta() {
             ctaContainer.gone()
-        }
-
-        private fun configureFireproofButtons() {
-            daxCtaContainer.fireproofButtons.show()
-
-            daxCtaContainer.fireproofButtons.fireproofKeepMeSignedIn.setOnClickListener {
-                daxCtaContainer.fireproofButtons.gone()
-                daxCtaContainer.dialogTextCta.cancelAnimation()
-                viewModel.userSelectedFireproofSetting(true)
-            }
-
-            daxCtaContainer.fireproofButtons.fireproofBurnEverything.setOnClickListener {
-                daxCtaContainer.fireproofButtons.gone()
-                daxCtaContainer.dialogTextCta.cancelAnimation()
-                viewModel.userSelectedFireproofSetting(false)
-            }
         }
 
         fun renderHomeCta() {
@@ -2754,6 +2807,18 @@ class BrowserTabFragment :
         } catch (e: ActivityNotFoundException) {
             Timber.w(e, "Could not open DownloadManager settings")
             toolbar.makeSnackbarWithNoBottomInset(R.string.downloadManagerIncompatible, Snackbar.LENGTH_INDEFINITE).show()
+        }
+    }
+
+    private fun launchPrint(url: String) {
+        (activity?.getSystemService(Context.PRINT_SERVICE) as? PrintManager)?.let { printManager ->
+            webView?.createPrintDocumentAdapter(url)?.let { printAdapter ->
+                printManager.print(
+                    url,
+                    printAdapter,
+                    PrintAttributes.Builder().build()
+                )
+            }
         }
     }
 

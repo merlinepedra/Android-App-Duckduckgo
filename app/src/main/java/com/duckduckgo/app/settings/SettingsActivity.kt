@@ -68,7 +68,7 @@ import com.duckduckgo.mobile.android.ui.DuckDuckGoTheme
 import com.duckduckgo.mobile.android.ui.sendThemeChangedBroadcast
 import com.duckduckgo.mobile.android.ui.view.quietlySetIsChecked
 import com.duckduckgo.mobile.android.ui.viewbinding.viewBinding
-import com.duckduckgo.mobile.android.vpn.ui.onboarding.DeviceShieldOnboardingActivity
+import com.duckduckgo.mobile.android.vpn.ui.onboarding.VpnOnboardingActivity
 import com.duckduckgo.mobile.android.vpn.ui.tracker_activity.DeviceShieldTrackerActivity
 import com.duckduckgo.mobile.android.vpn.waitlist.store.WaitlistState
 import kotlinx.coroutines.flow.launchIn
@@ -174,8 +174,8 @@ class SettingsActivity :
 
         with(viewsMore) {
             emailSetting.setOnClickListener { viewModel.onEmailProtectionSettingClicked() }
-            deviceShieldSetting.setOnClickListener { viewModel.onAppTPSettingClicked() }
             macOsSetting.setOnClickListener { viewModel.onMacOsSettingClicked() }
+            vpnSetting.setOnClickListener { viewModel.onAppTPSettingClicked() }
         }
     }
 
@@ -331,12 +331,12 @@ class SettingsActivity :
     ) {
         with(viewsMore) {
             if (waitlistState != WaitlistState.InBeta) {
-                deviceShieldSetting.setSubtitle(getString(R.string.atp_SettingsDeviceShieldNeverEnabled))
+                vpnSetting.setSubtitle(getString(R.string.atp_SettingsDeviceShieldNeverEnabled))
             } else {
                 if (appTPEnabled) {
-                    deviceShieldSetting.setSubtitle(getString(R.string.atp_SettingsDeviceShieldEnabled))
+                    vpnSetting.setSubtitle(getString(R.string.atp_SettingsDeviceShieldEnabled))
                 } else {
-                    deviceShieldSetting.setSubtitle(getString(R.string.atp_SettingsDeviceShieldDisabled))
+                    vpnSetting.setSubtitle(getString(R.string.atp_SettingsDeviceShieldDisabled))
                 }
             }
         }
@@ -425,12 +425,12 @@ class SettingsActivity :
     }
 
     private fun launchAppTPOnboardingScreen() {
-        startActivity(DeviceShieldOnboardingActivity.intent(this))
+        startActivity(VpnOnboardingActivity.intent(this))
     }
 
     private val appTPWaitlistActivityResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         if (result.resultCode == Activity.RESULT_OK) {
-            startActivity(DeviceShieldOnboardingActivity.intent(this))
+            startActivity(VpnOnboardingActivity.intent(this))
         }
     }
 

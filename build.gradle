@@ -4,35 +4,33 @@ buildscript {
     ext {
         kotlin_version = '1.6.21'
         spotless = "6.1.2"
-        anvil_version = "2.3.11-1-6-10"
-        gradle_plugin = "7.0.3"
+        anvil_version = "2.4.0"
+        gradle_plugin = "7.0.4"
         min_sdk = 23
         target_sdk = 30
         compile_sdk = 31
-        fladle_version = "fladle-0.17.4-SNAPSHOT"
+        fladle_version = "0.17.4"
     }
 
     repositories {
         google()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        flatDir {
-            dirs "$rootProject.projectDir/libs"
-        }
     }
     dependencies {
         classpath "com.android.tools.build:gradle:$gradle_plugin"
         classpath "com.diffplug.spotless:spotless-plugin-gradle:$spotless"
         classpath "com.squareup.anvil:gradle-plugin:$anvil_version"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "com.osacky.fulladle:$fladle_version"
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
 }
 
-apply plugin: 'com.osacky.fulladle'
+plugins {
+    id 'com.osacky.fulladle' version "$fladle_version"
+}
 
 allprojects {
     repositories {

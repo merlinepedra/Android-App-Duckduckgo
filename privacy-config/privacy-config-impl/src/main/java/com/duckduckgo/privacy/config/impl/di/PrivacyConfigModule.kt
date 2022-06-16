@@ -21,11 +21,9 @@ import androidx.room.Room
 import com.duckduckgo.app.di.AppCoroutineScope
 import com.duckduckgo.app.global.AppUrl
 import com.duckduckgo.app.global.DispatcherProvider
-import com.duckduckgo.di.DaggerSet
 import com.duckduckgo.di.scopes.AppScope
 import com.duckduckgo.privacy.config.impl.network.JSONObjectAdapter
 import com.duckduckgo.privacy.config.impl.network.PrivacyConfigService
-import com.duckduckgo.privacy.config.api.PrivacyFeaturePlugin
 import com.duckduckgo.privacy.config.store.ALL_MIGRATIONS
 import com.duckduckgo.privacy.config.store.PrivacyConfigDatabase
 import com.duckduckgo.privacy.config.store.PrivacyConfigRepository
@@ -54,25 +52,18 @@ import com.duckduckgo.privacy.config.store.features.trackingparameters.RealTrack
 import com.duckduckgo.privacy.config.store.features.trackingparameters.TrackingParametersRepository
 import com.duckduckgo.privacy.config.store.features.unprotectedtemporary.RealUnprotectedTemporaryRepository
 import com.duckduckgo.privacy.config.store.features.unprotectedtemporary.UnprotectedTemporaryRepository
+import com.duckduckgo.privacy.config.store.features.useragent.RealUserAgentRepository
+import com.duckduckgo.privacy.config.store.features.useragent.UserAgentRepository
 import com.squareup.anvil.annotations.ContributesTo
 import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
-import dagger.multibindings.Multibinds
 import kotlinx.coroutines.CoroutineScope
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import javax.inject.Named
 import dagger.SingleInstanceIn
-
-@Module
-@ContributesTo(AppScope::class)
-abstract class PrivacyFeaturesBindingModule {
-
-    @Multibinds
-    abstract fun providePrivacyFeatureStorePlugins(): DaggerSet<PrivacyFeaturePlugin>
-}
 
 @Module
 @ContributesTo(AppScope::class)
@@ -219,5 +210,15 @@ object DatabaseModule {
         dispatcherProvider: DispatcherProvider
     ): AutofillRepository {
         return RealAutofillRepository(database, coroutineScope, dispatcherProvider)
+    }
+
+    @SingleInstanceIn(AppScope::class)
+    @Provides
+    fun provideUserAgentRepository(
+        database: PrivacyConfigDatabase,
+        @AppCoroutineScope coroutineScope: CoroutineScope,
+        dispatcherProvider: DispatcherProvider
+    ): UserAgentRepository {
+        return RealUserAgentRepository(database, coroutineScope, dispatcherProvider)
     }
 }

@@ -86,4 +86,5 @@ interface WebViewClientListener {
     )
 
     fun prefetchFavicon(url: String)
+    fun linkOpenedInNewTab(): Boolean
 }

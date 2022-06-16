@@ -29,7 +29,8 @@ interface VariantManager {
 
     // variant-dependant features listed here
     sealed class VariantFeature {
-        object FireproofExperiment : VariantFeature()
+        object VpnRetentionStudyTreatment : VariantFeature()
+        object VpnRetentionStudyControl : VariantFeature()
     }
 
     companion object {
@@ -45,9 +46,15 @@ interface VariantManager {
             Variant(key = "sc", weight = 0.0, features = emptyList(), filterBy = { isSerpRegionToggleCountry() }),
             Variant(key = "se", weight = 0.0, features = emptyList(), filterBy = { isSerpRegionToggleCountry() }),
 
-            // Fireproof experiment
-            Variant(key = "mi", weight = 0.0, features = emptyList(), filterBy = { isEnglishLocale() }),
-            Variant(key = "mj", weight = 0.0, features = listOf(VariantFeature.FireproofExperiment), filterBy = { isEnglishLocale() }),
+            // AppTP Retention study experiment
+            Variant(
+                key = "na", weight = 1.0, features = listOf(VariantFeature.VpnRetentionStudyControl),
+                filterBy = { config -> config.sdkInt < 31 && isEnglishLocale() }
+            ),
+            Variant(
+                key = "nb", weight = 1.0, features = listOf(VariantFeature.VpnRetentionStudyTreatment),
+                filterBy = { config -> config.sdkInt < 31 && isEnglishLocale() }
+            ),
         )
 
         val REFERRER_VARIANTS = listOf(
@@ -178,7 +185,12 @@ class ExperimentationVariantManager(
     }
 }
 
-fun VariantManager.isFireproofExperimentEnabled() = this.getVariant().hasFeature(VariantManager.VariantFeature.FireproofExperiment)
+fun VariantManager.isVPNRetentionStudyEnabled() = this.getVariant().hasFeature(VariantManager.VariantFeature.VpnRetentionStudyTreatment)
+
+fun VariantManager.isVpnExperiment(): Boolean {
+    return this.getVariant().hasFeature(VariantManager.VariantFeature.VpnRetentionStudyTreatment) ||
+        this.getVariant().hasFeature(VariantManager.VariantFeature.VpnRetentionStudyControl)
+}
 
 /**
  * A variant which can be used for experimentation.
