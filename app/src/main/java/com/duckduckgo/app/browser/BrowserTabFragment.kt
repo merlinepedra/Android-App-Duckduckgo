@@ -180,7 +180,6 @@ import com.duckduckgo.app.privacy.model.PrivacyShield.PROTECTED
 import com.duckduckgo.app.privacy.model.PrivacyShield.UNKNOWN
 import com.duckduckgo.app.privacy.model.PrivacyShield.UNPROTECTED
 import com.duckduckgo.app.privacy.model.PrivacyShield.WARNING
-import com.duckduckgo.app.statistics.isFireproofExperimentEnabled
 import com.duckduckgo.app.utils.ConflatedJob
 import com.duckduckgo.app.widget.AddWidgetLauncher
 import com.duckduckgo.appbuildconfig.api.AppBuildConfig
