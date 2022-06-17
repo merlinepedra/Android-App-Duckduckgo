@@ -39,6 +39,7 @@ import com.duckduckgo.app.browser.webview.enableLightMode
 import com.duckduckgo.app.global.DuckDuckGoActivity
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command.LaunchReportBrokenSite
+import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.EntityViewState
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.SiteProtectionsViewState
 import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.tabs.model.TabRepository
@@ -199,12 +200,16 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
             Timber.i("PDHy: newEvent $it")
             val adapter = moshi.adapter(SiteProtectionsViewState::class.java)
             val json = adapter.toJson(it.siteProtectionsViewState)
+
+            val adapterParententity = moshi.adapter(EntityViewState::class.java)
+            val parentEntityJson = adapterParententity.toJson(it.siteProtectionsViewState.parentEntity)
             Timber.i("PDHy: received $json")
+            Timber.i("PDHy: parentEntityJson $parentEntityJson")
             updateActivityResult(it.userChangedValues)
+            webView.evaluateJavascript("javascript:onChangeParentEntity($parentEntityJson);", null)
             webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.siteProtectionsViewState.url}\", $json);", null)
             webView.evaluateJavascript("javascript:onChangeUpgradedHttps(${it.siteProtectionsViewState.upgradedHttps});", null)
             webView.evaluateJavascript("javascript:onChangeProtectionStatus(${it.userSettingsViewState.privacyProtectionEnabled});", null)
-            webView.evaluateJavascript("javascript:onChangeParentEntity(${it.siteProtectionsViewState});", null)
         }
     }
 
