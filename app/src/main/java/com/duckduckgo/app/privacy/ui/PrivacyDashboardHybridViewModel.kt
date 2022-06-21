@@ -16,6 +16,9 @@
 
 package com.duckduckgo.app.privacy.ui
 
+import android.net.http.SslCertificate
+import android.os.Build
+import android.os.Build.VERSION_CODES
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -45,6 +48,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.tls.certificatePem
+import okio.internal.commonToUtf8String
+import okio.utf8Size
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
@@ -84,32 +90,32 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
         val site: SiteViewState,
         val trackers: Map<String, TrackerViewState>,
         val trackerBlocked: Map<String, TrackerViewState>,
-        val certificate: CertificateViewState? = null,
+        val secCertificateViewModels: List<CertificateViewState?> = emptyList(),
         val locale: String = Locale.getDefault().language
     )
 
     data class CertificateViewState(
         val commonName: String,
-        val publicKey: PublicKeyViewState,
+        val publicKey: PublicKeyViewState? = null,
         val emails: List<String> = emptyList(),
-        val summary: String
+        val summary: String? = null
     )
 
     data class PublicKeyViewState(
-        val blockSize: Int,
-        val canEncrypt: Boolean,
-        val bitSize: Int,
-        val canSign: Boolean,
-        val canDerive: Boolean,
-        val canUnwrap: Boolean,
-        val canWrap: Boolean,
-        val canDecrypt: Boolean,
-        val effectiveSize: Int,
-        val isPermanent: Boolean,
-        val type: String,
-        val externalRepresentation: String,
-        val canVerify: Boolean,
-        val keyId: String
+        val blockSize: Int?,
+        val canEncrypt: Boolean?,
+        val bitSize: Int?,
+        val canSign: Boolean?,
+        val canDerive: Boolean?,
+        val canUnwrap: Boolean?,
+        val canWrap: Boolean?,
+        val canDecrypt: Boolean?,
+        val effectiveSize: Int?,
+        val isPermanent: Boolean?,
+        val type: String?,
+        val externalRepresentation: String?,
+        val canVerify: Boolean?,
+        val keyId: String?
     )
 
     data class EntityViewState(
@@ -284,6 +290,8 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                 )
             }
 
+            site.certificate?.map()
+
             viewState.value = ViewState(
                 siteProtectionsViewState = SiteProtectionsViewState(
                     url = site.url,
@@ -296,7 +304,8 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                         whitelisted = site.userAllowList
                     ),
                     trackers = trackingEvents,
-                    trackerBlocked = trackersBlocked
+                    trackerBlocked = trackersBlocked,
+                    secCertificateViewModels = listOf(site.certificate?.map())
                 ),
                 userSettingsViewState = UserSettingsViewState(
                     privacyProtectionEnabled = !site.userAllowList
@@ -324,5 +333,83 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     private companion object {
         private const val LEADERBOARD_MIN_NETWORKS = 3
         private const val LEADERBOARD_MIN_DOMAINS_EXCLUSIVE = 30
+    }
+
+    data class PublicKeyInfo(
+        val blockSize: Int? = null,
+        val canEncrypt: Boolean? = null,
+        val bitSize: Int? = null,
+        val canSign: Boolean? = null,
+        val canDerive: Boolean? = null,
+        val canUnwrap: Boolean? = null,
+        val canWrap: Boolean? = null,
+        val canDecrypt: Boolean? = null,
+        val effectiveSize: Int? = null,
+        val isPermanent: Boolean? = null,
+        val type: String? = null,
+        val externalRepresentation: String? = null,
+        val canVerify: Boolean? = null,
+        val keyId: String? = null
+    )
+
+    private fun SslCertificate.map(): CertificateViewState {
+        Timber.i("cert: ${this.issuedBy.cName}")
+
+        val publicKeyInfo = publicKeyInfo()
+        return CertificateViewState(
+            commonName = this.issuedTo.cName,
+            publicKey = publicKeyInfo?.let {
+                PublicKeyViewState(
+                    blockSize = publicKeyInfo.blockSize,
+                    canEncrypt = publicKeyInfo.canEncrypt,
+                    bitSize = publicKeyInfo.bitSize,
+                    canSign = publicKeyInfo.canSign,
+                    canDerive = publicKeyInfo.canDerive,
+                    canUnwrap = publicKeyInfo.canUnwrap,
+                    canWrap = publicKeyInfo.canWrap,
+                    canDecrypt = publicKeyInfo.canDecrypt,
+                    effectiveSize = publicKeyInfo.effectiveSize,
+                    isPermanent = publicKeyInfo.isPermanent,
+                    type = publicKeyInfo.type,
+                    externalRepresentation = publicKeyInfo.externalRepresentation,
+                    canVerify = publicKeyInfo.canVerify,
+                    keyId = publicKeyInfo.keyId
+                )
+            }
+        )
+    }
+
+    private fun SslCertificate.publicKeyInfo(): PublicKeyInfo? {
+        if (Build.VERSION.SDK_INT < VERSION_CODES.Q) return null
+
+        return this.x509Certificate?.let {
+            Timber.i("cert: constr ${it.basicConstraints}")
+            Timber.i("cert: sigAlgName ${it.sigAlgName}")
+            Timber.i("cert: sigAlgName size ${it.sigAlgName.utf8Size()}")
+            Timber.i("cert: sigAlgOID ${it.sigAlgOID}")
+            Timber.i("cert: sigAlgOID size ${it.sigAlgOID.utf8Size()}")
+            Timber.i("cert: sigAlgParams ${it.sigAlgParams}")
+            Timber.i("cert: sigAlgParams size ${it.sigAlgParams.size}")
+            Timber.i("cert: version ${it.version}")
+            Timber.i("cert: signature size ${it.signature.size}")
+            Timber.i("cert: certificatePem ${it.certificatePem()}")
+            Timber.i("cert: certificatePem size ${it.certificatePem().utf8Size()}")
+            Timber.i("cert: tbsCertificate ${it.tbsCertificate}")
+            Timber.i("cert: tbsCertificate size ${it.tbsCertificate.size}")
+            Timber.i("cert: alg ${it.publicKey.algorithm}")
+            Timber.i("cert: format ${it.publicKey.format}")
+            Timber.i("cert: encoded ${it.publicKey.encoded}")
+            Timber.i("cert: encoded size ${it.publicKey.encoded.commonToUtf8String().utf8Size()}")
+
+            val bundle = SslCertificate.saveState(this)
+            val bytes = bundle.getByteArray("x509-certificate")
+            Timber.i("cert: bytes ${bytes!!.size}")
+
+            PublicKeyInfo(
+                type = it.publicKey.algorithm,
+                bitSize = it.signature.size * 8,
+                effectiveSize = it.signature.size * 8
+            )
+        }
     }
 }

@@ -37,6 +37,7 @@ import com.duckduckgo.app.browser.databinding.ActivityPrivacyHybridDashboardBind
 import com.duckduckgo.app.browser.webview.enableDarkMode
 import com.duckduckgo.app.browser.webview.enableLightMode
 import com.duckduckgo.app.global.DuckDuckGoActivity
+import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.CertificateViewState
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command.LaunchReportBrokenSite
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.EntityViewState
@@ -47,7 +48,9 @@ import com.duckduckgo.app.tabs.tabId
 import com.duckduckgo.di.scopes.ActivityScope
 import com.duckduckgo.mobile.android.ui.DuckDuckGoTheme
 import com.duckduckgo.mobile.android.ui.viewbinding.viewBinding
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -203,10 +206,16 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
 
             val adapterParententity = moshi.adapter(EntityViewState::class.java)
             val parentEntityJson = adapterParententity.toJson(it.siteProtectionsViewState.parentEntity)
+
+            val type = Types.newParameterizedType(List::class.java, CertificateViewState::class.java)
+            val adapterCertifiate: JsonAdapter<List<CertificateViewState?>> = moshi.adapter(type)
+            val certificateJson = adapterCertifiate.toJson(it.siteProtectionsViewState.secCertificateViewModels)
+
             Timber.i("PDHy: received $json")
             Timber.i("PDHy: parentEntityJson $parentEntityJson")
             updateActivityResult(it.userChangedValues)
             webView.evaluateJavascript("javascript:onChangeParentEntity($parentEntityJson);", null)
+            webView.evaluateJavascript("javascript:onChangeCertificateData($json);", null)
             webView.evaluateJavascript("javascript:onChangeTrackerBlockingData(\"${it.siteProtectionsViewState.url}\", $json);", null)
             webView.evaluateJavascript("javascript:onChangeUpgradedHttps(${it.siteProtectionsViewState.upgradedHttps});", null)
             webView.evaluateJavascript("javascript:onChangeProtectionStatus(${it.userSettingsViewState.privacyProtectionEnabled});", null)
