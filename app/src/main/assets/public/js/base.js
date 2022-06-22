@@ -74,7 +74,7 @@ function _defineProperty(obj, key, value) {
 module.exports = _defineProperty, module.exports.__esModule = true, module.exports["default"] = module.exports;
 },{}],7:[function(require,module,exports){
 function _getPrototypeOf(o) {
-  module.exports = _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) {
+  module.exports = _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function _getPrototypeOf(o) {
     return o.__proto__ || Object.getPrototypeOf(o);
   }, module.exports.__esModule = true, module.exports["default"] = module.exports;
   return _getPrototypeOf(o);
@@ -133,7 +133,7 @@ function _possibleConstructorReturn(self, call) {
 module.exports = _possibleConstructorReturn, module.exports.__esModule = true, module.exports["default"] = module.exports;
 },{"./assertThisInitialized.js":3,"./typeof.js":14}],12:[function(require,module,exports){
 function _setPrototypeOf(o, p) {
-  module.exports = _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
+  module.exports = _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function _setPrototypeOf(o, p) {
     o.__proto__ = p;
     return o;
   }, module.exports.__esModule = true, module.exports["default"] = module.exports;
@@ -267,6 +267,95 @@ exports.strategies = {
 },{}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getBestPattern = void 0;
+var time_data_generated_1 = require("./time-data.generated");
+/**
+ * Returns the best matching date time pattern if a date time skeleton
+ * pattern is provided with a locale. Follows the Unicode specification:
+ * https://www.unicode.org/reports/tr35/tr35-dates.html#table-mapping-requested-time-skeletons-to-patterns
+ * @param skeleton date time skeleton pattern that possibly includes j, J or C
+ * @param locale
+ */
+function getBestPattern(skeleton, locale) {
+    var skeletonCopy = '';
+    for (var patternPos = 0; patternPos < skeleton.length; patternPos++) {
+        var patternChar = skeleton.charAt(patternPos);
+        if (patternChar === 'j') {
+            var extraLength = 0;
+            while (patternPos + 1 < skeleton.length &&
+                skeleton.charAt(patternPos + 1) === patternChar) {
+                extraLength++;
+                patternPos++;
+            }
+            var hourLen = 1 + (extraLength & 1);
+            var dayPeriodLen = extraLength < 2 ? 1 : 3 + (extraLength >> 1);
+            var dayPeriodChar = 'a';
+            var hourChar = getDefaultHourSymbolFromLocale(locale);
+            if (hourChar == 'H' || hourChar == 'k') {
+                dayPeriodLen = 0;
+            }
+            while (dayPeriodLen-- > 0) {
+                skeletonCopy += dayPeriodChar;
+            }
+            while (hourLen-- > 0) {
+                skeletonCopy = hourChar + skeletonCopy;
+            }
+        }
+        else if (patternChar === 'J') {
+            skeletonCopy += 'H';
+        }
+        else {
+            skeletonCopy += patternChar;
+        }
+    }
+    return skeletonCopy;
+}
+exports.getBestPattern = getBestPattern;
+/**
+ * Maps the [hour cycle type](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/hourCycle)
+ * of the given `locale` to the corresponding time pattern.
+ * @param locale
+ */
+function getDefaultHourSymbolFromLocale(locale) {
+    var hourCycle = locale.hourCycle;
+    if (hourCycle === undefined &&
+        // @ts-ignore hourCycle(s) is not identified yet
+        locale.hourCycles &&
+        // @ts-ignore
+        locale.hourCycles.length) {
+        // @ts-ignore
+        hourCycle = locale.hourCycles[0];
+    }
+    if (hourCycle) {
+        switch (hourCycle) {
+            case 'h24':
+                return 'k';
+            case 'h23':
+                return 'H';
+            case 'h12':
+                return 'h';
+            case 'h11':
+                return 'K';
+            default:
+                throw new Error('Invalid hourCycle');
+        }
+    }
+    // TODO: Once hourCycle is fully supported remove the following with data generation
+    var languageTag = locale.language;
+    var regionTag;
+    if (languageTag !== 'root') {
+        regionTag = locale.maximize().region;
+    }
+    var hourCycles = time_data_generated_1.timeData[regionTag || ''] ||
+        time_data_generated_1.timeData[languageTag || ''] ||
+        time_data_generated_1.timeData["".concat(languageTag, "-001")] ||
+        time_data_generated_1.timeData['001'];
+    return hourCycles[0];
+}
+
+},{"./time-data.generated":22}],18:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErrorKind = void 0;
 var ErrorKind;
 (function (ErrorKind) {
@@ -332,7 +421,7 @@ var ErrorKind;
     ErrorKind[ErrorKind["UNCLOSED_TAG"] = 27] = "UNCLOSED_TAG";
 })(ErrorKind = exports.ErrorKind || (exports.ErrorKind = {}));
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = void 0;
@@ -381,317 +470,7 @@ function parse(message, opts) {
 exports.parse = parse;
 (0, tslib_1.__exportStar)(require("./types"), exports);
 
-},{"./error":17,"./parser":20,"./types":22,"tslib":19}],19:[function(require,module,exports){
-(function (global){(function (){
-/*! *****************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global global, define, System, Reflect, Promise */
-var __extends;
-var __assign;
-var __rest;
-var __decorate;
-var __param;
-var __metadata;
-var __awaiter;
-var __generator;
-var __exportStar;
-var __values;
-var __read;
-var __spread;
-var __spreadArrays;
-var __spreadArray;
-var __await;
-var __asyncGenerator;
-var __asyncDelegator;
-var __asyncValues;
-var __makeTemplateObject;
-var __importStar;
-var __importDefault;
-var __classPrivateFieldGet;
-var __classPrivateFieldSet;
-var __createBinding;
-(function (factory) {
-    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
-    if (typeof define === "function" && define.amd) {
-        define("tslib", ["exports"], function (exports) { factory(createExporter(root, createExporter(exports))); });
-    }
-    else if (typeof module === "object" && typeof module.exports === "object") {
-        factory(createExporter(root, createExporter(module.exports)));
-    }
-    else {
-        factory(createExporter(root));
-    }
-    function createExporter(exports, previous) {
-        if (exports !== root) {
-            if (typeof Object.create === "function") {
-                Object.defineProperty(exports, "__esModule", { value: true });
-            }
-            else {
-                exports.__esModule = true;
-            }
-        }
-        return function (id, v) { return exports[id] = previous ? previous(id, v) : v; };
-    }
-})
-(function (exporter) {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-
-    __extends = function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-
-    __assign = Object.assign || function (t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
-        }
-        return t;
-    };
-
-    __rest = function (s, e) {
-        var t = {};
-        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-            t[p] = s[p];
-        if (s != null && typeof Object.getOwnPropertySymbols === "function")
-            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                    t[p[i]] = s[p[i]];
-            }
-        return t;
-    };
-
-    __decorate = function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-
-    __param = function (paramIndex, decorator) {
-        return function (target, key) { decorator(target, key, paramIndex); }
-    };
-
-    __metadata = function (metadataKey, metadataValue) {
-        if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
-    };
-
-    __awaiter = function (thisArg, _arguments, P, generator) {
-        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-        return new (P || (P = Promise))(function (resolve, reject) {
-            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-            step((generator = generator.apply(thisArg, _arguments || [])).next());
-        });
-    };
-
-    __generator = function (thisArg, body) {
-        var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-        return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-        function verb(n) { return function (v) { return step([n, v]); }; }
-        function step(op) {
-            if (f) throw new TypeError("Generator is already executing.");
-            while (_) try {
-                if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-                if (y = 0, t) op = [op[0] & 2, t.value];
-                switch (op[0]) {
-                    case 0: case 1: t = op; break;
-                    case 4: _.label++; return { value: op[1], done: false };
-                    case 5: _.label++; y = op[1]; op = [0]; continue;
-                    case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                    default:
-                        if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                        if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                        if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                        if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                        if (t[2]) _.ops.pop();
-                        _.trys.pop(); continue;
-                }
-                op = body.call(thisArg, _);
-            } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-            if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-        }
-    };
-
-    __exportStar = function(m, o) {
-        for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p)) __createBinding(o, m, p);
-    };
-
-    __createBinding = Object.create ? (function(o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-    }) : (function(o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-    });
-
-    __values = function (o) {
-        var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-        if (m) return m.call(o);
-        if (o && typeof o.length === "number") return {
-            next: function () {
-                if (o && i >= o.length) o = void 0;
-                return { value: o && o[i++], done: !o };
-            }
-        };
-        throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-
-    __read = function (o, n) {
-        var m = typeof Symbol === "function" && o[Symbol.iterator];
-        if (!m) return o;
-        var i = m.call(o), r, ar = [], e;
-        try {
-            while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-        }
-        catch (error) { e = { error: error }; }
-        finally {
-            try {
-                if (r && !r.done && (m = i["return"])) m.call(i);
-            }
-            finally { if (e) throw e.error; }
-        }
-        return ar;
-    };
-
-    /** @deprecated */
-    __spread = function () {
-        for (var ar = [], i = 0; i < arguments.length; i++)
-            ar = ar.concat(__read(arguments[i]));
-        return ar;
-    };
-
-    /** @deprecated */
-    __spreadArrays = function () {
-        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-        for (var r = Array(s), k = 0, i = 0; i < il; i++)
-            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-                r[k] = a[j];
-        return r;
-    };
-
-    __spreadArray = function (to, from, pack) {
-        if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-            if (ar || !(i in from)) {
-                if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-                ar[i] = from[i];
-            }
-        }
-        return to.concat(ar || Array.prototype.slice.call(from));
-    };
-
-    __await = function (v) {
-        return this instanceof __await ? (this.v = v, this) : new __await(v);
-    };
-
-    __asyncGenerator = function (thisArg, _arguments, generator) {
-        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-        var g = generator.apply(thisArg, _arguments || []), i, q = [];
-        return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i;
-        function verb(n) { if (g[n]) i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; }
-        function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
-        function step(r) { r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);  }
-        function fulfill(value) { resume("next", value); }
-        function reject(value) { resume("throw", value); }
-        function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
-    };
-
-    __asyncDelegator = function (o) {
-        var i, p;
-        return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
-        function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: __await(o[n](v)), done: n === "return" } : f ? f(v) : v; } : f; }
-    };
-
-    __asyncValues = function (o) {
-        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-        var m = o[Symbol.asyncIterator], i;
-        return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-        function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-        function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-    };
-
-    __makeTemplateObject = function (cooked, raw) {
-        if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
-        return cooked;
-    };
-
-    var __setModuleDefault = Object.create ? (function(o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-    }) : function(o, v) {
-        o["default"] = v;
-    };
-
-    __importStar = function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-
-    __importDefault = function (mod) {
-        return (mod && mod.__esModule) ? mod : { "default": mod };
-    };
-
-    __classPrivateFieldGet = function (receiver, state, kind, f) {
-        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-    };
-
-    __classPrivateFieldSet = function (receiver, state, value, kind, f) {
-        if (kind === "m") throw new TypeError("Private method is not writable");
-        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-    };
-
-    exporter("__extends", __extends);
-    exporter("__assign", __assign);
-    exporter("__rest", __rest);
-    exporter("__decorate", __decorate);
-    exporter("__param", __param);
-    exporter("__metadata", __metadata);
-    exporter("__awaiter", __awaiter);
-    exporter("__generator", __generator);
-    exporter("__exportStar", __exportStar);
-    exporter("__createBinding", __createBinding);
-    exporter("__values", __values);
-    exporter("__read", __read);
-    exporter("__spread", __spread);
-    exporter("__spreadArrays", __spreadArrays);
-    exporter("__spreadArray", __spreadArray);
-    exporter("__await", __await);
-    exporter("__asyncGenerator", __asyncGenerator);
-    exporter("__asyncDelegator", __asyncDelegator);
-    exporter("__asyncValues", __asyncValues);
-    exporter("__makeTemplateObject", __makeTemplateObject);
-    exporter("__importStar", __importStar);
-    exporter("__importDefault", __importDefault);
-    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
-    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
-});
-
-}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],20:[function(require,module,exports){
+},{"./error":18,"./parser":20,"./types":23,"tslib":48}],20:[function(require,module,exports){
 "use strict";
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -701,6 +480,7 @@ var error_1 = require("./error");
 var types_1 = require("./types");
 var regex_generated_1 = require("./regex.generated");
 var icu_skeleton_parser_1 = require("@formatjs/icu-skeleton-parser");
+var date_time_pattern_generator_1 = require("./date-time-pattern-generator");
 var SPACE_SEPARATOR_START_REGEX = new RegExp("^".concat(regex_generated_1.SPACE_SEPARATOR_REGEX.source, "*"));
 var SPACE_SEPARATOR_END_REGEX = new RegExp("".concat(regex_generated_1.SPACE_SEPARATOR_REGEX.source, "*$"));
 function createLocation(start, end) {
@@ -859,6 +639,7 @@ var Parser = /** @class */ (function () {
         this.message = message;
         this.position = { offset: 0, line: 1, column: 1 };
         this.ignoreTag = !!options.ignoreTag;
+        this.locale = options.locale;
         this.requiresOtherClause = !!options.requiresOtherClause;
         this.shouldParseSkeletons = !!options.shouldParseSkeletons;
     }
@@ -1234,12 +1015,19 @@ var Parser = /** @class */ (function () {
                         if (skeleton.length === 0) {
                             return this.error(error_1.ErrorKind.EXPECT_DATE_TIME_SKELETON, location_1);
                         }
+                        var dateTimePattern = skeleton;
+                        // Get "best match" pattern only if locale is passed, if not, let it
+                        // pass as-is where `parseDateTimeSkeleton()` will throw an error
+                        // for unsupported patterns.
+                        if (this.locale) {
+                            dateTimePattern = (0, date_time_pattern_generator_1.getBestPattern)(skeleton, this.locale);
+                        }
                         var style = {
                             type: types_1.SKELETON_TYPE.dateTime,
-                            pattern: skeleton,
+                            pattern: dateTimePattern,
                             location: styleAndLocation.styleLocation,
                             parsedOptions: this.shouldParseSkeletons
-                                ? (0, icu_skeleton_parser_1.parseDateTimeSkeleton)(skeleton)
+                                ? (0, icu_skeleton_parser_1.parseDateTimeSkeleton)(dateTimePattern)
                                 : {},
                         };
                         var type = argType === 'date' ? types_1.TYPE.date : types_1.TYPE.time;
@@ -1963,7 +1751,7 @@ function _isPatternSyntax(c) {
         (c >= 0xfe45 && c <= 0xfe46));
 }
 
-},{"./error":17,"./regex.generated":21,"./types":22,"@formatjs/icu-skeleton-parser":24,"tslib":19}],21:[function(require,module,exports){
+},{"./date-time-pattern-generator":17,"./error":18,"./regex.generated":21,"./types":23,"@formatjs/icu-skeleton-parser":25,"tslib":48}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WHITE_SPACE_REGEX = exports.SPACE_SEPARATOR_REGEX = void 0;
@@ -1972,6 +1760,1350 @@ exports.SPACE_SEPARATOR_REGEX = /[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;
 exports.WHITE_SPACE_REGEX = /[\t-\r \x85\u200E\u200F\u2028\u2029]/;
 
 },{}],22:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.timeData = void 0;
+// @generated from time-data-gen.ts
+// prettier-ignore  
+exports.timeData = {
+    "AX": [
+        "H"
+    ],
+    "BQ": [
+        "H"
+    ],
+    "CP": [
+        "H"
+    ],
+    "CZ": [
+        "H"
+    ],
+    "DK": [
+        "H"
+    ],
+    "FI": [
+        "H"
+    ],
+    "ID": [
+        "H"
+    ],
+    "IS": [
+        "H"
+    ],
+    "ML": [
+        "H"
+    ],
+    "NE": [
+        "H"
+    ],
+    "RU": [
+        "H"
+    ],
+    "SE": [
+        "H"
+    ],
+    "SJ": [
+        "H"
+    ],
+    "SK": [
+        "H"
+    ],
+    "AS": [
+        "h",
+        "H"
+    ],
+    "BT": [
+        "h",
+        "H"
+    ],
+    "DJ": [
+        "h",
+        "H"
+    ],
+    "ER": [
+        "h",
+        "H"
+    ],
+    "GH": [
+        "h",
+        "H"
+    ],
+    "IN": [
+        "h",
+        "H"
+    ],
+    "LS": [
+        "h",
+        "H"
+    ],
+    "PG": [
+        "h",
+        "H"
+    ],
+    "PW": [
+        "h",
+        "H"
+    ],
+    "SO": [
+        "h",
+        "H"
+    ],
+    "TO": [
+        "h",
+        "H"
+    ],
+    "VU": [
+        "h",
+        "H"
+    ],
+    "WS": [
+        "h",
+        "H"
+    ],
+    "001": [
+        "H",
+        "h"
+    ],
+    "AL": [
+        "h",
+        "H",
+        "hB"
+    ],
+    "TD": [
+        "h",
+        "H",
+        "hB"
+    ],
+    "ca-ES": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "CF": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "CM": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "fr-CA": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "gl-ES": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "it-CH": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "it-IT": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "LU": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "NP": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "PF": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "SC": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "SM": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "SN": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "TF": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "VA": [
+        "H",
+        "h",
+        "hB"
+    ],
+    "CY": [
+        "h",
+        "H",
+        "hb",
+        "hB"
+    ],
+    "GR": [
+        "h",
+        "H",
+        "hb",
+        "hB"
+    ],
+    "CO": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "DO": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "KP": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "KR": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "NA": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "PA": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "PR": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "VE": [
+        "h",
+        "H",
+        "hB",
+        "hb"
+    ],
+    "AC": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "AI": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "BW": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "BZ": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "CC": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "CK": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "CX": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "DG": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "FK": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "GB": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "GG": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "GI": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "IE": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "IM": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "IO": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "JE": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "LT": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "MK": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "MN": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "MS": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "NF": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "NG": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "NR": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "NU": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "PN": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "SH": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "SX": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "TA": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "ZA": [
+        "H",
+        "h",
+        "hb",
+        "hB"
+    ],
+    "af-ZA": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "AR": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "CL": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "CR": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "CU": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "EA": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "es-BO": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "es-BR": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "es-EC": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "es-ES": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "es-GQ": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "es-PE": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "GT": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "HN": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "IC": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "KG": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "KM": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "LK": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "MA": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "MX": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "NI": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "PY": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "SV": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "UY": [
+        "H",
+        "h",
+        "hB",
+        "hb"
+    ],
+    "JP": [
+        "H",
+        "h",
+        "K"
+    ],
+    "AD": [
+        "H",
+        "hB"
+    ],
+    "AM": [
+        "H",
+        "hB"
+    ],
+    "AO": [
+        "H",
+        "hB"
+    ],
+    "AT": [
+        "H",
+        "hB"
+    ],
+    "AW": [
+        "H",
+        "hB"
+    ],
+    "BE": [
+        "H",
+        "hB"
+    ],
+    "BF": [
+        "H",
+        "hB"
+    ],
+    "BJ": [
+        "H",
+        "hB"
+    ],
+    "BL": [
+        "H",
+        "hB"
+    ],
+    "BR": [
+        "H",
+        "hB"
+    ],
+    "CG": [
+        "H",
+        "hB"
+    ],
+    "CI": [
+        "H",
+        "hB"
+    ],
+    "CV": [
+        "H",
+        "hB"
+    ],
+    "DE": [
+        "H",
+        "hB"
+    ],
+    "EE": [
+        "H",
+        "hB"
+    ],
+    "FR": [
+        "H",
+        "hB"
+    ],
+    "GA": [
+        "H",
+        "hB"
+    ],
+    "GF": [
+        "H",
+        "hB"
+    ],
+    "GN": [
+        "H",
+        "hB"
+    ],
+    "GP": [
+        "H",
+        "hB"
+    ],
+    "GW": [
+        "H",
+        "hB"
+    ],
+    "HR": [
+        "H",
+        "hB"
+    ],
+    "IL": [
+        "H",
+        "hB"
+    ],
+    "IT": [
+        "H",
+        "hB"
+    ],
+    "KZ": [
+        "H",
+        "hB"
+    ],
+    "MC": [
+        "H",
+        "hB"
+    ],
+    "MD": [
+        "H",
+        "hB"
+    ],
+    "MF": [
+        "H",
+        "hB"
+    ],
+    "MQ": [
+        "H",
+        "hB"
+    ],
+    "MZ": [
+        "H",
+        "hB"
+    ],
+    "NC": [
+        "H",
+        "hB"
+    ],
+    "NL": [
+        "H",
+        "hB"
+    ],
+    "PM": [
+        "H",
+        "hB"
+    ],
+    "PT": [
+        "H",
+        "hB"
+    ],
+    "RE": [
+        "H",
+        "hB"
+    ],
+    "RO": [
+        "H",
+        "hB"
+    ],
+    "SI": [
+        "H",
+        "hB"
+    ],
+    "SR": [
+        "H",
+        "hB"
+    ],
+    "ST": [
+        "H",
+        "hB"
+    ],
+    "TG": [
+        "H",
+        "hB"
+    ],
+    "TR": [
+        "H",
+        "hB"
+    ],
+    "WF": [
+        "H",
+        "hB"
+    ],
+    "YT": [
+        "H",
+        "hB"
+    ],
+    "BD": [
+        "h",
+        "hB",
+        "H"
+    ],
+    "PK": [
+        "h",
+        "hB",
+        "H"
+    ],
+    "AZ": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "BA": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "BG": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "CH": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "GE": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "LI": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "ME": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "RS": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "UA": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "UZ": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "XK": [
+        "H",
+        "hB",
+        "h"
+    ],
+    "AG": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "AU": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "BB": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "BM": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "BS": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "CA": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "DM": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "en-001": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "FJ": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "FM": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "GD": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "GM": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "GU": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "GY": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "JM": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "KI": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "KN": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "KY": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "LC": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "LR": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "MH": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "MP": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "MW": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "NZ": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "SB": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "SG": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "SL": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "SS": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "SZ": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "TC": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "TT": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "UM": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "US": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "VC": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "VG": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "VI": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "ZM": [
+        "h",
+        "hb",
+        "H",
+        "hB"
+    ],
+    "BO": [
+        "H",
+        "hB",
+        "h",
+        "hb"
+    ],
+    "EC": [
+        "H",
+        "hB",
+        "h",
+        "hb"
+    ],
+    "ES": [
+        "H",
+        "hB",
+        "h",
+        "hb"
+    ],
+    "GQ": [
+        "H",
+        "hB",
+        "h",
+        "hb"
+    ],
+    "PE": [
+        "H",
+        "hB",
+        "h",
+        "hb"
+    ],
+    "AE": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "ar-001": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "BH": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "DZ": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "EG": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "EH": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "HK": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "IQ": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "JO": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "KW": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "LB": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "LY": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "MO": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "MR": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "OM": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "PH": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "PS": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "QA": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "SA": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "SD": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "SY": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "TN": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "YE": [
+        "h",
+        "hB",
+        "hb",
+        "H"
+    ],
+    "AF": [
+        "H",
+        "hb",
+        "hB",
+        "h"
+    ],
+    "LA": [
+        "H",
+        "hb",
+        "hB",
+        "h"
+    ],
+    "CN": [
+        "H",
+        "hB",
+        "hb",
+        "h"
+    ],
+    "LV": [
+        "H",
+        "hB",
+        "hb",
+        "h"
+    ],
+    "TL": [
+        "H",
+        "hB",
+        "hb",
+        "h"
+    ],
+    "zu-ZA": [
+        "H",
+        "hB",
+        "hb",
+        "h"
+    ],
+    "CD": [
+        "hB",
+        "H"
+    ],
+    "IR": [
+        "hB",
+        "H"
+    ],
+    "hi-IN": [
+        "hB",
+        "h",
+        "H"
+    ],
+    "kn-IN": [
+        "hB",
+        "h",
+        "H"
+    ],
+    "ml-IN": [
+        "hB",
+        "h",
+        "H"
+    ],
+    "te-IN": [
+        "hB",
+        "h",
+        "H"
+    ],
+    "KH": [
+        "hB",
+        "h",
+        "H",
+        "hb"
+    ],
+    "ta-IN": [
+        "hB",
+        "h",
+        "hb",
+        "H"
+    ],
+    "BN": [
+        "hb",
+        "hB",
+        "h",
+        "H"
+    ],
+    "MY": [
+        "hb",
+        "hB",
+        "h",
+        "H"
+    ],
+    "ET": [
+        "hB",
+        "hb",
+        "h",
+        "H"
+    ],
+    "gu-IN": [
+        "hB",
+        "hb",
+        "h",
+        "H"
+    ],
+    "mr-IN": [
+        "hB",
+        "hb",
+        "h",
+        "H"
+    ],
+    "pa-IN": [
+        "hB",
+        "hb",
+        "h",
+        "H"
+    ],
+    "TW": [
+        "hB",
+        "hb",
+        "h",
+        "H"
+    ],
+    "KE": [
+        "hB",
+        "hb",
+        "H",
+        "h"
+    ],
+    "MM": [
+        "hB",
+        "hb",
+        "H",
+        "h"
+    ],
+    "TZ": [
+        "hB",
+        "hb",
+        "H",
+        "h"
+    ],
+    "UG": [
+        "hB",
+        "hb",
+        "H",
+        "h"
+    ]
+};
+
+},{}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNumberElement = exports.createLiteralElement = exports.isDateTimeSkeleton = exports.isNumberSkeleton = exports.isTagElement = exports.isPoundElement = exports.isPluralElement = exports.isSelectElement = exports.isTimeElement = exports.isDateElement = exports.isNumberElement = exports.isArgumentElement = exports.isLiteralElement = exports.SKELETON_TYPE = exports.TYPE = void 0;
@@ -2083,7 +3215,7 @@ function createNumberElement(value, style) {
 }
 exports.createNumberElement = createNumberElement;
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseDateTimeSkeleton = void 0;
@@ -2210,16 +3342,14 @@ function parseDateTimeSkeleton(skeleton) {
 }
 exports.parseDateTimeSkeleton = parseDateTimeSkeleton;
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var tslib_1 = require("tslib");
 (0, tslib_1.__exportStar)(require("./date-time"), exports);
 (0, tslib_1.__exportStar)(require("./number"), exports);
 
-},{"./date-time":23,"./number":26,"tslib":25}],25:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"dup":19}],26:[function(require,module,exports){
+},{"./date-time":24,"./number":26,"tslib":48}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseNumberSkeleton = exports.parseNumberSkeletonFromString = void 0;
@@ -2521,7 +3651,7 @@ function parseNumberSkeleton(tokens) {
 }
 exports.parseNumberSkeleton = parseNumberSkeleton;
 
-},{"./regex.generated":27,"tslib":25}],27:[function(require,module,exports){
+},{"./regex.generated":27,"tslib":48}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WHITE_SPACE_REGEX = void 0;
@@ -2529,6 +3659,4645 @@ exports.WHITE_SPACE_REGEX = void 0;
 exports.WHITE_SPACE_REGEX = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
 
 },{}],28:[function(require,module,exports){
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://github.com/material-components/material-components-web/blob/master/LICENSE
+ */
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory();
+	else if(typeof define === 'function' && define.amd)
+		define("@material/ripple", [], factory);
+	else if(typeof exports === 'object')
+		exports["ripple"] = factory();
+	else
+		root["mdc"] = root["mdc"] || {}, root["mdc"]["ripple"] = factory();
+})(this, function() {
+return /******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = "./packages/mdc-ripple/index.ts");
+/******/ })
+/************************************************************************/
+/******/ ({
+
+/***/ "./packages/mdc-base/component.ts":
+/*!****************************************!*\
+  !*** ./packages/mdc-base/component.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __read = this && this.__read || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o),
+        r,
+        ar = [],
+        e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) {
+            ar.push(r.value);
+        }
+    } catch (error) {
+        e = { error: error };
+    } finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+            if (e) throw e.error;
+        }
+    }
+    return ar;
+};
+var __spreadArray = this && this.__spreadArray || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++) {
+        to[j] = from[i];
+    }return to;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCComponent = void 0;
+var foundation_1 = __webpack_require__(/*! ./foundation */ "./packages/mdc-base/foundation.ts");
+var MDCComponent = /** @class */function () {
+    function MDCComponent(root, foundation) {
+        var args = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            args[_i - 2] = arguments[_i];
+        }
+        this.root = root;
+        this.initialize.apply(this, __spreadArray([], __read(args)));
+        // Note that we initialize foundation here and not within the constructor's
+        // default param so that this.root is defined and can be used within the
+        // foundation class.
+        this.foundation = foundation === undefined ? this.getDefaultFoundation() : foundation;
+        this.foundation.init();
+        this.initialSyncWithDOM();
+    }
+    MDCComponent.attachTo = function (root) {
+        // Subclasses which extend MDCBase should provide an attachTo() method that takes a root element and
+        // returns an instantiated component with its root set to that element. Also note that in the cases of
+        // subclasses, an explicit foundation class will not have to be passed in; it will simply be initialized
+        // from getDefaultFoundation().
+        return new MDCComponent(root, new foundation_1.MDCFoundation({}));
+    };
+    /* istanbul ignore next: method param only exists for typing purposes; it does not need to be unit tested */
+    MDCComponent.prototype.initialize = function () {
+        var _args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            _args[_i] = arguments[_i];
+        }
+        // Subclasses can override this to do any additional setup work that would be considered part of a
+        // "constructor". Essentially, it is a hook into the parent constructor before the foundation is
+        // initialized. Any additional arguments besides root and foundation will be passed in here.
+    };
+    MDCComponent.prototype.getDefaultFoundation = function () {
+        // Subclasses must override this method to return a properly configured foundation class for the
+        // component.
+        throw new Error('Subclasses must override getDefaultFoundation to return a properly configured ' + 'foundation class');
+    };
+    MDCComponent.prototype.initialSyncWithDOM = function () {
+        // Subclasses should override this method if they need to perform work to synchronize with a host DOM
+        // object. An example of this would be a form control wrapper that needs to synchronize its internal state
+        // to some property or attribute of the host DOM. Please note: this is *not* the place to perform DOM
+        // reads/writes that would cause layout / paint, as this is called synchronously from within the constructor.
+    };
+    MDCComponent.prototype.destroy = function () {
+        // Subclasses may implement this method to release any resources / deregister any listeners they have
+        // attached. An example of this might be deregistering a resize event from the window object.
+        this.foundation.destroy();
+    };
+    MDCComponent.prototype.listen = function (evtType, handler, options) {
+        this.root.addEventListener(evtType, handler, options);
+    };
+    MDCComponent.prototype.unlisten = function (evtType, handler, options) {
+        this.root.removeEventListener(evtType, handler, options);
+    };
+    /**
+     * Fires a cross-browser-compatible custom event from the component root of the given type, with the given data.
+     */
+    MDCComponent.prototype.emit = function (evtType, evtData, shouldBubble) {
+        if (shouldBubble === void 0) {
+            shouldBubble = false;
+        }
+        var evt;
+        if (typeof CustomEvent === 'function') {
+            evt = new CustomEvent(evtType, {
+                bubbles: shouldBubble,
+                detail: evtData
+            });
+        } else {
+            evt = document.createEvent('CustomEvent');
+            evt.initCustomEvent(evtType, shouldBubble, false, evtData);
+        }
+        this.root.dispatchEvent(evt);
+    };
+    return MDCComponent;
+}();
+exports.MDCComponent = MDCComponent;
+// tslint:disable-next-line:no-default-export Needed for backward compatibility with MDC Web v0.44.0 and earlier.
+exports.default = MDCComponent;
+
+/***/ }),
+
+/***/ "./packages/mdc-base/foundation.ts":
+/*!*****************************************!*\
+  !*** ./packages/mdc-base/foundation.ts ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCFoundation = void 0;
+var MDCFoundation = /** @class */function () {
+    function MDCFoundation(adapter) {
+        if (adapter === void 0) {
+            adapter = {};
+        }
+        this.adapter = adapter;
+    }
+    Object.defineProperty(MDCFoundation, "cssClasses", {
+        get: function get() {
+            // Classes extending MDCFoundation should implement this method to return an object which exports every
+            // CSS class the foundation class needs as a property. e.g. {ACTIVE: 'mdc-component--active'}
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCFoundation, "strings", {
+        get: function get() {
+            // Classes extending MDCFoundation should implement this method to return an object which exports all
+            // semantic strings as constants. e.g. {ARIA_ROLE: 'tablist'}
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCFoundation, "numbers", {
+        get: function get() {
+            // Classes extending MDCFoundation should implement this method to return an object which exports all
+            // of its semantic numbers as constants. e.g. {ANIMATION_DELAY_MS: 350}
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCFoundation, "defaultAdapter", {
+        get: function get() {
+            // Classes extending MDCFoundation may choose to implement this getter in order to provide a convenient
+            // way of viewing the necessary methods of an adapter. In the future, this could also be used for adapter
+            // validation.
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    MDCFoundation.prototype.init = function () {
+        // Subclasses should override this method to perform initialization routines (registering events, etc.)
+    };
+    MDCFoundation.prototype.destroy = function () {
+        // Subclasses should override this method to perform de-initialization routines (de-registering events, etc.)
+    };
+    return MDCFoundation;
+}();
+exports.MDCFoundation = MDCFoundation;
+// tslint:disable-next-line:no-default-export Needed for backward compatibility with MDC Web v0.44.0 and earlier.
+exports.default = MDCFoundation;
+
+/***/ }),
+
+/***/ "./packages/mdc-dom/events.ts":
+/*!************************************!*\
+  !*** ./packages/mdc-dom/events.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2019 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.applyPassive = void 0;
+/**
+ * Determine whether the current browser supports passive event listeners, and
+ * if so, use them.
+ */
+function applyPassive(globalObj) {
+    if (globalObj === void 0) {
+        globalObj = window;
+    }
+    return supportsPassiveOption(globalObj) ? { passive: true } : false;
+}
+exports.applyPassive = applyPassive;
+function supportsPassiveOption(globalObj) {
+    if (globalObj === void 0) {
+        globalObj = window;
+    }
+    // See
+    // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+    var passiveSupported = false;
+    try {
+        var options = {
+            // This function will be called when the browser
+            // attempts to access the passive property.
+            get passive() {
+                passiveSupported = true;
+                return false;
+            }
+        };
+        var handler = function handler() {};
+        globalObj.document.addEventListener('test', handler, options);
+        globalObj.document.removeEventListener('test', handler, options);
+    } catch (err) {
+        passiveSupported = false;
+    }
+    return passiveSupported;
+}
+
+/***/ }),
+
+/***/ "./packages/mdc-dom/ponyfill.ts":
+/*!**************************************!*\
+  !*** ./packages/mdc-dom/ponyfill.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2018 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.estimateScrollWidth = exports.matches = exports.closest = void 0;
+/**
+ * @fileoverview A "ponyfill" is a polyfill that doesn't modify the global prototype chain.
+ * This makes ponyfills safer than traditional polyfills, especially for libraries like MDC.
+ */
+function closest(element, selector) {
+    if (element.closest) {
+        return element.closest(selector);
+    }
+    var el = element;
+    while (el) {
+        if (matches(el, selector)) {
+            return el;
+        }
+        el = el.parentElement;
+    }
+    return null;
+}
+exports.closest = closest;
+function matches(element, selector) {
+    var nativeMatches = element.matches || element.webkitMatchesSelector || element.msMatchesSelector;
+    return nativeMatches.call(element, selector);
+}
+exports.matches = matches;
+/**
+ * Used to compute the estimated scroll width of elements. When an element is
+ * hidden due to display: none; being applied to a parent element, the width is
+ * returned as 0. However, the element will have a true width once no longer
+ * inside a display: none context. This method computes an estimated width when
+ * the element is hidden or returns the true width when the element is visble.
+ * @param {Element} element the element whose width to estimate
+ */
+function estimateScrollWidth(element) {
+    // Check the offsetParent. If the element inherits display: none from any
+    // parent, the offsetParent property will be null (see
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent).
+    // This check ensures we only clone the node when necessary.
+    var htmlEl = element;
+    if (htmlEl.offsetParent !== null) {
+        return htmlEl.scrollWidth;
+    }
+    var clone = htmlEl.cloneNode(true);
+    clone.style.setProperty('position', 'absolute');
+    clone.style.setProperty('transform', 'translate(-9999px, -9999px)');
+    document.documentElement.appendChild(clone);
+    var scrollWidth = clone.scrollWidth;
+    document.documentElement.removeChild(clone);
+    return scrollWidth;
+}
+exports.estimateScrollWidth = estimateScrollWidth;
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/adapter.ts":
+/*!****************************************!*\
+  !*** ./packages/mdc-ripple/adapter.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/component.ts":
+/*!******************************************!*\
+  !*** ./packages/mdc-ripple/component.ts ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __createBinding = this && this.__createBinding || (Object.create ? function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function get() {
+            return m[k];
+        } });
+} : function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+});
+var __setModuleDefault = this && this.__setModuleDefault || (Object.create ? function (o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+} : function (o, v) {
+    o["default"] = v;
+});
+var __importStar = this && this.__importStar || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) {
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    }__setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCRipple = void 0;
+var component_1 = __webpack_require__(/*! @material/base/component */ "./packages/mdc-base/component.ts");
+var events_1 = __webpack_require__(/*! @material/dom/events */ "./packages/mdc-dom/events.ts");
+var ponyfill_1 = __webpack_require__(/*! @material/dom/ponyfill */ "./packages/mdc-dom/ponyfill.ts");
+var foundation_1 = __webpack_require__(/*! ./foundation */ "./packages/mdc-ripple/foundation.ts");
+var util = __importStar(__webpack_require__(/*! ./util */ "./packages/mdc-ripple/util.ts"));
+var MDCRipple = /** @class */function (_super) {
+    __extends(MDCRipple, _super);
+    function MDCRipple() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.disabled = false;
+        return _this;
+    }
+    MDCRipple.attachTo = function (root, opts) {
+        if (opts === void 0) {
+            opts = {
+                isUnbounded: undefined
+            };
+        }
+        var ripple = new MDCRipple(root);
+        // Only override unbounded behavior if option is explicitly specified
+        if (opts.isUnbounded !== undefined) {
+            ripple.unbounded = opts.isUnbounded;
+        }
+        return ripple;
+    };
+    MDCRipple.createAdapter = function (instance) {
+        return {
+            addClass: function addClass(className) {
+                return instance.root.classList.add(className);
+            },
+            browserSupportsCssVars: function browserSupportsCssVars() {
+                return util.supportsCssVariables(window);
+            },
+            computeBoundingRect: function computeBoundingRect() {
+                return instance.root.getBoundingClientRect();
+            },
+            containsEventTarget: function containsEventTarget(target) {
+                return instance.root.contains(target);
+            },
+            deregisterDocumentInteractionHandler: function deregisterDocumentInteractionHandler(evtType, handler) {
+                return document.documentElement.removeEventListener(evtType, handler, events_1.applyPassive());
+            },
+            deregisterInteractionHandler: function deregisterInteractionHandler(evtType, handler) {
+                return instance.root.removeEventListener(evtType, handler, events_1.applyPassive());
+            },
+            deregisterResizeHandler: function deregisterResizeHandler(handler) {
+                return window.removeEventListener('resize', handler);
+            },
+            getWindowPageOffset: function getWindowPageOffset() {
+                return { x: window.pageXOffset, y: window.pageYOffset };
+            },
+            isSurfaceActive: function isSurfaceActive() {
+                return ponyfill_1.matches(instance.root, ':active');
+            },
+            isSurfaceDisabled: function isSurfaceDisabled() {
+                return Boolean(instance.disabled);
+            },
+            isUnbounded: function isUnbounded() {
+                return Boolean(instance.unbounded);
+            },
+            registerDocumentInteractionHandler: function registerDocumentInteractionHandler(evtType, handler) {
+                return document.documentElement.addEventListener(evtType, handler, events_1.applyPassive());
+            },
+            registerInteractionHandler: function registerInteractionHandler(evtType, handler) {
+                return instance.root.addEventListener(evtType, handler, events_1.applyPassive());
+            },
+            registerResizeHandler: function registerResizeHandler(handler) {
+                return window.addEventListener('resize', handler);
+            },
+            removeClass: function removeClass(className) {
+                return instance.root.classList.remove(className);
+            },
+            updateCssVariable: function updateCssVariable(varName, value) {
+                return instance.root.style.setProperty(varName, value);
+            }
+        };
+    };
+    Object.defineProperty(MDCRipple.prototype, "unbounded", {
+        get: function get() {
+            return Boolean(this.isUnbounded);
+        },
+        set: function set(unbounded) {
+            this.isUnbounded = Boolean(unbounded);
+            this.setUnbounded();
+        },
+        enumerable: false,
+        configurable: true
+    });
+    MDCRipple.prototype.activate = function () {
+        this.foundation.activate();
+    };
+    MDCRipple.prototype.deactivate = function () {
+        this.foundation.deactivate();
+    };
+    MDCRipple.prototype.layout = function () {
+        this.foundation.layout();
+    };
+    MDCRipple.prototype.getDefaultFoundation = function () {
+        return new foundation_1.MDCRippleFoundation(MDCRipple.createAdapter(this));
+    };
+    MDCRipple.prototype.initialSyncWithDOM = function () {
+        var root = this.root;
+        this.isUnbounded = 'mdcRippleIsUnbounded' in root.dataset;
+    };
+    /**
+     * Closure Compiler throws an access control error when directly accessing a
+     * protected or private property inside a getter/setter, like unbounded above.
+     * By accessing the protected property inside a method, we solve that problem.
+     * That's why this function exists.
+     */
+    MDCRipple.prototype.setUnbounded = function () {
+        this.foundation.setUnbounded(Boolean(this.isUnbounded));
+    };
+    return MDCRipple;
+}(component_1.MDCComponent);
+exports.MDCRipple = MDCRipple;
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/constants.ts":
+/*!******************************************!*\
+  !*** ./packages/mdc-ripple/constants.ts ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.numbers = exports.strings = exports.cssClasses = void 0;
+exports.cssClasses = {
+    // Ripple is a special case where the "root" component is really a "mixin" of sorts,
+    // given that it's an 'upgrade' to an existing component. That being said it is the root
+    // CSS class that all other CSS classes derive from.
+    BG_FOCUSED: 'mdc-ripple-upgraded--background-focused',
+    FG_ACTIVATION: 'mdc-ripple-upgraded--foreground-activation',
+    FG_DEACTIVATION: 'mdc-ripple-upgraded--foreground-deactivation',
+    ROOT: 'mdc-ripple-upgraded',
+    UNBOUNDED: 'mdc-ripple-upgraded--unbounded'
+};
+exports.strings = {
+    VAR_FG_SCALE: '--mdc-ripple-fg-scale',
+    VAR_FG_SIZE: '--mdc-ripple-fg-size',
+    VAR_FG_TRANSLATE_END: '--mdc-ripple-fg-translate-end',
+    VAR_FG_TRANSLATE_START: '--mdc-ripple-fg-translate-start',
+    VAR_LEFT: '--mdc-ripple-left',
+    VAR_TOP: '--mdc-ripple-top'
+};
+exports.numbers = {
+    DEACTIVATION_TIMEOUT_MS: 225,
+    FG_DEACTIVATION_MS: 150,
+    INITIAL_ORIGIN_SCALE: 0.6,
+    PADDING: 10,
+    TAP_DELAY_MS: 300 };
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/foundation.ts":
+/*!*******************************************!*\
+  !*** ./packages/mdc-ripple/foundation.ts ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __assign = this && this.__assign || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) {
+                if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __values = this && this.__values || function (o) {
+    var s = typeof Symbol === "function" && Symbol.iterator,
+        m = s && o[s],
+        i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function next() {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCRippleFoundation = void 0;
+var foundation_1 = __webpack_require__(/*! @material/base/foundation */ "./packages/mdc-base/foundation.ts");
+var constants_1 = __webpack_require__(/*! ./constants */ "./packages/mdc-ripple/constants.ts");
+var util_1 = __webpack_require__(/*! ./util */ "./packages/mdc-ripple/util.ts");
+// Activation events registered on the root element of each instance for activation
+var ACTIVATION_EVENT_TYPES = ['touchstart', 'pointerdown', 'mousedown', 'keydown'];
+// Deactivation events registered on documentElement when a pointer-related down event occurs
+var POINTER_DEACTIVATION_EVENT_TYPES = ['touchend', 'pointerup', 'mouseup', 'contextmenu'];
+// simultaneous nested activations
+var activatedTargets = [];
+var MDCRippleFoundation = /** @class */function (_super) {
+    __extends(MDCRippleFoundation, _super);
+    function MDCRippleFoundation(adapter) {
+        var _this = _super.call(this, __assign(__assign({}, MDCRippleFoundation.defaultAdapter), adapter)) || this;
+        _this.activationAnimationHasEnded = false;
+        _this.activationTimer = 0;
+        _this.fgDeactivationRemovalTimer = 0;
+        _this.fgScale = '0';
+        _this.frame = { width: 0, height: 0 };
+        _this.initialSize = 0;
+        _this.layoutFrame = 0;
+        _this.maxRadius = 0;
+        _this.unboundedCoords = { left: 0, top: 0 };
+        _this.activationState = _this.defaultActivationState();
+        _this.activationTimerCallback = function () {
+            _this.activationAnimationHasEnded = true;
+            _this.runDeactivationUXLogicIfReady();
+        };
+        _this.activateHandler = function (e) {
+            _this.activateImpl(e);
+        };
+        _this.deactivateHandler = function () {
+            _this.deactivateImpl();
+        };
+        _this.focusHandler = function () {
+            _this.handleFocus();
+        };
+        _this.blurHandler = function () {
+            _this.handleBlur();
+        };
+        _this.resizeHandler = function () {
+            _this.layout();
+        };
+        return _this;
+    }
+    Object.defineProperty(MDCRippleFoundation, "cssClasses", {
+        get: function get() {
+            return constants_1.cssClasses;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCRippleFoundation, "strings", {
+        get: function get() {
+            return constants_1.strings;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCRippleFoundation, "numbers", {
+        get: function get() {
+            return constants_1.numbers;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCRippleFoundation, "defaultAdapter", {
+        get: function get() {
+            return {
+                addClass: function addClass() {
+                    return undefined;
+                },
+                browserSupportsCssVars: function browserSupportsCssVars() {
+                    return true;
+                },
+                computeBoundingRect: function computeBoundingRect() {
+                    return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 };
+                },
+                containsEventTarget: function containsEventTarget() {
+                    return true;
+                },
+                deregisterDocumentInteractionHandler: function deregisterDocumentInteractionHandler() {
+                    return undefined;
+                },
+                deregisterInteractionHandler: function deregisterInteractionHandler() {
+                    return undefined;
+                },
+                deregisterResizeHandler: function deregisterResizeHandler() {
+                    return undefined;
+                },
+                getWindowPageOffset: function getWindowPageOffset() {
+                    return { x: 0, y: 0 };
+                },
+                isSurfaceActive: function isSurfaceActive() {
+                    return true;
+                },
+                isSurfaceDisabled: function isSurfaceDisabled() {
+                    return true;
+                },
+                isUnbounded: function isUnbounded() {
+                    return true;
+                },
+                registerDocumentInteractionHandler: function registerDocumentInteractionHandler() {
+                    return undefined;
+                },
+                registerInteractionHandler: function registerInteractionHandler() {
+                    return undefined;
+                },
+                registerResizeHandler: function registerResizeHandler() {
+                    return undefined;
+                },
+                removeClass: function removeClass() {
+                    return undefined;
+                },
+                updateCssVariable: function updateCssVariable() {
+                    return undefined;
+                }
+            };
+        },
+        enumerable: false,
+        configurable: true
+    });
+    MDCRippleFoundation.prototype.init = function () {
+        var _this = this;
+        var supportsPressRipple = this.supportsPressRipple();
+        this.registerRootHandlers(supportsPressRipple);
+        if (supportsPressRipple) {
+            var _a = MDCRippleFoundation.cssClasses,
+                ROOT_1 = _a.ROOT,
+                UNBOUNDED_1 = _a.UNBOUNDED;
+            requestAnimationFrame(function () {
+                _this.adapter.addClass(ROOT_1);
+                if (_this.adapter.isUnbounded()) {
+                    _this.adapter.addClass(UNBOUNDED_1);
+                    // Unbounded ripples need layout logic applied immediately to set coordinates for both shade and ripple
+                    _this.layoutInternal();
+                }
+            });
+        }
+    };
+    MDCRippleFoundation.prototype.destroy = function () {
+        var _this = this;
+        if (this.supportsPressRipple()) {
+            if (this.activationTimer) {
+                clearTimeout(this.activationTimer);
+                this.activationTimer = 0;
+                this.adapter.removeClass(MDCRippleFoundation.cssClasses.FG_ACTIVATION);
+            }
+            if (this.fgDeactivationRemovalTimer) {
+                clearTimeout(this.fgDeactivationRemovalTimer);
+                this.fgDeactivationRemovalTimer = 0;
+                this.adapter.removeClass(MDCRippleFoundation.cssClasses.FG_DEACTIVATION);
+            }
+            var _a = MDCRippleFoundation.cssClasses,
+                ROOT_2 = _a.ROOT,
+                UNBOUNDED_2 = _a.UNBOUNDED;
+            requestAnimationFrame(function () {
+                _this.adapter.removeClass(ROOT_2);
+                _this.adapter.removeClass(UNBOUNDED_2);
+                _this.removeCssVars();
+            });
+        }
+        this.deregisterRootHandlers();
+        this.deregisterDeactivationHandlers();
+    };
+    /**
+     * @param evt Optional event containing position information.
+     */
+    MDCRippleFoundation.prototype.activate = function (evt) {
+        this.activateImpl(evt);
+    };
+    MDCRippleFoundation.prototype.deactivate = function () {
+        this.deactivateImpl();
+    };
+    MDCRippleFoundation.prototype.layout = function () {
+        var _this = this;
+        if (this.layoutFrame) {
+            cancelAnimationFrame(this.layoutFrame);
+        }
+        this.layoutFrame = requestAnimationFrame(function () {
+            _this.layoutInternal();
+            _this.layoutFrame = 0;
+        });
+    };
+    MDCRippleFoundation.prototype.setUnbounded = function (unbounded) {
+        var UNBOUNDED = MDCRippleFoundation.cssClasses.UNBOUNDED;
+        if (unbounded) {
+            this.adapter.addClass(UNBOUNDED);
+        } else {
+            this.adapter.removeClass(UNBOUNDED);
+        }
+    };
+    MDCRippleFoundation.prototype.handleFocus = function () {
+        var _this = this;
+        requestAnimationFrame(function () {
+            return _this.adapter.addClass(MDCRippleFoundation.cssClasses.BG_FOCUSED);
+        });
+    };
+    MDCRippleFoundation.prototype.handleBlur = function () {
+        var _this = this;
+        requestAnimationFrame(function () {
+            return _this.adapter.removeClass(MDCRippleFoundation.cssClasses.BG_FOCUSED);
+        });
+    };
+    /**
+     * We compute this property so that we are not querying information about the client
+     * until the point in time where the foundation requests it. This prevents scenarios where
+     * client-side feature-detection may happen too early, such as when components are rendered on the server
+     * and then initialized at mount time on the client.
+     */
+    MDCRippleFoundation.prototype.supportsPressRipple = function () {
+        return this.adapter.browserSupportsCssVars();
+    };
+    MDCRippleFoundation.prototype.defaultActivationState = function () {
+        return {
+            activationEvent: undefined,
+            hasDeactivationUXRun: false,
+            isActivated: false,
+            isProgrammatic: false,
+            wasActivatedByPointer: false,
+            wasElementMadeActive: false
+        };
+    };
+    /**
+     * supportsPressRipple Passed from init to save a redundant function call
+     */
+    MDCRippleFoundation.prototype.registerRootHandlers = function (supportsPressRipple) {
+        var e_1, _a;
+        if (supportsPressRipple) {
+            try {
+                for (var ACTIVATION_EVENT_TYPES_1 = __values(ACTIVATION_EVENT_TYPES), ACTIVATION_EVENT_TYPES_1_1 = ACTIVATION_EVENT_TYPES_1.next(); !ACTIVATION_EVENT_TYPES_1_1.done; ACTIVATION_EVENT_TYPES_1_1 = ACTIVATION_EVENT_TYPES_1.next()) {
+                    var evtType = ACTIVATION_EVENT_TYPES_1_1.value;
+                    this.adapter.registerInteractionHandler(evtType, this.activateHandler);
+                }
+            } catch (e_1_1) {
+                e_1 = { error: e_1_1 };
+            } finally {
+                try {
+                    if (ACTIVATION_EVENT_TYPES_1_1 && !ACTIVATION_EVENT_TYPES_1_1.done && (_a = ACTIVATION_EVENT_TYPES_1.return)) _a.call(ACTIVATION_EVENT_TYPES_1);
+                } finally {
+                    if (e_1) throw e_1.error;
+                }
+            }
+            if (this.adapter.isUnbounded()) {
+                this.adapter.registerResizeHandler(this.resizeHandler);
+            }
+        }
+        this.adapter.registerInteractionHandler('focus', this.focusHandler);
+        this.adapter.registerInteractionHandler('blur', this.blurHandler);
+    };
+    MDCRippleFoundation.prototype.registerDeactivationHandlers = function (evt) {
+        var e_2, _a;
+        if (evt.type === 'keydown') {
+            this.adapter.registerInteractionHandler('keyup', this.deactivateHandler);
+        } else {
+            try {
+                for (var POINTER_DEACTIVATION_EVENT_TYPES_1 = __values(POINTER_DEACTIVATION_EVENT_TYPES), POINTER_DEACTIVATION_EVENT_TYPES_1_1 = POINTER_DEACTIVATION_EVENT_TYPES_1.next(); !POINTER_DEACTIVATION_EVENT_TYPES_1_1.done; POINTER_DEACTIVATION_EVENT_TYPES_1_1 = POINTER_DEACTIVATION_EVENT_TYPES_1.next()) {
+                    var evtType = POINTER_DEACTIVATION_EVENT_TYPES_1_1.value;
+                    this.adapter.registerDocumentInteractionHandler(evtType, this.deactivateHandler);
+                }
+            } catch (e_2_1) {
+                e_2 = { error: e_2_1 };
+            } finally {
+                try {
+                    if (POINTER_DEACTIVATION_EVENT_TYPES_1_1 && !POINTER_DEACTIVATION_EVENT_TYPES_1_1.done && (_a = POINTER_DEACTIVATION_EVENT_TYPES_1.return)) _a.call(POINTER_DEACTIVATION_EVENT_TYPES_1);
+                } finally {
+                    if (e_2) throw e_2.error;
+                }
+            }
+        }
+    };
+    MDCRippleFoundation.prototype.deregisterRootHandlers = function () {
+        var e_3, _a;
+        try {
+            for (var ACTIVATION_EVENT_TYPES_2 = __values(ACTIVATION_EVENT_TYPES), ACTIVATION_EVENT_TYPES_2_1 = ACTIVATION_EVENT_TYPES_2.next(); !ACTIVATION_EVENT_TYPES_2_1.done; ACTIVATION_EVENT_TYPES_2_1 = ACTIVATION_EVENT_TYPES_2.next()) {
+                var evtType = ACTIVATION_EVENT_TYPES_2_1.value;
+                this.adapter.deregisterInteractionHandler(evtType, this.activateHandler);
+            }
+        } catch (e_3_1) {
+            e_3 = { error: e_3_1 };
+        } finally {
+            try {
+                if (ACTIVATION_EVENT_TYPES_2_1 && !ACTIVATION_EVENT_TYPES_2_1.done && (_a = ACTIVATION_EVENT_TYPES_2.return)) _a.call(ACTIVATION_EVENT_TYPES_2);
+            } finally {
+                if (e_3) throw e_3.error;
+            }
+        }
+        this.adapter.deregisterInteractionHandler('focus', this.focusHandler);
+        this.adapter.deregisterInteractionHandler('blur', this.blurHandler);
+        if (this.adapter.isUnbounded()) {
+            this.adapter.deregisterResizeHandler(this.resizeHandler);
+        }
+    };
+    MDCRippleFoundation.prototype.deregisterDeactivationHandlers = function () {
+        var e_4, _a;
+        this.adapter.deregisterInteractionHandler('keyup', this.deactivateHandler);
+        try {
+            for (var POINTER_DEACTIVATION_EVENT_TYPES_2 = __values(POINTER_DEACTIVATION_EVENT_TYPES), POINTER_DEACTIVATION_EVENT_TYPES_2_1 = POINTER_DEACTIVATION_EVENT_TYPES_2.next(); !POINTER_DEACTIVATION_EVENT_TYPES_2_1.done; POINTER_DEACTIVATION_EVENT_TYPES_2_1 = POINTER_DEACTIVATION_EVENT_TYPES_2.next()) {
+                var evtType = POINTER_DEACTIVATION_EVENT_TYPES_2_1.value;
+                this.adapter.deregisterDocumentInteractionHandler(evtType, this.deactivateHandler);
+            }
+        } catch (e_4_1) {
+            e_4 = { error: e_4_1 };
+        } finally {
+            try {
+                if (POINTER_DEACTIVATION_EVENT_TYPES_2_1 && !POINTER_DEACTIVATION_EVENT_TYPES_2_1.done && (_a = POINTER_DEACTIVATION_EVENT_TYPES_2.return)) _a.call(POINTER_DEACTIVATION_EVENT_TYPES_2);
+            } finally {
+                if (e_4) throw e_4.error;
+            }
+        }
+    };
+    MDCRippleFoundation.prototype.removeCssVars = function () {
+        var _this = this;
+        var rippleStrings = MDCRippleFoundation.strings;
+        var keys = Object.keys(rippleStrings);
+        keys.forEach(function (key) {
+            if (key.indexOf('VAR_') === 0) {
+                _this.adapter.updateCssVariable(rippleStrings[key], null);
+            }
+        });
+    };
+    MDCRippleFoundation.prototype.activateImpl = function (evt) {
+        var _this = this;
+        if (this.adapter.isSurfaceDisabled()) {
+            return;
+        }
+        var activationState = this.activationState;
+        if (activationState.isActivated) {
+            return;
+        }
+        // Avoid reacting to follow-on events fired by touch device after an already-processed user interaction
+        var previousActivationEvent = this.previousActivationEvent;
+        var isSameInteraction = previousActivationEvent && evt !== undefined && previousActivationEvent.type !== evt.type;
+        if (isSameInteraction) {
+            return;
+        }
+        activationState.isActivated = true;
+        activationState.isProgrammatic = evt === undefined;
+        activationState.activationEvent = evt;
+        activationState.wasActivatedByPointer = activationState.isProgrammatic ? false : evt !== undefined && (evt.type === 'mousedown' || evt.type === 'touchstart' || evt.type === 'pointerdown');
+        var hasActivatedChild = evt !== undefined && activatedTargets.length > 0 && activatedTargets.some(function (target) {
+            return _this.adapter.containsEventTarget(target);
+        });
+        if (hasActivatedChild) {
+            // Immediately reset activation state, while preserving logic that prevents touch follow-on events
+            this.resetActivationState();
+            return;
+        }
+        if (evt !== undefined) {
+            activatedTargets.push(evt.target);
+            this.registerDeactivationHandlers(evt);
+        }
+        activationState.wasElementMadeActive = this.checkElementMadeActive(evt);
+        if (activationState.wasElementMadeActive) {
+            this.animateActivation();
+        }
+        requestAnimationFrame(function () {
+            // Reset array on next frame after the current event has had a chance to bubble to prevent ancestor ripples
+            activatedTargets = [];
+            if (!activationState.wasElementMadeActive && evt !== undefined && (evt.key === ' ' || evt.keyCode === 32)) {
+                // If space was pressed, try again within an rAF call to detect :active, because different UAs report
+                // active states inconsistently when they're called within event handling code:
+                // - https://bugs.chromium.org/p/chromium/issues/detail?id=635971
+                // - https://bugzilla.mozilla.org/show_bug.cgi?id=1293741
+                // We try first outside rAF to support Edge, which does not exhibit this problem, but will crash if a CSS
+                // variable is set within a rAF callback for a submit button interaction (#2241).
+                activationState.wasElementMadeActive = _this.checkElementMadeActive(evt);
+                if (activationState.wasElementMadeActive) {
+                    _this.animateActivation();
+                }
+            }
+            if (!activationState.wasElementMadeActive) {
+                // Reset activation state immediately if element was not made active.
+                _this.activationState = _this.defaultActivationState();
+            }
+        });
+    };
+    MDCRippleFoundation.prototype.checkElementMadeActive = function (evt) {
+        return evt !== undefined && evt.type === 'keydown' ? this.adapter.isSurfaceActive() : true;
+    };
+    MDCRippleFoundation.prototype.animateActivation = function () {
+        var _this = this;
+        var _a = MDCRippleFoundation.strings,
+            VAR_FG_TRANSLATE_START = _a.VAR_FG_TRANSLATE_START,
+            VAR_FG_TRANSLATE_END = _a.VAR_FG_TRANSLATE_END;
+        var _b = MDCRippleFoundation.cssClasses,
+            FG_DEACTIVATION = _b.FG_DEACTIVATION,
+            FG_ACTIVATION = _b.FG_ACTIVATION;
+        var DEACTIVATION_TIMEOUT_MS = MDCRippleFoundation.numbers.DEACTIVATION_TIMEOUT_MS;
+        this.layoutInternal();
+        var translateStart = '';
+        var translateEnd = '';
+        if (!this.adapter.isUnbounded()) {
+            var _c = this.getFgTranslationCoordinates(),
+                startPoint = _c.startPoint,
+                endPoint = _c.endPoint;
+            translateStart = startPoint.x + "px, " + startPoint.y + "px";
+            translateEnd = endPoint.x + "px, " + endPoint.y + "px";
+        }
+        this.adapter.updateCssVariable(VAR_FG_TRANSLATE_START, translateStart);
+        this.adapter.updateCssVariable(VAR_FG_TRANSLATE_END, translateEnd);
+        // Cancel any ongoing activation/deactivation animations
+        clearTimeout(this.activationTimer);
+        clearTimeout(this.fgDeactivationRemovalTimer);
+        this.rmBoundedActivationClasses();
+        this.adapter.removeClass(FG_DEACTIVATION);
+        // Force layout in order to re-trigger the animation.
+        this.adapter.computeBoundingRect();
+        this.adapter.addClass(FG_ACTIVATION);
+        this.activationTimer = setTimeout(function () {
+            _this.activationTimerCallback();
+        }, DEACTIVATION_TIMEOUT_MS);
+    };
+    MDCRippleFoundation.prototype.getFgTranslationCoordinates = function () {
+        var _a = this.activationState,
+            activationEvent = _a.activationEvent,
+            wasActivatedByPointer = _a.wasActivatedByPointer;
+        var startPoint;
+        if (wasActivatedByPointer) {
+            startPoint = util_1.getNormalizedEventCoords(activationEvent, this.adapter.getWindowPageOffset(), this.adapter.computeBoundingRect());
+        } else {
+            startPoint = {
+                x: this.frame.width / 2,
+                y: this.frame.height / 2
+            };
+        }
+        // Center the element around the start point.
+        startPoint = {
+            x: startPoint.x - this.initialSize / 2,
+            y: startPoint.y - this.initialSize / 2
+        };
+        var endPoint = {
+            x: this.frame.width / 2 - this.initialSize / 2,
+            y: this.frame.height / 2 - this.initialSize / 2
+        };
+        return { startPoint: startPoint, endPoint: endPoint };
+    };
+    MDCRippleFoundation.prototype.runDeactivationUXLogicIfReady = function () {
+        var _this = this;
+        // This method is called both when a pointing device is released, and when the activation animation ends.
+        // The deactivation animation should only run after both of those occur.
+        var FG_DEACTIVATION = MDCRippleFoundation.cssClasses.FG_DEACTIVATION;
+        var _a = this.activationState,
+            hasDeactivationUXRun = _a.hasDeactivationUXRun,
+            isActivated = _a.isActivated;
+        var activationHasEnded = hasDeactivationUXRun || !isActivated;
+        if (activationHasEnded && this.activationAnimationHasEnded) {
+            this.rmBoundedActivationClasses();
+            this.adapter.addClass(FG_DEACTIVATION);
+            this.fgDeactivationRemovalTimer = setTimeout(function () {
+                _this.adapter.removeClass(FG_DEACTIVATION);
+            }, constants_1.numbers.FG_DEACTIVATION_MS);
+        }
+    };
+    MDCRippleFoundation.prototype.rmBoundedActivationClasses = function () {
+        var FG_ACTIVATION = MDCRippleFoundation.cssClasses.FG_ACTIVATION;
+        this.adapter.removeClass(FG_ACTIVATION);
+        this.activationAnimationHasEnded = false;
+        this.adapter.computeBoundingRect();
+    };
+    MDCRippleFoundation.prototype.resetActivationState = function () {
+        var _this = this;
+        this.previousActivationEvent = this.activationState.activationEvent;
+        this.activationState = this.defaultActivationState();
+        // Touch devices may fire additional events for the same interaction within a short time.
+        // Store the previous event until it's safe to assume that subsequent events are for new interactions.
+        setTimeout(function () {
+            return _this.previousActivationEvent = undefined;
+        }, MDCRippleFoundation.numbers.TAP_DELAY_MS);
+    };
+    MDCRippleFoundation.prototype.deactivateImpl = function () {
+        var _this = this;
+        var activationState = this.activationState;
+        // This can happen in scenarios such as when you have a keyup event that blurs the element.
+        if (!activationState.isActivated) {
+            return;
+        }
+        var state = __assign({}, activationState);
+        if (activationState.isProgrammatic) {
+            requestAnimationFrame(function () {
+                _this.animateDeactivation(state);
+            });
+            this.resetActivationState();
+        } else {
+            this.deregisterDeactivationHandlers();
+            requestAnimationFrame(function () {
+                _this.activationState.hasDeactivationUXRun = true;
+                _this.animateDeactivation(state);
+                _this.resetActivationState();
+            });
+        }
+    };
+    MDCRippleFoundation.prototype.animateDeactivation = function (_a) {
+        var wasActivatedByPointer = _a.wasActivatedByPointer,
+            wasElementMadeActive = _a.wasElementMadeActive;
+        if (wasActivatedByPointer || wasElementMadeActive) {
+            this.runDeactivationUXLogicIfReady();
+        }
+    };
+    MDCRippleFoundation.prototype.layoutInternal = function () {
+        var _this = this;
+        this.frame = this.adapter.computeBoundingRect();
+        var maxDim = Math.max(this.frame.height, this.frame.width);
+        // Surface diameter is treated differently for unbounded vs. bounded ripples.
+        // Unbounded ripple diameter is calculated smaller since the surface is expected to already be padded appropriately
+        // to extend the hitbox, and the ripple is expected to meet the edges of the padded hitbox (which is typically
+        // square). Bounded ripples, on the other hand, are fully expected to expand beyond the surface's longest diameter
+        // (calculated based on the diagonal plus a constant padding), and are clipped at the surface's border via
+        // `overflow: hidden`.
+        var getBoundedRadius = function getBoundedRadius() {
+            var hypotenuse = Math.sqrt(Math.pow(_this.frame.width, 2) + Math.pow(_this.frame.height, 2));
+            return hypotenuse + MDCRippleFoundation.numbers.PADDING;
+        };
+        this.maxRadius = this.adapter.isUnbounded() ? maxDim : getBoundedRadius();
+        // Ripple is sized as a fraction of the largest dimension of the surface, then scales up using a CSS scale transform
+        var initialSize = Math.floor(maxDim * MDCRippleFoundation.numbers.INITIAL_ORIGIN_SCALE);
+        // Unbounded ripple size should always be even number to equally center align.
+        if (this.adapter.isUnbounded() && initialSize % 2 !== 0) {
+            this.initialSize = initialSize - 1;
+        } else {
+            this.initialSize = initialSize;
+        }
+        this.fgScale = "" + this.maxRadius / this.initialSize;
+        this.updateLayoutCssVars();
+    };
+    MDCRippleFoundation.prototype.updateLayoutCssVars = function () {
+        var _a = MDCRippleFoundation.strings,
+            VAR_FG_SIZE = _a.VAR_FG_SIZE,
+            VAR_LEFT = _a.VAR_LEFT,
+            VAR_TOP = _a.VAR_TOP,
+            VAR_FG_SCALE = _a.VAR_FG_SCALE;
+        this.adapter.updateCssVariable(VAR_FG_SIZE, this.initialSize + "px");
+        this.adapter.updateCssVariable(VAR_FG_SCALE, this.fgScale);
+        if (this.adapter.isUnbounded()) {
+            this.unboundedCoords = {
+                left: Math.round(this.frame.width / 2 - this.initialSize / 2),
+                top: Math.round(this.frame.height / 2 - this.initialSize / 2)
+            };
+            this.adapter.updateCssVariable(VAR_LEFT, this.unboundedCoords.left + "px");
+            this.adapter.updateCssVariable(VAR_TOP, this.unboundedCoords.top + "px");
+        }
+    };
+    return MDCRippleFoundation;
+}(foundation_1.MDCFoundation);
+exports.MDCRippleFoundation = MDCRippleFoundation;
+// tslint:disable-next-line:no-default-export Needed for backward compatibility with MDC Web v0.44.0 and earlier.
+exports.default = MDCRippleFoundation;
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/index.ts":
+/*!**************************************!*\
+  !*** ./packages/mdc-ripple/index.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2019 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __createBinding = this && this.__createBinding || (Object.create ? function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function get() {
+            return m[k];
+        } });
+} : function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+});
+var __setModuleDefault = this && this.__setModuleDefault || (Object.create ? function (o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+} : function (o, v) {
+    o["default"] = v;
+});
+var __importStar = this && this.__importStar || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) {
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    }__setModuleDefault(result, mod);
+    return result;
+};
+var __exportStar = this && this.__exportStar || function (m, exports) {
+    for (var p in m) {
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+    }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.util = void 0;
+var util = __importStar(__webpack_require__(/*! ./util */ "./packages/mdc-ripple/util.ts"));
+exports.util = util;
+__exportStar(__webpack_require__(/*! ./adapter */ "./packages/mdc-ripple/adapter.ts"), exports);
+__exportStar(__webpack_require__(/*! ./component */ "./packages/mdc-ripple/component.ts"), exports);
+__exportStar(__webpack_require__(/*! ./constants */ "./packages/mdc-ripple/constants.ts"), exports);
+__exportStar(__webpack_require__(/*! ./foundation */ "./packages/mdc-ripple/foundation.ts"), exports);
+__exportStar(__webpack_require__(/*! ./types */ "./packages/mdc-ripple/types.ts"), exports);
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/types.ts":
+/*!**************************************!*\
+  !*** ./packages/mdc-ripple/types.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2019 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/util.ts":
+/*!*************************************!*\
+  !*** ./packages/mdc-ripple/util.ts ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getNormalizedEventCoords = exports.supportsCssVariables = void 0;
+/**
+ * Stores result from supportsCssVariables to avoid redundant processing to
+ * detect CSS custom variable support.
+ */
+var supportsCssVariables_;
+function supportsCssVariables(windowObj, forceRefresh) {
+    if (forceRefresh === void 0) {
+        forceRefresh = false;
+    }
+    var CSS = windowObj.CSS;
+    var supportsCssVars = supportsCssVariables_;
+    if (typeof supportsCssVariables_ === 'boolean' && !forceRefresh) {
+        return supportsCssVariables_;
+    }
+    var supportsFunctionPresent = CSS && typeof CSS.supports === 'function';
+    if (!supportsFunctionPresent) {
+        return false;
+    }
+    var explicitlySupportsCssVars = CSS.supports('--css-vars', 'yes');
+    // See: https://bugs.webkit.org/show_bug.cgi?id=154669
+    // See: README section on Safari
+    var weAreFeatureDetectingSafari10plus = CSS.supports('(--css-vars: yes)') && CSS.supports('color', '#00000000');
+    supportsCssVars = explicitlySupportsCssVars || weAreFeatureDetectingSafari10plus;
+    if (!forceRefresh) {
+        supportsCssVariables_ = supportsCssVars;
+    }
+    return supportsCssVars;
+}
+exports.supportsCssVariables = supportsCssVariables;
+function getNormalizedEventCoords(evt, pageOffset, clientRect) {
+    if (!evt) {
+        return { x: 0, y: 0 };
+    }
+    var x = pageOffset.x,
+        y = pageOffset.y;
+    var documentX = x + clientRect.left;
+    var documentY = y + clientRect.top;
+    var normalizedX;
+    var normalizedY;
+    // Determine touch point relative to the ripple container.
+    if (evt.type === 'touchstart') {
+        var touchEvent = evt;
+        normalizedX = touchEvent.changedTouches[0].pageX - documentX;
+        normalizedY = touchEvent.changedTouches[0].pageY - documentY;
+    } else {
+        var mouseEvent = evt;
+        normalizedX = mouseEvent.pageX - documentX;
+        normalizedY = mouseEvent.pageY - documentY;
+    }
+    return { x: normalizedX, y: normalizedY };
+}
+exports.getNormalizedEventCoords = getNormalizedEventCoords;
+
+/***/ })
+
+/******/ });
+});
+
+},{}],29:[function(require,module,exports){
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://github.com/material-components/material-components-web/blob/master/LICENSE
+ */
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory();
+	else if(typeof define === 'function' && define.amd)
+		define("@material/switch", [], factory);
+	else if(typeof exports === 'object')
+		exports["switch"] = factory();
+	else
+		root["mdc"] = root["mdc"] || {}, root["mdc"]["switch"] = factory();
+})(this, function() {
+return /******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = "./packages/mdc-switch/index.ts");
+/******/ })
+/************************************************************************/
+/******/ ({
+
+/***/ "./packages/mdc-base/component.ts":
+/*!****************************************!*\
+  !*** ./packages/mdc-base/component.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __read = this && this.__read || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o),
+        r,
+        ar = [],
+        e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) {
+            ar.push(r.value);
+        }
+    } catch (error) {
+        e = { error: error };
+    } finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+            if (e) throw e.error;
+        }
+    }
+    return ar;
+};
+var __spreadArray = this && this.__spreadArray || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++) {
+        to[j] = from[i];
+    }return to;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCComponent = void 0;
+var foundation_1 = __webpack_require__(/*! ./foundation */ "./packages/mdc-base/foundation.ts");
+var MDCComponent = /** @class */function () {
+    function MDCComponent(root, foundation) {
+        var args = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            args[_i - 2] = arguments[_i];
+        }
+        this.root = root;
+        this.initialize.apply(this, __spreadArray([], __read(args)));
+        // Note that we initialize foundation here and not within the constructor's
+        // default param so that this.root is defined and can be used within the
+        // foundation class.
+        this.foundation = foundation === undefined ? this.getDefaultFoundation() : foundation;
+        this.foundation.init();
+        this.initialSyncWithDOM();
+    }
+    MDCComponent.attachTo = function (root) {
+        // Subclasses which extend MDCBase should provide an attachTo() method that takes a root element and
+        // returns an instantiated component with its root set to that element. Also note that in the cases of
+        // subclasses, an explicit foundation class will not have to be passed in; it will simply be initialized
+        // from getDefaultFoundation().
+        return new MDCComponent(root, new foundation_1.MDCFoundation({}));
+    };
+    /* istanbul ignore next: method param only exists for typing purposes; it does not need to be unit tested */
+    MDCComponent.prototype.initialize = function () {
+        var _args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            _args[_i] = arguments[_i];
+        }
+        // Subclasses can override this to do any additional setup work that would be considered part of a
+        // "constructor". Essentially, it is a hook into the parent constructor before the foundation is
+        // initialized. Any additional arguments besides root and foundation will be passed in here.
+    };
+    MDCComponent.prototype.getDefaultFoundation = function () {
+        // Subclasses must override this method to return a properly configured foundation class for the
+        // component.
+        throw new Error('Subclasses must override getDefaultFoundation to return a properly configured ' + 'foundation class');
+    };
+    MDCComponent.prototype.initialSyncWithDOM = function () {
+        // Subclasses should override this method if they need to perform work to synchronize with a host DOM
+        // object. An example of this would be a form control wrapper that needs to synchronize its internal state
+        // to some property or attribute of the host DOM. Please note: this is *not* the place to perform DOM
+        // reads/writes that would cause layout / paint, as this is called synchronously from within the constructor.
+    };
+    MDCComponent.prototype.destroy = function () {
+        // Subclasses may implement this method to release any resources / deregister any listeners they have
+        // attached. An example of this might be deregistering a resize event from the window object.
+        this.foundation.destroy();
+    };
+    MDCComponent.prototype.listen = function (evtType, handler, options) {
+        this.root.addEventListener(evtType, handler, options);
+    };
+    MDCComponent.prototype.unlisten = function (evtType, handler, options) {
+        this.root.removeEventListener(evtType, handler, options);
+    };
+    /**
+     * Fires a cross-browser-compatible custom event from the component root of the given type, with the given data.
+     */
+    MDCComponent.prototype.emit = function (evtType, evtData, shouldBubble) {
+        if (shouldBubble === void 0) {
+            shouldBubble = false;
+        }
+        var evt;
+        if (typeof CustomEvent === 'function') {
+            evt = new CustomEvent(evtType, {
+                bubbles: shouldBubble,
+                detail: evtData
+            });
+        } else {
+            evt = document.createEvent('CustomEvent');
+            evt.initCustomEvent(evtType, shouldBubble, false, evtData);
+        }
+        this.root.dispatchEvent(evt);
+    };
+    return MDCComponent;
+}();
+exports.MDCComponent = MDCComponent;
+// tslint:disable-next-line:no-default-export Needed for backward compatibility with MDC Web v0.44.0 and earlier.
+exports.default = MDCComponent;
+
+/***/ }),
+
+/***/ "./packages/mdc-base/foundation.ts":
+/*!*****************************************!*\
+  !*** ./packages/mdc-base/foundation.ts ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCFoundation = void 0;
+var MDCFoundation = /** @class */function () {
+    function MDCFoundation(adapter) {
+        if (adapter === void 0) {
+            adapter = {};
+        }
+        this.adapter = adapter;
+    }
+    Object.defineProperty(MDCFoundation, "cssClasses", {
+        get: function get() {
+            // Classes extending MDCFoundation should implement this method to return an object which exports every
+            // CSS class the foundation class needs as a property. e.g. {ACTIVE: 'mdc-component--active'}
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCFoundation, "strings", {
+        get: function get() {
+            // Classes extending MDCFoundation should implement this method to return an object which exports all
+            // semantic strings as constants. e.g. {ARIA_ROLE: 'tablist'}
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCFoundation, "numbers", {
+        get: function get() {
+            // Classes extending MDCFoundation should implement this method to return an object which exports all
+            // of its semantic numbers as constants. e.g. {ANIMATION_DELAY_MS: 350}
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCFoundation, "defaultAdapter", {
+        get: function get() {
+            // Classes extending MDCFoundation may choose to implement this getter in order to provide a convenient
+            // way of viewing the necessary methods of an adapter. In the future, this could also be used for adapter
+            // validation.
+            return {};
+        },
+        enumerable: false,
+        configurable: true
+    });
+    MDCFoundation.prototype.init = function () {
+        // Subclasses should override this method to perform initialization routines (registering events, etc.)
+    };
+    MDCFoundation.prototype.destroy = function () {
+        // Subclasses should override this method to perform de-initialization routines (de-registering events, etc.)
+    };
+    return MDCFoundation;
+}();
+exports.MDCFoundation = MDCFoundation;
+// tslint:disable-next-line:no-default-export Needed for backward compatibility with MDC Web v0.44.0 and earlier.
+exports.default = MDCFoundation;
+
+/***/ }),
+
+/***/ "./packages/mdc-base/observer-foundation.ts":
+/*!**************************************************!*\
+  !*** ./packages/mdc-base/observer-foundation.ts ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2021 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __values = this && this.__values || function (o) {
+    var s = typeof Symbol === "function" && Symbol.iterator,
+        m = s && o[s],
+        i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function next() {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
+var __read = this && this.__read || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o),
+        r,
+        ar = [],
+        e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) {
+            ar.push(r.value);
+        }
+    } catch (error) {
+        e = { error: error };
+    } finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+            if (e) throw e.error;
+        }
+    }
+    return ar;
+};
+var __spreadArray = this && this.__spreadArray || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++) {
+        to[j] = from[i];
+    }return to;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCObserverFoundation = void 0;
+var foundation_1 = __webpack_require__(/*! ./foundation */ "./packages/mdc-base/foundation.ts");
+var observer_1 = __webpack_require__(/*! ./observer */ "./packages/mdc-base/observer.ts");
+var MDCObserverFoundation = /** @class */function (_super) {
+    __extends(MDCObserverFoundation, _super);
+    function MDCObserverFoundation(adapter) {
+        var _this = _super.call(this, adapter) || this;
+        /** A set of cleanup functions to unobserve changes. */
+        _this.unobserves = new Set();
+        return _this;
+    }
+    MDCObserverFoundation.prototype.destroy = function () {
+        _super.prototype.destroy.call(this);
+        this.unobserve();
+    };
+    /**
+     * Observe a target's properties for changes using the provided map of
+     * property names and observer functions.
+     *
+     * @template T The target type.
+     * @param target - The target to observe.
+     * @param observers - An object whose keys are target properties and values
+     *     are observer functions that are called when the associated property
+     *     changes.
+     * @return A cleanup function that can be called to unobserve the
+     *     target.
+     */
+    MDCObserverFoundation.prototype.observe = function (target, observers) {
+        var e_1, _a;
+        var _this = this;
+        var cleanup = [];
+        try {
+            for (var _b = __values(Object.keys(observers)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var property = _c.value;
+                var observer = observers[property].bind(this);
+                cleanup.push(this.observeProperty(target, property, observer));
+            }
+        } catch (e_1_1) {
+            e_1 = { error: e_1_1 };
+        } finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            } finally {
+                if (e_1) throw e_1.error;
+            }
+        }
+        var unobserve = function unobserve() {
+            var e_2, _a;
+            try {
+                for (var cleanup_1 = __values(cleanup), cleanup_1_1 = cleanup_1.next(); !cleanup_1_1.done; cleanup_1_1 = cleanup_1.next()) {
+                    var cleanupFn = cleanup_1_1.value;
+                    cleanupFn();
+                }
+            } catch (e_2_1) {
+                e_2 = { error: e_2_1 };
+            } finally {
+                try {
+                    if (cleanup_1_1 && !cleanup_1_1.done && (_a = cleanup_1.return)) _a.call(cleanup_1);
+                } finally {
+                    if (e_2) throw e_2.error;
+                }
+            }
+            _this.unobserves.delete(unobserve);
+        };
+        this.unobserves.add(unobserve);
+        return unobserve;
+    };
+    /**
+     * Observe a target's property for changes. When a property changes, the
+     * provided `Observer` function will be invoked with the properties current
+     * and previous values.
+     *
+     * The returned cleanup function will stop listening to changes for the
+     * provided `Observer`.
+     *
+     * @template T The observed target type.
+     * @template K The observed property.
+     * @param target - The target to observe.
+     * @param property - The property of the target to observe.
+     * @param observer - An observer function to invoke each time the property
+     *     changes.
+     * @return A cleanup function that will stop observing changes for the
+     *     provided `Observer`.
+     */
+    MDCObserverFoundation.prototype.observeProperty = function (target, property, observer) {
+        return observer_1.observeProperty(target, property, observer);
+    };
+    /**
+     * Enables or disables all observers for the provided target. Disabling
+     * observers will prevent them from being called until they are re-enabled.
+     *
+     * @param target - The target to enable or disable observers for.
+     * @param enabled - Whether or not observers should be called.
+     */
+    MDCObserverFoundation.prototype.setObserversEnabled = function (target, enabled) {
+        observer_1.setObserversEnabled(target, enabled);
+    };
+    /**
+     * Clean up all observers and stop listening for property changes.
+     */
+    MDCObserverFoundation.prototype.unobserve = function () {
+        var e_3, _a;
+        try {
+            // Iterate over a copy since unobserve() will remove themselves from the set
+            for (var _b = __values(__spreadArray([], __read(this.unobserves))), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var unobserve = _c.value;
+                unobserve();
+            }
+        } catch (e_3_1) {
+            e_3 = { error: e_3_1 };
+        } finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            } finally {
+                if (e_3) throw e_3.error;
+            }
+        }
+    };
+    return MDCObserverFoundation;
+}(foundation_1.MDCFoundation);
+exports.MDCObserverFoundation = MDCObserverFoundation;
+
+/***/ }),
+
+/***/ "./packages/mdc-base/observer.ts":
+/*!***************************************!*\
+  !*** ./packages/mdc-base/observer.ts ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2021 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __assign = this && this.__assign || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) {
+                if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __values = this && this.__values || function (o) {
+    var s = typeof Symbol === "function" && Symbol.iterator,
+        m = s && o[s],
+        i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function next() {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
+var __read = this && this.__read || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o),
+        r,
+        ar = [],
+        e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) {
+            ar.push(r.value);
+        }
+    } catch (error) {
+        e = { error: error };
+    } finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+            if (e) throw e.error;
+        }
+    }
+    return ar;
+};
+var __spreadArray = this && this.__spreadArray || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++) {
+        to[j] = from[i];
+    }return to;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.setObserversEnabled = exports.getDescriptor = exports.observeProperty = exports.mdcObserver = void 0;
+/**
+ * Mixin to add `MDCObserver` functionality to an optional base class.
+ *
+ * @deprecated Prefer MDCObserverFoundation for stricter closure compliance.
+ * @template C Optional base class constructor type.
+ * @param baseClass - Optional base class.
+ * @return A class that extends the optional base class with `MDCObserver`
+ *     functionality.
+ */
+function mdcObserver(baseClass) {
+    if (baseClass === void 0) {
+        baseClass = /** @class */function () {
+            function class_1() {}
+            return class_1;
+        }();
+    }
+    // Mixin classes cannot use private members and Symbol() cannot be used in 3P
+    // for IE11.
+    var unobserveMap = new WeakMap();
+    return (/** @class */function (_super) {
+            __extends(MDCObserver, _super);
+            function MDCObserver() {
+                return _super !== null && _super.apply(this, arguments) || this;
+            }
+            MDCObserver.prototype.observe = function (target, observers) {
+                var e_1, _a;
+                var _this = this;
+                var cleanup = [];
+                try {
+                    for (var _b = __values(Object.keys(observers)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                        var property = _c.value;
+                        var observer = observers[property].bind(this);
+                        cleanup.push(observeProperty(target, property, observer));
+                    }
+                } catch (e_1_1) {
+                    e_1 = { error: e_1_1 };
+                } finally {
+                    try {
+                        if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                    } finally {
+                        if (e_1) throw e_1.error;
+                    }
+                }
+                var unobserve = function unobserve() {
+                    var e_2, _a;
+                    try {
+                        for (var cleanup_1 = __values(cleanup), cleanup_1_1 = cleanup_1.next(); !cleanup_1_1.done; cleanup_1_1 = cleanup_1.next()) {
+                            var cleanupFn = cleanup_1_1.value;
+                            cleanupFn();
+                        }
+                    } catch (e_2_1) {
+                        e_2 = { error: e_2_1 };
+                    } finally {
+                        try {
+                            if (cleanup_1_1 && !cleanup_1_1.done && (_a = cleanup_1.return)) _a.call(cleanup_1);
+                        } finally {
+                            if (e_2) throw e_2.error;
+                        }
+                    }
+                    var unobserves = unobserveMap.get(_this) || [];
+                    var index = unobserves.indexOf(unobserve);
+                    if (index > -1) {
+                        unobserves.splice(index, 1);
+                    }
+                };
+                var unobserves = unobserveMap.get(this);
+                if (!unobserves) {
+                    unobserves = [];
+                    unobserveMap.set(this, unobserves);
+                }
+                unobserves.push(unobserve);
+                return unobserve;
+            };
+            MDCObserver.prototype.setObserversEnabled = function (target, enabled) {
+                setObserversEnabled(target, enabled);
+            };
+            MDCObserver.prototype.unobserve = function () {
+                var e_3, _a;
+                // Iterate over a copy since unobserve() will remove themselves from the
+                // array
+                var unobserves = unobserveMap.get(this) || [];
+                try {
+                    for (var _b = __values(__spreadArray([], __read(unobserves))), _c = _b.next(); !_c.done; _c = _b.next()) {
+                        var unobserve = _c.value;
+                        unobserve();
+                    }
+                } catch (e_3_1) {
+                    e_3 = { error: e_3_1 };
+                } finally {
+                    try {
+                        if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                    } finally {
+                        if (e_3) throw e_3.error;
+                    }
+                }
+            };
+            return MDCObserver;
+        }(baseClass)
+    );
+}
+exports.mdcObserver = mdcObserver;
+/**
+ * Observe a target's property for changes. When a property changes, the
+ * provided `Observer` function will be invoked with the properties current and
+ * previous values.
+ *
+ * The returned cleanup function will stop listening to changes for the
+ * provided `Observer`.
+ *
+ * @template T The observed target type.
+ * @template K The observed property.
+ * @param target - The target to observe.
+ * @param property - The property of the target to observe.
+ * @param observer - An observer function to invoke each time the property
+ *     changes.
+ * @return A cleanup function that will stop observing changes for the provided
+ *     `Observer`.
+ */
+function observeProperty(target, property, observer) {
+    var targetObservers = installObserver(target, property);
+    var observers = targetObservers.getObservers(property);
+    observers.push(observer);
+    return function () {
+        observers.splice(observers.indexOf(observer), 1);
+    };
+}
+exports.observeProperty = observeProperty;
+/**
+ * A Map of all `TargetObservers` that have been installed.
+ */
+var allTargetObservers = new WeakMap();
+/**
+ * Installs a `TargetObservers` for the provided target (if not already
+ * installed), and replaces the given property with a getter and setter that
+ * will respond to changes and call `TargetObservers`.
+ *
+ * Subsequent calls to `installObserver()` with the same target and property
+ * will not override the property's previously installed getter/setter.
+ *
+ * @template T The observed target type.
+ * @template K The observed property to create a getter/setter for.
+ * @param target - The target to observe.
+ * @param property - The property to create a getter/setter for, if needed.
+ * @return The installed `TargetObservers` for the provided target.
+ */
+function installObserver(target, property) {
+    var observersMap = new Map();
+    if (!allTargetObservers.has(target)) {
+        allTargetObservers.set(target, {
+            isEnabled: true,
+            getObservers: function getObservers(key) {
+                var observers = observersMap.get(key) || [];
+                if (!observersMap.has(key)) {
+                    observersMap.set(key, observers);
+                }
+                return observers;
+            },
+            installedProperties: new Set()
+        });
+    }
+    var targetObservers = allTargetObservers.get(target);
+    if (targetObservers.installedProperties.has(property)) {
+        // The getter/setter has already been replaced for this property
+        return targetObservers;
+    }
+    // Retrieve (or create if it's a plain property) the original descriptor from
+    // the target...
+    var descriptor = getDescriptor(target, property) || {
+        configurable: true,
+        enumerable: true,
+        value: target[property],
+        writable: true
+    };
+    // ...and create a copy that will be used for the observer.
+    var observedDescriptor = __assign({}, descriptor);
+    var descGet = descriptor.get,
+        descSet = descriptor.set;
+    if ('value' in descriptor) {
+        // The descriptor is a simple value (not a getter/setter).
+        // For our observer descriptor that we copied, delete the value/writable
+        // properties, since they are incompatible with the get/set properties
+        // for descriptors.
+        delete observedDescriptor.value;
+        delete observedDescriptor.writable;
+        // Set up a simple getter...
+        var value_1 = descriptor.value;
+        descGet = function descGet() {
+            return value_1;
+        };
+        // ...and setter (if the original property was writable).
+        if (descriptor.writable) {
+            descSet = function descSet(newValue) {
+                value_1 = newValue;
+            };
+        }
+    }
+    if (descGet) {
+        observedDescriptor.get = function () {
+            // `this as T` needed for closure conformance
+            return descGet.call(this);
+        };
+    }
+    if (descSet) {
+        observedDescriptor.set = function (newValue) {
+            var e_4, _a;
+            // `thus as T` needed for closure conformance
+            var previous = descGet ? descGet.call(this) : newValue;
+            descSet.call(this, newValue);
+            if (targetObservers.isEnabled && (!descGet || newValue !== previous)) {
+                try {
+                    for (var _b = __values(targetObservers.getObservers(property)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                        var observer = _c.value;
+                        observer(newValue, previous);
+                    }
+                } catch (e_4_1) {
+                    e_4 = { error: e_4_1 };
+                } finally {
+                    try {
+                        if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                    } finally {
+                        if (e_4) throw e_4.error;
+                    }
+                }
+            }
+        };
+    }
+    targetObservers.installedProperties.add(property);
+    Object.defineProperty(target, property, observedDescriptor);
+    return targetObservers;
+}
+/**
+ * Retrieves the descriptor for a property from the provided target. This
+ * function will walk up the target's prototype chain to search for the
+ * descriptor.
+ *
+ * @template T The target type.
+ * @template K The property type.
+ * @param target - The target to retrieve a descriptor from.
+ * @param property - The name of the property to retrieve a descriptor for.
+ * @return the descriptor, or undefined if it does not exist. Keep in mind that
+ *     plain properties may not have a descriptor defined.
+ */
+function getDescriptor(target, property) {
+    var descriptorTarget = target;
+    var descriptor;
+    while (descriptorTarget) {
+        descriptor = Object.getOwnPropertyDescriptor(descriptorTarget, property);
+        if (descriptor) {
+            break;
+        }
+        // Walk up the instance's prototype chain in case the property is declared
+        // on a superclass.
+        descriptorTarget = Object.getPrototypeOf(descriptorTarget);
+    }
+    return descriptor;
+}
+exports.getDescriptor = getDescriptor;
+/**
+ * Enables or disables all observers for a provided target. Changes to observed
+ * properties will not call any observers when disabled.
+ *
+ * @template T The observed target type.
+ * @param target - The target to enable or disable observers for.
+ * @param enabled - True to enable or false to disable observers.
+ */
+function setObserversEnabled(target, enabled) {
+    var targetObservers = allTargetObservers.get(target);
+    if (targetObservers) {
+        targetObservers.isEnabled = enabled;
+    }
+}
+exports.setObserversEnabled = setObserversEnabled;
+
+/***/ }),
+
+/***/ "./packages/mdc-dom/events.ts":
+/*!************************************!*\
+  !*** ./packages/mdc-dom/events.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2019 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.applyPassive = void 0;
+/**
+ * Determine whether the current browser supports passive event listeners, and
+ * if so, use them.
+ */
+function applyPassive(globalObj) {
+    if (globalObj === void 0) {
+        globalObj = window;
+    }
+    return supportsPassiveOption(globalObj) ? { passive: true } : false;
+}
+exports.applyPassive = applyPassive;
+function supportsPassiveOption(globalObj) {
+    if (globalObj === void 0) {
+        globalObj = window;
+    }
+    // See
+    // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+    var passiveSupported = false;
+    try {
+        var options = {
+            // This function will be called when the browser
+            // attempts to access the passive property.
+            get passive() {
+                passiveSupported = true;
+                return false;
+            }
+        };
+        var handler = function handler() {};
+        globalObj.document.addEventListener('test', handler, options);
+        globalObj.document.removeEventListener('test', handler, options);
+    } catch (err) {
+        passiveSupported = false;
+    }
+    return passiveSupported;
+}
+
+/***/ }),
+
+/***/ "./packages/mdc-dom/ponyfill.ts":
+/*!**************************************!*\
+  !*** ./packages/mdc-dom/ponyfill.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2018 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.estimateScrollWidth = exports.matches = exports.closest = void 0;
+/**
+ * @fileoverview A "ponyfill" is a polyfill that doesn't modify the global prototype chain.
+ * This makes ponyfills safer than traditional polyfills, especially for libraries like MDC.
+ */
+function closest(element, selector) {
+    if (element.closest) {
+        return element.closest(selector);
+    }
+    var el = element;
+    while (el) {
+        if (matches(el, selector)) {
+            return el;
+        }
+        el = el.parentElement;
+    }
+    return null;
+}
+exports.closest = closest;
+function matches(element, selector) {
+    var nativeMatches = element.matches || element.webkitMatchesSelector || element.msMatchesSelector;
+    return nativeMatches.call(element, selector);
+}
+exports.matches = matches;
+/**
+ * Used to compute the estimated scroll width of elements. When an element is
+ * hidden due to display: none; being applied to a parent element, the width is
+ * returned as 0. However, the element will have a true width once no longer
+ * inside a display: none context. This method computes an estimated width when
+ * the element is hidden or returns the true width when the element is visble.
+ * @param {Element} element the element whose width to estimate
+ */
+function estimateScrollWidth(element) {
+    // Check the offsetParent. If the element inherits display: none from any
+    // parent, the offsetParent property will be null (see
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent).
+    // This check ensures we only clone the node when necessary.
+    var htmlEl = element;
+    if (htmlEl.offsetParent !== null) {
+        return htmlEl.scrollWidth;
+    }
+    var clone = htmlEl.cloneNode(true);
+    clone.style.setProperty('position', 'absolute');
+    clone.style.setProperty('transform', 'translate(-9999px, -9999px)');
+    document.documentElement.appendChild(clone);
+    var scrollWidth = clone.scrollWidth;
+    document.documentElement.removeChild(clone);
+    return scrollWidth;
+}
+exports.estimateScrollWidth = estimateScrollWidth;
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/component.ts":
+/*!******************************************!*\
+  !*** ./packages/mdc-ripple/component.ts ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __createBinding = this && this.__createBinding || (Object.create ? function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function get() {
+            return m[k];
+        } });
+} : function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+});
+var __setModuleDefault = this && this.__setModuleDefault || (Object.create ? function (o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+} : function (o, v) {
+    o["default"] = v;
+});
+var __importStar = this && this.__importStar || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) {
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    }__setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCRipple = void 0;
+var component_1 = __webpack_require__(/*! @material/base/component */ "./packages/mdc-base/component.ts");
+var events_1 = __webpack_require__(/*! @material/dom/events */ "./packages/mdc-dom/events.ts");
+var ponyfill_1 = __webpack_require__(/*! @material/dom/ponyfill */ "./packages/mdc-dom/ponyfill.ts");
+var foundation_1 = __webpack_require__(/*! ./foundation */ "./packages/mdc-ripple/foundation.ts");
+var util = __importStar(__webpack_require__(/*! ./util */ "./packages/mdc-ripple/util.ts"));
+var MDCRipple = /** @class */function (_super) {
+    __extends(MDCRipple, _super);
+    function MDCRipple() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.disabled = false;
+        return _this;
+    }
+    MDCRipple.attachTo = function (root, opts) {
+        if (opts === void 0) {
+            opts = {
+                isUnbounded: undefined
+            };
+        }
+        var ripple = new MDCRipple(root);
+        // Only override unbounded behavior if option is explicitly specified
+        if (opts.isUnbounded !== undefined) {
+            ripple.unbounded = opts.isUnbounded;
+        }
+        return ripple;
+    };
+    MDCRipple.createAdapter = function (instance) {
+        return {
+            addClass: function addClass(className) {
+                return instance.root.classList.add(className);
+            },
+            browserSupportsCssVars: function browserSupportsCssVars() {
+                return util.supportsCssVariables(window);
+            },
+            computeBoundingRect: function computeBoundingRect() {
+                return instance.root.getBoundingClientRect();
+            },
+            containsEventTarget: function containsEventTarget(target) {
+                return instance.root.contains(target);
+            },
+            deregisterDocumentInteractionHandler: function deregisterDocumentInteractionHandler(evtType, handler) {
+                return document.documentElement.removeEventListener(evtType, handler, events_1.applyPassive());
+            },
+            deregisterInteractionHandler: function deregisterInteractionHandler(evtType, handler) {
+                return instance.root.removeEventListener(evtType, handler, events_1.applyPassive());
+            },
+            deregisterResizeHandler: function deregisterResizeHandler(handler) {
+                return window.removeEventListener('resize', handler);
+            },
+            getWindowPageOffset: function getWindowPageOffset() {
+                return { x: window.pageXOffset, y: window.pageYOffset };
+            },
+            isSurfaceActive: function isSurfaceActive() {
+                return ponyfill_1.matches(instance.root, ':active');
+            },
+            isSurfaceDisabled: function isSurfaceDisabled() {
+                return Boolean(instance.disabled);
+            },
+            isUnbounded: function isUnbounded() {
+                return Boolean(instance.unbounded);
+            },
+            registerDocumentInteractionHandler: function registerDocumentInteractionHandler(evtType, handler) {
+                return document.documentElement.addEventListener(evtType, handler, events_1.applyPassive());
+            },
+            registerInteractionHandler: function registerInteractionHandler(evtType, handler) {
+                return instance.root.addEventListener(evtType, handler, events_1.applyPassive());
+            },
+            registerResizeHandler: function registerResizeHandler(handler) {
+                return window.addEventListener('resize', handler);
+            },
+            removeClass: function removeClass(className) {
+                return instance.root.classList.remove(className);
+            },
+            updateCssVariable: function updateCssVariable(varName, value) {
+                return instance.root.style.setProperty(varName, value);
+            }
+        };
+    };
+    Object.defineProperty(MDCRipple.prototype, "unbounded", {
+        get: function get() {
+            return Boolean(this.isUnbounded);
+        },
+        set: function set(unbounded) {
+            this.isUnbounded = Boolean(unbounded);
+            this.setUnbounded();
+        },
+        enumerable: false,
+        configurable: true
+    });
+    MDCRipple.prototype.activate = function () {
+        this.foundation.activate();
+    };
+    MDCRipple.prototype.deactivate = function () {
+        this.foundation.deactivate();
+    };
+    MDCRipple.prototype.layout = function () {
+        this.foundation.layout();
+    };
+    MDCRipple.prototype.getDefaultFoundation = function () {
+        return new foundation_1.MDCRippleFoundation(MDCRipple.createAdapter(this));
+    };
+    MDCRipple.prototype.initialSyncWithDOM = function () {
+        var root = this.root;
+        this.isUnbounded = 'mdcRippleIsUnbounded' in root.dataset;
+    };
+    /**
+     * Closure Compiler throws an access control error when directly accessing a
+     * protected or private property inside a getter/setter, like unbounded above.
+     * By accessing the protected property inside a method, we solve that problem.
+     * That's why this function exists.
+     */
+    MDCRipple.prototype.setUnbounded = function () {
+        this.foundation.setUnbounded(Boolean(this.isUnbounded));
+    };
+    return MDCRipple;
+}(component_1.MDCComponent);
+exports.MDCRipple = MDCRipple;
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/constants.ts":
+/*!******************************************!*\
+  !*** ./packages/mdc-ripple/constants.ts ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.numbers = exports.strings = exports.cssClasses = void 0;
+exports.cssClasses = {
+    // Ripple is a special case where the "root" component is really a "mixin" of sorts,
+    // given that it's an 'upgrade' to an existing component. That being said it is the root
+    // CSS class that all other CSS classes derive from.
+    BG_FOCUSED: 'mdc-ripple-upgraded--background-focused',
+    FG_ACTIVATION: 'mdc-ripple-upgraded--foreground-activation',
+    FG_DEACTIVATION: 'mdc-ripple-upgraded--foreground-deactivation',
+    ROOT: 'mdc-ripple-upgraded',
+    UNBOUNDED: 'mdc-ripple-upgraded--unbounded'
+};
+exports.strings = {
+    VAR_FG_SCALE: '--mdc-ripple-fg-scale',
+    VAR_FG_SIZE: '--mdc-ripple-fg-size',
+    VAR_FG_TRANSLATE_END: '--mdc-ripple-fg-translate-end',
+    VAR_FG_TRANSLATE_START: '--mdc-ripple-fg-translate-start',
+    VAR_LEFT: '--mdc-ripple-left',
+    VAR_TOP: '--mdc-ripple-top'
+};
+exports.numbers = {
+    DEACTIVATION_TIMEOUT_MS: 225,
+    FG_DEACTIVATION_MS: 150,
+    INITIAL_ORIGIN_SCALE: 0.6,
+    PADDING: 10,
+    TAP_DELAY_MS: 300 };
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/foundation.ts":
+/*!*******************************************!*\
+  !*** ./packages/mdc-ripple/foundation.ts ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2016 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __assign = this && this.__assign || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) {
+                if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __values = this && this.__values || function (o) {
+    var s = typeof Symbol === "function" && Symbol.iterator,
+        m = s && o[s],
+        i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function next() {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCRippleFoundation = void 0;
+var foundation_1 = __webpack_require__(/*! @material/base/foundation */ "./packages/mdc-base/foundation.ts");
+var constants_1 = __webpack_require__(/*! ./constants */ "./packages/mdc-ripple/constants.ts");
+var util_1 = __webpack_require__(/*! ./util */ "./packages/mdc-ripple/util.ts");
+// Activation events registered on the root element of each instance for activation
+var ACTIVATION_EVENT_TYPES = ['touchstart', 'pointerdown', 'mousedown', 'keydown'];
+// Deactivation events registered on documentElement when a pointer-related down event occurs
+var POINTER_DEACTIVATION_EVENT_TYPES = ['touchend', 'pointerup', 'mouseup', 'contextmenu'];
+// simultaneous nested activations
+var activatedTargets = [];
+var MDCRippleFoundation = /** @class */function (_super) {
+    __extends(MDCRippleFoundation, _super);
+    function MDCRippleFoundation(adapter) {
+        var _this = _super.call(this, __assign(__assign({}, MDCRippleFoundation.defaultAdapter), adapter)) || this;
+        _this.activationAnimationHasEnded = false;
+        _this.activationTimer = 0;
+        _this.fgDeactivationRemovalTimer = 0;
+        _this.fgScale = '0';
+        _this.frame = { width: 0, height: 0 };
+        _this.initialSize = 0;
+        _this.layoutFrame = 0;
+        _this.maxRadius = 0;
+        _this.unboundedCoords = { left: 0, top: 0 };
+        _this.activationState = _this.defaultActivationState();
+        _this.activationTimerCallback = function () {
+            _this.activationAnimationHasEnded = true;
+            _this.runDeactivationUXLogicIfReady();
+        };
+        _this.activateHandler = function (e) {
+            _this.activateImpl(e);
+        };
+        _this.deactivateHandler = function () {
+            _this.deactivateImpl();
+        };
+        _this.focusHandler = function () {
+            _this.handleFocus();
+        };
+        _this.blurHandler = function () {
+            _this.handleBlur();
+        };
+        _this.resizeHandler = function () {
+            _this.layout();
+        };
+        return _this;
+    }
+    Object.defineProperty(MDCRippleFoundation, "cssClasses", {
+        get: function get() {
+            return constants_1.cssClasses;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCRippleFoundation, "strings", {
+        get: function get() {
+            return constants_1.strings;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCRippleFoundation, "numbers", {
+        get: function get() {
+            return constants_1.numbers;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCRippleFoundation, "defaultAdapter", {
+        get: function get() {
+            return {
+                addClass: function addClass() {
+                    return undefined;
+                },
+                browserSupportsCssVars: function browserSupportsCssVars() {
+                    return true;
+                },
+                computeBoundingRect: function computeBoundingRect() {
+                    return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 };
+                },
+                containsEventTarget: function containsEventTarget() {
+                    return true;
+                },
+                deregisterDocumentInteractionHandler: function deregisterDocumentInteractionHandler() {
+                    return undefined;
+                },
+                deregisterInteractionHandler: function deregisterInteractionHandler() {
+                    return undefined;
+                },
+                deregisterResizeHandler: function deregisterResizeHandler() {
+                    return undefined;
+                },
+                getWindowPageOffset: function getWindowPageOffset() {
+                    return { x: 0, y: 0 };
+                },
+                isSurfaceActive: function isSurfaceActive() {
+                    return true;
+                },
+                isSurfaceDisabled: function isSurfaceDisabled() {
+                    return true;
+                },
+                isUnbounded: function isUnbounded() {
+                    return true;
+                },
+                registerDocumentInteractionHandler: function registerDocumentInteractionHandler() {
+                    return undefined;
+                },
+                registerInteractionHandler: function registerInteractionHandler() {
+                    return undefined;
+                },
+                registerResizeHandler: function registerResizeHandler() {
+                    return undefined;
+                },
+                removeClass: function removeClass() {
+                    return undefined;
+                },
+                updateCssVariable: function updateCssVariable() {
+                    return undefined;
+                }
+            };
+        },
+        enumerable: false,
+        configurable: true
+    });
+    MDCRippleFoundation.prototype.init = function () {
+        var _this = this;
+        var supportsPressRipple = this.supportsPressRipple();
+        this.registerRootHandlers(supportsPressRipple);
+        if (supportsPressRipple) {
+            var _a = MDCRippleFoundation.cssClasses,
+                ROOT_1 = _a.ROOT,
+                UNBOUNDED_1 = _a.UNBOUNDED;
+            requestAnimationFrame(function () {
+                _this.adapter.addClass(ROOT_1);
+                if (_this.adapter.isUnbounded()) {
+                    _this.adapter.addClass(UNBOUNDED_1);
+                    // Unbounded ripples need layout logic applied immediately to set coordinates for both shade and ripple
+                    _this.layoutInternal();
+                }
+            });
+        }
+    };
+    MDCRippleFoundation.prototype.destroy = function () {
+        var _this = this;
+        if (this.supportsPressRipple()) {
+            if (this.activationTimer) {
+                clearTimeout(this.activationTimer);
+                this.activationTimer = 0;
+                this.adapter.removeClass(MDCRippleFoundation.cssClasses.FG_ACTIVATION);
+            }
+            if (this.fgDeactivationRemovalTimer) {
+                clearTimeout(this.fgDeactivationRemovalTimer);
+                this.fgDeactivationRemovalTimer = 0;
+                this.adapter.removeClass(MDCRippleFoundation.cssClasses.FG_DEACTIVATION);
+            }
+            var _a = MDCRippleFoundation.cssClasses,
+                ROOT_2 = _a.ROOT,
+                UNBOUNDED_2 = _a.UNBOUNDED;
+            requestAnimationFrame(function () {
+                _this.adapter.removeClass(ROOT_2);
+                _this.adapter.removeClass(UNBOUNDED_2);
+                _this.removeCssVars();
+            });
+        }
+        this.deregisterRootHandlers();
+        this.deregisterDeactivationHandlers();
+    };
+    /**
+     * @param evt Optional event containing position information.
+     */
+    MDCRippleFoundation.prototype.activate = function (evt) {
+        this.activateImpl(evt);
+    };
+    MDCRippleFoundation.prototype.deactivate = function () {
+        this.deactivateImpl();
+    };
+    MDCRippleFoundation.prototype.layout = function () {
+        var _this = this;
+        if (this.layoutFrame) {
+            cancelAnimationFrame(this.layoutFrame);
+        }
+        this.layoutFrame = requestAnimationFrame(function () {
+            _this.layoutInternal();
+            _this.layoutFrame = 0;
+        });
+    };
+    MDCRippleFoundation.prototype.setUnbounded = function (unbounded) {
+        var UNBOUNDED = MDCRippleFoundation.cssClasses.UNBOUNDED;
+        if (unbounded) {
+            this.adapter.addClass(UNBOUNDED);
+        } else {
+            this.adapter.removeClass(UNBOUNDED);
+        }
+    };
+    MDCRippleFoundation.prototype.handleFocus = function () {
+        var _this = this;
+        requestAnimationFrame(function () {
+            return _this.adapter.addClass(MDCRippleFoundation.cssClasses.BG_FOCUSED);
+        });
+    };
+    MDCRippleFoundation.prototype.handleBlur = function () {
+        var _this = this;
+        requestAnimationFrame(function () {
+            return _this.adapter.removeClass(MDCRippleFoundation.cssClasses.BG_FOCUSED);
+        });
+    };
+    /**
+     * We compute this property so that we are not querying information about the client
+     * until the point in time where the foundation requests it. This prevents scenarios where
+     * client-side feature-detection may happen too early, such as when components are rendered on the server
+     * and then initialized at mount time on the client.
+     */
+    MDCRippleFoundation.prototype.supportsPressRipple = function () {
+        return this.adapter.browserSupportsCssVars();
+    };
+    MDCRippleFoundation.prototype.defaultActivationState = function () {
+        return {
+            activationEvent: undefined,
+            hasDeactivationUXRun: false,
+            isActivated: false,
+            isProgrammatic: false,
+            wasActivatedByPointer: false,
+            wasElementMadeActive: false
+        };
+    };
+    /**
+     * supportsPressRipple Passed from init to save a redundant function call
+     */
+    MDCRippleFoundation.prototype.registerRootHandlers = function (supportsPressRipple) {
+        var e_1, _a;
+        if (supportsPressRipple) {
+            try {
+                for (var ACTIVATION_EVENT_TYPES_1 = __values(ACTIVATION_EVENT_TYPES), ACTIVATION_EVENT_TYPES_1_1 = ACTIVATION_EVENT_TYPES_1.next(); !ACTIVATION_EVENT_TYPES_1_1.done; ACTIVATION_EVENT_TYPES_1_1 = ACTIVATION_EVENT_TYPES_1.next()) {
+                    var evtType = ACTIVATION_EVENT_TYPES_1_1.value;
+                    this.adapter.registerInteractionHandler(evtType, this.activateHandler);
+                }
+            } catch (e_1_1) {
+                e_1 = { error: e_1_1 };
+            } finally {
+                try {
+                    if (ACTIVATION_EVENT_TYPES_1_1 && !ACTIVATION_EVENT_TYPES_1_1.done && (_a = ACTIVATION_EVENT_TYPES_1.return)) _a.call(ACTIVATION_EVENT_TYPES_1);
+                } finally {
+                    if (e_1) throw e_1.error;
+                }
+            }
+            if (this.adapter.isUnbounded()) {
+                this.adapter.registerResizeHandler(this.resizeHandler);
+            }
+        }
+        this.adapter.registerInteractionHandler('focus', this.focusHandler);
+        this.adapter.registerInteractionHandler('blur', this.blurHandler);
+    };
+    MDCRippleFoundation.prototype.registerDeactivationHandlers = function (evt) {
+        var e_2, _a;
+        if (evt.type === 'keydown') {
+            this.adapter.registerInteractionHandler('keyup', this.deactivateHandler);
+        } else {
+            try {
+                for (var POINTER_DEACTIVATION_EVENT_TYPES_1 = __values(POINTER_DEACTIVATION_EVENT_TYPES), POINTER_DEACTIVATION_EVENT_TYPES_1_1 = POINTER_DEACTIVATION_EVENT_TYPES_1.next(); !POINTER_DEACTIVATION_EVENT_TYPES_1_1.done; POINTER_DEACTIVATION_EVENT_TYPES_1_1 = POINTER_DEACTIVATION_EVENT_TYPES_1.next()) {
+                    var evtType = POINTER_DEACTIVATION_EVENT_TYPES_1_1.value;
+                    this.adapter.registerDocumentInteractionHandler(evtType, this.deactivateHandler);
+                }
+            } catch (e_2_1) {
+                e_2 = { error: e_2_1 };
+            } finally {
+                try {
+                    if (POINTER_DEACTIVATION_EVENT_TYPES_1_1 && !POINTER_DEACTIVATION_EVENT_TYPES_1_1.done && (_a = POINTER_DEACTIVATION_EVENT_TYPES_1.return)) _a.call(POINTER_DEACTIVATION_EVENT_TYPES_1);
+                } finally {
+                    if (e_2) throw e_2.error;
+                }
+            }
+        }
+    };
+    MDCRippleFoundation.prototype.deregisterRootHandlers = function () {
+        var e_3, _a;
+        try {
+            for (var ACTIVATION_EVENT_TYPES_2 = __values(ACTIVATION_EVENT_TYPES), ACTIVATION_EVENT_TYPES_2_1 = ACTIVATION_EVENT_TYPES_2.next(); !ACTIVATION_EVENT_TYPES_2_1.done; ACTIVATION_EVENT_TYPES_2_1 = ACTIVATION_EVENT_TYPES_2.next()) {
+                var evtType = ACTIVATION_EVENT_TYPES_2_1.value;
+                this.adapter.deregisterInteractionHandler(evtType, this.activateHandler);
+            }
+        } catch (e_3_1) {
+            e_3 = { error: e_3_1 };
+        } finally {
+            try {
+                if (ACTIVATION_EVENT_TYPES_2_1 && !ACTIVATION_EVENT_TYPES_2_1.done && (_a = ACTIVATION_EVENT_TYPES_2.return)) _a.call(ACTIVATION_EVENT_TYPES_2);
+            } finally {
+                if (e_3) throw e_3.error;
+            }
+        }
+        this.adapter.deregisterInteractionHandler('focus', this.focusHandler);
+        this.adapter.deregisterInteractionHandler('blur', this.blurHandler);
+        if (this.adapter.isUnbounded()) {
+            this.adapter.deregisterResizeHandler(this.resizeHandler);
+        }
+    };
+    MDCRippleFoundation.prototype.deregisterDeactivationHandlers = function () {
+        var e_4, _a;
+        this.adapter.deregisterInteractionHandler('keyup', this.deactivateHandler);
+        try {
+            for (var POINTER_DEACTIVATION_EVENT_TYPES_2 = __values(POINTER_DEACTIVATION_EVENT_TYPES), POINTER_DEACTIVATION_EVENT_TYPES_2_1 = POINTER_DEACTIVATION_EVENT_TYPES_2.next(); !POINTER_DEACTIVATION_EVENT_TYPES_2_1.done; POINTER_DEACTIVATION_EVENT_TYPES_2_1 = POINTER_DEACTIVATION_EVENT_TYPES_2.next()) {
+                var evtType = POINTER_DEACTIVATION_EVENT_TYPES_2_1.value;
+                this.adapter.deregisterDocumentInteractionHandler(evtType, this.deactivateHandler);
+            }
+        } catch (e_4_1) {
+            e_4 = { error: e_4_1 };
+        } finally {
+            try {
+                if (POINTER_DEACTIVATION_EVENT_TYPES_2_1 && !POINTER_DEACTIVATION_EVENT_TYPES_2_1.done && (_a = POINTER_DEACTIVATION_EVENT_TYPES_2.return)) _a.call(POINTER_DEACTIVATION_EVENT_TYPES_2);
+            } finally {
+                if (e_4) throw e_4.error;
+            }
+        }
+    };
+    MDCRippleFoundation.prototype.removeCssVars = function () {
+        var _this = this;
+        var rippleStrings = MDCRippleFoundation.strings;
+        var keys = Object.keys(rippleStrings);
+        keys.forEach(function (key) {
+            if (key.indexOf('VAR_') === 0) {
+                _this.adapter.updateCssVariable(rippleStrings[key], null);
+            }
+        });
+    };
+    MDCRippleFoundation.prototype.activateImpl = function (evt) {
+        var _this = this;
+        if (this.adapter.isSurfaceDisabled()) {
+            return;
+        }
+        var activationState = this.activationState;
+        if (activationState.isActivated) {
+            return;
+        }
+        // Avoid reacting to follow-on events fired by touch device after an already-processed user interaction
+        var previousActivationEvent = this.previousActivationEvent;
+        var isSameInteraction = previousActivationEvent && evt !== undefined && previousActivationEvent.type !== evt.type;
+        if (isSameInteraction) {
+            return;
+        }
+        activationState.isActivated = true;
+        activationState.isProgrammatic = evt === undefined;
+        activationState.activationEvent = evt;
+        activationState.wasActivatedByPointer = activationState.isProgrammatic ? false : evt !== undefined && (evt.type === 'mousedown' || evt.type === 'touchstart' || evt.type === 'pointerdown');
+        var hasActivatedChild = evt !== undefined && activatedTargets.length > 0 && activatedTargets.some(function (target) {
+            return _this.adapter.containsEventTarget(target);
+        });
+        if (hasActivatedChild) {
+            // Immediately reset activation state, while preserving logic that prevents touch follow-on events
+            this.resetActivationState();
+            return;
+        }
+        if (evt !== undefined) {
+            activatedTargets.push(evt.target);
+            this.registerDeactivationHandlers(evt);
+        }
+        activationState.wasElementMadeActive = this.checkElementMadeActive(evt);
+        if (activationState.wasElementMadeActive) {
+            this.animateActivation();
+        }
+        requestAnimationFrame(function () {
+            // Reset array on next frame after the current event has had a chance to bubble to prevent ancestor ripples
+            activatedTargets = [];
+            if (!activationState.wasElementMadeActive && evt !== undefined && (evt.key === ' ' || evt.keyCode === 32)) {
+                // If space was pressed, try again within an rAF call to detect :active, because different UAs report
+                // active states inconsistently when they're called within event handling code:
+                // - https://bugs.chromium.org/p/chromium/issues/detail?id=635971
+                // - https://bugzilla.mozilla.org/show_bug.cgi?id=1293741
+                // We try first outside rAF to support Edge, which does not exhibit this problem, but will crash if a CSS
+                // variable is set within a rAF callback for a submit button interaction (#2241).
+                activationState.wasElementMadeActive = _this.checkElementMadeActive(evt);
+                if (activationState.wasElementMadeActive) {
+                    _this.animateActivation();
+                }
+            }
+            if (!activationState.wasElementMadeActive) {
+                // Reset activation state immediately if element was not made active.
+                _this.activationState = _this.defaultActivationState();
+            }
+        });
+    };
+    MDCRippleFoundation.prototype.checkElementMadeActive = function (evt) {
+        return evt !== undefined && evt.type === 'keydown' ? this.adapter.isSurfaceActive() : true;
+    };
+    MDCRippleFoundation.prototype.animateActivation = function () {
+        var _this = this;
+        var _a = MDCRippleFoundation.strings,
+            VAR_FG_TRANSLATE_START = _a.VAR_FG_TRANSLATE_START,
+            VAR_FG_TRANSLATE_END = _a.VAR_FG_TRANSLATE_END;
+        var _b = MDCRippleFoundation.cssClasses,
+            FG_DEACTIVATION = _b.FG_DEACTIVATION,
+            FG_ACTIVATION = _b.FG_ACTIVATION;
+        var DEACTIVATION_TIMEOUT_MS = MDCRippleFoundation.numbers.DEACTIVATION_TIMEOUT_MS;
+        this.layoutInternal();
+        var translateStart = '';
+        var translateEnd = '';
+        if (!this.adapter.isUnbounded()) {
+            var _c = this.getFgTranslationCoordinates(),
+                startPoint = _c.startPoint,
+                endPoint = _c.endPoint;
+            translateStart = startPoint.x + "px, " + startPoint.y + "px";
+            translateEnd = endPoint.x + "px, " + endPoint.y + "px";
+        }
+        this.adapter.updateCssVariable(VAR_FG_TRANSLATE_START, translateStart);
+        this.adapter.updateCssVariable(VAR_FG_TRANSLATE_END, translateEnd);
+        // Cancel any ongoing activation/deactivation animations
+        clearTimeout(this.activationTimer);
+        clearTimeout(this.fgDeactivationRemovalTimer);
+        this.rmBoundedActivationClasses();
+        this.adapter.removeClass(FG_DEACTIVATION);
+        // Force layout in order to re-trigger the animation.
+        this.adapter.computeBoundingRect();
+        this.adapter.addClass(FG_ACTIVATION);
+        this.activationTimer = setTimeout(function () {
+            _this.activationTimerCallback();
+        }, DEACTIVATION_TIMEOUT_MS);
+    };
+    MDCRippleFoundation.prototype.getFgTranslationCoordinates = function () {
+        var _a = this.activationState,
+            activationEvent = _a.activationEvent,
+            wasActivatedByPointer = _a.wasActivatedByPointer;
+        var startPoint;
+        if (wasActivatedByPointer) {
+            startPoint = util_1.getNormalizedEventCoords(activationEvent, this.adapter.getWindowPageOffset(), this.adapter.computeBoundingRect());
+        } else {
+            startPoint = {
+                x: this.frame.width / 2,
+                y: this.frame.height / 2
+            };
+        }
+        // Center the element around the start point.
+        startPoint = {
+            x: startPoint.x - this.initialSize / 2,
+            y: startPoint.y - this.initialSize / 2
+        };
+        var endPoint = {
+            x: this.frame.width / 2 - this.initialSize / 2,
+            y: this.frame.height / 2 - this.initialSize / 2
+        };
+        return { startPoint: startPoint, endPoint: endPoint };
+    };
+    MDCRippleFoundation.prototype.runDeactivationUXLogicIfReady = function () {
+        var _this = this;
+        // This method is called both when a pointing device is released, and when the activation animation ends.
+        // The deactivation animation should only run after both of those occur.
+        var FG_DEACTIVATION = MDCRippleFoundation.cssClasses.FG_DEACTIVATION;
+        var _a = this.activationState,
+            hasDeactivationUXRun = _a.hasDeactivationUXRun,
+            isActivated = _a.isActivated;
+        var activationHasEnded = hasDeactivationUXRun || !isActivated;
+        if (activationHasEnded && this.activationAnimationHasEnded) {
+            this.rmBoundedActivationClasses();
+            this.adapter.addClass(FG_DEACTIVATION);
+            this.fgDeactivationRemovalTimer = setTimeout(function () {
+                _this.adapter.removeClass(FG_DEACTIVATION);
+            }, constants_1.numbers.FG_DEACTIVATION_MS);
+        }
+    };
+    MDCRippleFoundation.prototype.rmBoundedActivationClasses = function () {
+        var FG_ACTIVATION = MDCRippleFoundation.cssClasses.FG_ACTIVATION;
+        this.adapter.removeClass(FG_ACTIVATION);
+        this.activationAnimationHasEnded = false;
+        this.adapter.computeBoundingRect();
+    };
+    MDCRippleFoundation.prototype.resetActivationState = function () {
+        var _this = this;
+        this.previousActivationEvent = this.activationState.activationEvent;
+        this.activationState = this.defaultActivationState();
+        // Touch devices may fire additional events for the same interaction within a short time.
+        // Store the previous event until it's safe to assume that subsequent events are for new interactions.
+        setTimeout(function () {
+            return _this.previousActivationEvent = undefined;
+        }, MDCRippleFoundation.numbers.TAP_DELAY_MS);
+    };
+    MDCRippleFoundation.prototype.deactivateImpl = function () {
+        var _this = this;
+        var activationState = this.activationState;
+        // This can happen in scenarios such as when you have a keyup event that blurs the element.
+        if (!activationState.isActivated) {
+            return;
+        }
+        var state = __assign({}, activationState);
+        if (activationState.isProgrammatic) {
+            requestAnimationFrame(function () {
+                _this.animateDeactivation(state);
+            });
+            this.resetActivationState();
+        } else {
+            this.deregisterDeactivationHandlers();
+            requestAnimationFrame(function () {
+                _this.activationState.hasDeactivationUXRun = true;
+                _this.animateDeactivation(state);
+                _this.resetActivationState();
+            });
+        }
+    };
+    MDCRippleFoundation.prototype.animateDeactivation = function (_a) {
+        var wasActivatedByPointer = _a.wasActivatedByPointer,
+            wasElementMadeActive = _a.wasElementMadeActive;
+        if (wasActivatedByPointer || wasElementMadeActive) {
+            this.runDeactivationUXLogicIfReady();
+        }
+    };
+    MDCRippleFoundation.prototype.layoutInternal = function () {
+        var _this = this;
+        this.frame = this.adapter.computeBoundingRect();
+        var maxDim = Math.max(this.frame.height, this.frame.width);
+        // Surface diameter is treated differently for unbounded vs. bounded ripples.
+        // Unbounded ripple diameter is calculated smaller since the surface is expected to already be padded appropriately
+        // to extend the hitbox, and the ripple is expected to meet the edges of the padded hitbox (which is typically
+        // square). Bounded ripples, on the other hand, are fully expected to expand beyond the surface's longest diameter
+        // (calculated based on the diagonal plus a constant padding), and are clipped at the surface's border via
+        // `overflow: hidden`.
+        var getBoundedRadius = function getBoundedRadius() {
+            var hypotenuse = Math.sqrt(Math.pow(_this.frame.width, 2) + Math.pow(_this.frame.height, 2));
+            return hypotenuse + MDCRippleFoundation.numbers.PADDING;
+        };
+        this.maxRadius = this.adapter.isUnbounded() ? maxDim : getBoundedRadius();
+        // Ripple is sized as a fraction of the largest dimension of the surface, then scales up using a CSS scale transform
+        var initialSize = Math.floor(maxDim * MDCRippleFoundation.numbers.INITIAL_ORIGIN_SCALE);
+        // Unbounded ripple size should always be even number to equally center align.
+        if (this.adapter.isUnbounded() && initialSize % 2 !== 0) {
+            this.initialSize = initialSize - 1;
+        } else {
+            this.initialSize = initialSize;
+        }
+        this.fgScale = "" + this.maxRadius / this.initialSize;
+        this.updateLayoutCssVars();
+    };
+    MDCRippleFoundation.prototype.updateLayoutCssVars = function () {
+        var _a = MDCRippleFoundation.strings,
+            VAR_FG_SIZE = _a.VAR_FG_SIZE,
+            VAR_LEFT = _a.VAR_LEFT,
+            VAR_TOP = _a.VAR_TOP,
+            VAR_FG_SCALE = _a.VAR_FG_SCALE;
+        this.adapter.updateCssVariable(VAR_FG_SIZE, this.initialSize + "px");
+        this.adapter.updateCssVariable(VAR_FG_SCALE, this.fgScale);
+        if (this.adapter.isUnbounded()) {
+            this.unboundedCoords = {
+                left: Math.round(this.frame.width / 2 - this.initialSize / 2),
+                top: Math.round(this.frame.height / 2 - this.initialSize / 2)
+            };
+            this.adapter.updateCssVariable(VAR_LEFT, this.unboundedCoords.left + "px");
+            this.adapter.updateCssVariable(VAR_TOP, this.unboundedCoords.top + "px");
+        }
+    };
+    return MDCRippleFoundation;
+}(foundation_1.MDCFoundation);
+exports.MDCRippleFoundation = MDCRippleFoundation;
+// tslint:disable-next-line:no-default-export Needed for backward compatibility with MDC Web v0.44.0 and earlier.
+exports.default = MDCRippleFoundation;
+
+/***/ }),
+
+/***/ "./packages/mdc-ripple/util.ts":
+/*!*************************************!*\
+  !*** ./packages/mdc-ripple/util.ts ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getNormalizedEventCoords = exports.supportsCssVariables = void 0;
+/**
+ * Stores result from supportsCssVariables to avoid redundant processing to
+ * detect CSS custom variable support.
+ */
+var supportsCssVariables_;
+function supportsCssVariables(windowObj, forceRefresh) {
+    if (forceRefresh === void 0) {
+        forceRefresh = false;
+    }
+    var CSS = windowObj.CSS;
+    var supportsCssVars = supportsCssVariables_;
+    if (typeof supportsCssVariables_ === 'boolean' && !forceRefresh) {
+        return supportsCssVariables_;
+    }
+    var supportsFunctionPresent = CSS && typeof CSS.supports === 'function';
+    if (!supportsFunctionPresent) {
+        return false;
+    }
+    var explicitlySupportsCssVars = CSS.supports('--css-vars', 'yes');
+    // See: https://bugs.webkit.org/show_bug.cgi?id=154669
+    // See: README section on Safari
+    var weAreFeatureDetectingSafari10plus = CSS.supports('(--css-vars: yes)') && CSS.supports('color', '#00000000');
+    supportsCssVars = explicitlySupportsCssVars || weAreFeatureDetectingSafari10plus;
+    if (!forceRefresh) {
+        supportsCssVariables_ = supportsCssVars;
+    }
+    return supportsCssVars;
+}
+exports.supportsCssVariables = supportsCssVariables;
+function getNormalizedEventCoords(evt, pageOffset, clientRect) {
+    if (!evt) {
+        return { x: 0, y: 0 };
+    }
+    var x = pageOffset.x,
+        y = pageOffset.y;
+    var documentX = x + clientRect.left;
+    var documentY = y + clientRect.top;
+    var normalizedX;
+    var normalizedY;
+    // Determine touch point relative to the ripple container.
+    if (evt.type === 'touchstart') {
+        var touchEvent = evt;
+        normalizedX = touchEvent.changedTouches[0].pageX - documentX;
+        normalizedY = touchEvent.changedTouches[0].pageY - documentY;
+    } else {
+        var mouseEvent = evt;
+        normalizedX = mouseEvent.pageX - documentX;
+        normalizedY = mouseEvent.pageY - documentY;
+    }
+    return { x: normalizedX, y: normalizedY };
+}
+exports.getNormalizedEventCoords = getNormalizedEventCoords;
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/adapter.ts":
+/*!****************************************!*\
+  !*** ./packages/mdc-switch/adapter.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2021 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/component.ts":
+/*!******************************************!*\
+  !*** ./packages/mdc-switch/component.ts ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2021 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __assign = this && this.__assign || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) {
+                if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCSwitch = void 0;
+var component_1 = __webpack_require__(/*! @material/base/component */ "./packages/mdc-base/component.ts");
+var component_2 = __webpack_require__(/*! @material/ripple/component */ "./packages/mdc-ripple/component.ts");
+var foundation_1 = __webpack_require__(/*! @material/ripple/foundation */ "./packages/mdc-ripple/foundation.ts");
+var constants_1 = __webpack_require__(/*! ./constants */ "./packages/mdc-switch/constants.ts");
+var foundation_2 = __webpack_require__(/*! ./foundation */ "./packages/mdc-switch/foundation.ts");
+/**
+ * `MDCSwitch` provides a component implementation of a Material Design switch.
+ */
+var MDCSwitch = /** @class */function (_super) {
+    __extends(MDCSwitch, _super);
+    function MDCSwitch(root, foundation) {
+        var _this = _super.call(this, root, foundation) || this;
+        _this.root = root;
+        return _this;
+    }
+    /**
+     * Creates a new `MDCSwitch` and attaches it to the given root element.
+     * @param root The root to attach to.
+     * @return the new component instance.
+     */
+    MDCSwitch.attachTo = function (root) {
+        return new MDCSwitch(root);
+    };
+    MDCSwitch.prototype.initialize = function () {
+        this.ripple = new component_2.MDCRipple(this.root, this.createRippleFoundation());
+    };
+    MDCSwitch.prototype.initialSyncWithDOM = function () {
+        var rippleElement = this.root.querySelector(constants_1.Selectors.RIPPLE);
+        if (!rippleElement) {
+            throw new Error("Switch " + constants_1.Selectors.RIPPLE + " element is required.");
+        }
+        this.rippleElement = rippleElement;
+        this.root.addEventListener('click', this.foundation.handleClick);
+        this.foundation.initFromDOM();
+    };
+    MDCSwitch.prototype.destroy = function () {
+        _super.prototype.destroy.call(this);
+        this.ripple.destroy();
+        this.root.removeEventListener('click', this.foundation.handleClick);
+    };
+    MDCSwitch.prototype.getDefaultFoundation = function () {
+        return new foundation_2.MDCSwitchRenderFoundation(this.createAdapter());
+    };
+    MDCSwitch.prototype.createAdapter = function () {
+        var _this = this;
+        return {
+            addClass: function addClass(className) {
+                _this.root.classList.add(className);
+            },
+            hasClass: function hasClass(className) {
+                return _this.root.classList.contains(className);
+            },
+            isDisabled: function isDisabled() {
+                return _this.root.disabled;
+            },
+            removeClass: function removeClass(className) {
+                _this.root.classList.remove(className);
+            },
+            setAriaChecked: function setAriaChecked(ariaChecked) {
+                return _this.root.setAttribute('aria-checked', ariaChecked);
+            },
+            setDisabled: function setDisabled(disabled) {
+                _this.root.disabled = disabled;
+            },
+            state: this
+        };
+    };
+    MDCSwitch.prototype.createRippleFoundation = function () {
+        return new foundation_1.MDCRippleFoundation(this.createRippleAdapter());
+    };
+    MDCSwitch.prototype.createRippleAdapter = function () {
+        var _this = this;
+        return __assign(__assign({}, component_2.MDCRipple.createAdapter(this)), { computeBoundingRect: function computeBoundingRect() {
+                return _this.rippleElement.getBoundingClientRect();
+            }, isUnbounded: function isUnbounded() {
+                return true;
+            } });
+    };
+    return MDCSwitch;
+}(component_1.MDCComponent);
+exports.MDCSwitch = MDCSwitch;
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/constants.ts":
+/*!******************************************!*\
+  !*** ./packages/mdc-switch/constants.ts ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2021 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Selectors = exports.CssClasses = void 0;
+/**
+ * CSS classes used for switch.
+ */
+var CssClasses;
+(function (CssClasses) {
+  CssClasses["PROCESSING"] = "mdc-switch--processing";
+  CssClasses["SELECTED"] = "mdc-switch--selected";
+  CssClasses["UNSELECTED"] = "mdc-switch--unselected";
+})(CssClasses = exports.CssClasses || (exports.CssClasses = {}));
+/**
+ * Query selectors used for switch.
+ */
+var Selectors;
+(function (Selectors) {
+  Selectors["RIPPLE"] = ".mdc-switch__ripple";
+})(Selectors = exports.Selectors || (exports.Selectors = {}));
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/deprecated/adapter.ts":
+/*!***************************************************!*\
+  !*** ./packages/mdc-switch/deprecated/adapter.ts ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2018 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/deprecated/component.ts":
+/*!*****************************************************!*\
+  !*** ./packages/mdc-switch/deprecated/component.ts ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2018 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __assign = this && this.__assign || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) {
+                if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __read = this && this.__read || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o),
+        r,
+        ar = [],
+        e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) {
+            ar.push(r.value);
+        }
+    } catch (error) {
+        e = { error: error };
+    } finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+            if (e) throw e.error;
+        }
+    }
+    return ar;
+};
+var __spreadArray = this && this.__spreadArray || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++) {
+        to[j] = from[i];
+    }return to;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCSwitch = void 0;
+var component_1 = __webpack_require__(/*! @material/base/component */ "./packages/mdc-base/component.ts");
+var events_1 = __webpack_require__(/*! @material/dom/events */ "./packages/mdc-dom/events.ts");
+var ponyfill_1 = __webpack_require__(/*! @material/dom/ponyfill */ "./packages/mdc-dom/ponyfill.ts");
+var component_2 = __webpack_require__(/*! @material/ripple/component */ "./packages/mdc-ripple/component.ts");
+var foundation_1 = __webpack_require__(/*! @material/ripple/foundation */ "./packages/mdc-ripple/foundation.ts");
+var foundation_2 = __webpack_require__(/*! ./foundation */ "./packages/mdc-switch/deprecated/foundation.ts");
+var MDCSwitch = /** @class */function (_super) {
+    __extends(MDCSwitch, _super);
+    function MDCSwitch() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.rippleSurface = _this.createRipple();
+        return _this;
+    }
+    MDCSwitch.attachTo = function (root) {
+        return new MDCSwitch(root);
+    };
+    MDCSwitch.prototype.destroy = function () {
+        _super.prototype.destroy.call(this);
+        this.rippleSurface.destroy();
+        this.nativeControl.removeEventListener('change', this.changeHandler);
+    };
+    MDCSwitch.prototype.initialSyncWithDOM = function () {
+        var _this = this;
+        this.changeHandler = function () {
+            var _a;
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            (_a = _this.foundation).handleChange.apply(_a, __spreadArray([], __read(args)));
+        };
+        this.nativeControl.addEventListener('change', this.changeHandler);
+        // Sometimes the checked state of the input element is saved in the history.
+        // The switch styling should match the checked state of the input element.
+        // Do an initial sync between the native control and the foundation.
+        this.checked = this.checked;
+    };
+    MDCSwitch.prototype.getDefaultFoundation = function () {
+        var _this = this;
+        // DO NOT INLINE this variable. For backward compatibility, foundations take a Partial<MDCFooAdapter>.
+        // To ensure we don't accidentally omit any methods, we need a separate, strongly typed adapter variable.
+        var adapter = {
+            addClass: function addClass(className) {
+                return _this.root.classList.add(className);
+            },
+            removeClass: function removeClass(className) {
+                return _this.root.classList.remove(className);
+            },
+            setNativeControlChecked: function setNativeControlChecked(checked) {
+                return _this.nativeControl.checked = checked;
+            },
+            setNativeControlDisabled: function setNativeControlDisabled(disabled) {
+                return _this.nativeControl.disabled = disabled;
+            },
+            setNativeControlAttr: function setNativeControlAttr(attr, value) {
+                _this.nativeControl.setAttribute(attr, value);
+            }
+        };
+        return new foundation_2.MDCSwitchFoundation(adapter);
+    };
+    Object.defineProperty(MDCSwitch.prototype, "ripple", {
+        get: function get() {
+            return this.rippleSurface;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCSwitch.prototype, "checked", {
+        get: function get() {
+            return this.nativeControl.checked;
+        },
+        set: function set(checked) {
+            this.foundation.setChecked(checked);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCSwitch.prototype, "disabled", {
+        get: function get() {
+            return this.nativeControl.disabled;
+        },
+        set: function set(disabled) {
+            this.foundation.setDisabled(disabled);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    MDCSwitch.prototype.createRipple = function () {
+        var _this = this;
+        var RIPPLE_SURFACE_SELECTOR = foundation_2.MDCSwitchFoundation.strings.RIPPLE_SURFACE_SELECTOR;
+        var rippleSurface = this.root.querySelector(RIPPLE_SURFACE_SELECTOR);
+        // DO NOT INLINE this variable. For backward compatibility, foundations take a Partial<MDCFooAdapter>.
+        // To ensure we don't accidentally omit any methods, we need a separate, strongly typed adapter variable.
+        var adapter = __assign(__assign({}, component_2.MDCRipple.createAdapter(this)), { addClass: function addClass(className) {
+                return rippleSurface.classList.add(className);
+            }, computeBoundingRect: function computeBoundingRect() {
+                return rippleSurface.getBoundingClientRect();
+            }, deregisterInteractionHandler: function deregisterInteractionHandler(evtType, handler) {
+                _this.nativeControl.removeEventListener(evtType, handler, events_1.applyPassive());
+            }, isSurfaceActive: function isSurfaceActive() {
+                return ponyfill_1.matches(_this.nativeControl, ':active');
+            }, isUnbounded: function isUnbounded() {
+                return true;
+            }, registerInteractionHandler: function registerInteractionHandler(evtType, handler) {
+                _this.nativeControl.addEventListener(evtType, handler, events_1.applyPassive());
+            }, removeClass: function removeClass(className) {
+                rippleSurface.classList.remove(className);
+            }, updateCssVariable: function updateCssVariable(varName, value) {
+                rippleSurface.style.setProperty(varName, value);
+            } });
+        return new component_2.MDCRipple(this.root, new foundation_1.MDCRippleFoundation(adapter));
+    };
+    Object.defineProperty(MDCSwitch.prototype, "nativeControl", {
+        get: function get() {
+            var NATIVE_CONTROL_SELECTOR = foundation_2.MDCSwitchFoundation.strings.NATIVE_CONTROL_SELECTOR;
+            return this.root.querySelector(NATIVE_CONTROL_SELECTOR);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return MDCSwitch;
+}(component_1.MDCComponent);
+exports.MDCSwitch = MDCSwitch;
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/deprecated/constants.ts":
+/*!*****************************************************!*\
+  !*** ./packages/mdc-switch/deprecated/constants.ts ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2018 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.strings = exports.cssClasses = void 0;
+/** CSS classes used by the switch. */
+var cssClasses = {
+    /** Class used for a switch that is in the "checked" (on) position. */
+    CHECKED: 'mdc-switch--checked',
+    /** Class used for a switch that is disabled. */
+    DISABLED: 'mdc-switch--disabled'
+};
+exports.cssClasses = cssClasses;
+/** String constants used by the switch. */
+var strings = {
+    /** Aria attribute for checked or unchecked state of switch */
+    ARIA_CHECKED_ATTR: 'aria-checked',
+    /** A CSS selector used to locate the native HTML control for the switch.  */
+    NATIVE_CONTROL_SELECTOR: '.mdc-switch__native-control',
+    /** A CSS selector used to locate the ripple surface element for the switch. */
+    RIPPLE_SURFACE_SELECTOR: '.mdc-switch__thumb-underlay'
+};
+exports.strings = strings;
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/deprecated/foundation.ts":
+/*!******************************************************!*\
+  !*** ./packages/mdc-switch/deprecated/foundation.ts ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2018 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+var __assign = this && this.__assign || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) {
+                if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCSwitchFoundation = void 0;
+var foundation_1 = __webpack_require__(/*! @material/base/foundation */ "./packages/mdc-base/foundation.ts");
+var constants_1 = __webpack_require__(/*! ./constants */ "./packages/mdc-switch/deprecated/constants.ts");
+var MDCSwitchFoundation = /** @class */function (_super) {
+    __extends(MDCSwitchFoundation, _super);
+    function MDCSwitchFoundation(adapter) {
+        return _super.call(this, __assign(__assign({}, MDCSwitchFoundation.defaultAdapter), adapter)) || this;
+    }
+    Object.defineProperty(MDCSwitchFoundation, "strings", {
+        /** The string constants used by the switch. */
+        get: function get() {
+            return constants_1.strings;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCSwitchFoundation, "cssClasses", {
+        /** The CSS classes used by the switch. */
+        get: function get() {
+            return constants_1.cssClasses;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(MDCSwitchFoundation, "defaultAdapter", {
+        /** The default Adapter for the switch. */
+        get: function get() {
+            return {
+                addClass: function addClass() {
+                    return undefined;
+                },
+                removeClass: function removeClass() {
+                    return undefined;
+                },
+                setNativeControlChecked: function setNativeControlChecked() {
+                    return undefined;
+                },
+                setNativeControlDisabled: function setNativeControlDisabled() {
+                    return undefined;
+                },
+                setNativeControlAttr: function setNativeControlAttr() {
+                    return undefined;
+                }
+            };
+        },
+        enumerable: false,
+        configurable: true
+    });
+    /** Sets the checked state of the switch. */
+    MDCSwitchFoundation.prototype.setChecked = function (checked) {
+        this.adapter.setNativeControlChecked(checked);
+        this.updateAriaChecked(checked);
+        this.updateCheckedStyling(checked);
+    };
+    /** Sets the disabled state of the switch. */
+    MDCSwitchFoundation.prototype.setDisabled = function (disabled) {
+        this.adapter.setNativeControlDisabled(disabled);
+        if (disabled) {
+            this.adapter.addClass(constants_1.cssClasses.DISABLED);
+        } else {
+            this.adapter.removeClass(constants_1.cssClasses.DISABLED);
+        }
+    };
+    /** Handles the change event for the switch native control. */
+    MDCSwitchFoundation.prototype.handleChange = function (evt) {
+        var nativeControl = evt.target;
+        this.updateAriaChecked(nativeControl.checked);
+        this.updateCheckedStyling(nativeControl.checked);
+    };
+    /** Updates the styling of the switch based on its checked state. */
+    MDCSwitchFoundation.prototype.updateCheckedStyling = function (checked) {
+        if (checked) {
+            this.adapter.addClass(constants_1.cssClasses.CHECKED);
+        } else {
+            this.adapter.removeClass(constants_1.cssClasses.CHECKED);
+        }
+    };
+    MDCSwitchFoundation.prototype.updateAriaChecked = function (checked) {
+        this.adapter.setNativeControlAttr(constants_1.strings.ARIA_CHECKED_ATTR, "" + !!checked);
+    };
+    return MDCSwitchFoundation;
+}(foundation_1.MDCFoundation);
+exports.MDCSwitchFoundation = MDCSwitchFoundation;
+// tslint:disable-next-line:no-default-export Needed for backward compatibility with MDC Web v0.44.0 and earlier.
+exports.default = MDCSwitchFoundation;
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/deprecated/index.ts":
+/*!*************************************************!*\
+  !*** ./packages/mdc-switch/deprecated/index.ts ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2019 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __createBinding = this && this.__createBinding || (Object.create ? function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function get() {
+            return m[k];
+        } });
+} : function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+});
+var __exportStar = this && this.__exportStar || function (m, exports) {
+    for (var p in m) {
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+    }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(__webpack_require__(/*! ./adapter */ "./packages/mdc-switch/deprecated/adapter.ts"), exports);
+__exportStar(__webpack_require__(/*! ./component */ "./packages/mdc-switch/deprecated/component.ts"), exports);
+__exportStar(__webpack_require__(/*! ./constants */ "./packages/mdc-switch/deprecated/constants.ts"), exports);
+__exportStar(__webpack_require__(/*! ./foundation */ "./packages/mdc-switch/deprecated/foundation.ts"), exports);
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/foundation.ts":
+/*!*******************************************!*\
+  !*** ./packages/mdc-switch/foundation.ts ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2021 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __extends = this && this.__extends || function () {
+    var _extendStatics = function extendStatics(d, b) {
+        _extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function (d, b) {
+            d.__proto__ = b;
+        } || function (d, b) {
+            for (var p in b) {
+                if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+            }
+        };
+        return _extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        _extendStatics(d, b);
+        function __() {
+            this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+}();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MDCSwitchRenderFoundation = exports.MDCSwitchFoundation = void 0;
+var observer_foundation_1 = __webpack_require__(/*! @material/base/observer-foundation */ "./packages/mdc-base/observer-foundation.ts");
+var constants_1 = __webpack_require__(/*! ./constants */ "./packages/mdc-switch/constants.ts");
+/**
+ * `MDCSwitchFoundation` provides a state-only foundation for a switch
+ * component.
+ *
+ * State observers and event handler entrypoints update a component's adapter's
+ * state with the logic needed for switch to function.
+ */
+var MDCSwitchFoundation = /** @class */function (_super) {
+    __extends(MDCSwitchFoundation, _super);
+    function MDCSwitchFoundation(adapter) {
+        var _this = _super.call(this, adapter) || this;
+        _this.handleClick = _this.handleClick.bind(_this);
+        return _this;
+    }
+    /**
+     * Initializes the foundation and starts observing state changes.
+     */
+    MDCSwitchFoundation.prototype.init = function () {
+        this.observe(this.adapter.state, {
+            disabled: this.stopProcessingIfDisabled,
+            processing: this.stopProcessingIfDisabled
+        });
+    };
+    /**
+     * Event handler for switch click events. Clicking on a switch will toggle its
+     * selected state.
+     */
+    MDCSwitchFoundation.prototype.handleClick = function () {
+        if (this.adapter.state.disabled) {
+            return;
+        }
+        this.adapter.state.selected = !this.adapter.state.selected;
+    };
+    MDCSwitchFoundation.prototype.stopProcessingIfDisabled = function () {
+        if (this.adapter.state.disabled) {
+            this.adapter.state.processing = false;
+        }
+    };
+    return MDCSwitchFoundation;
+}(observer_foundation_1.MDCObserverFoundation);
+exports.MDCSwitchFoundation = MDCSwitchFoundation;
+/**
+ * `MDCSwitchRenderFoundation` provides a state and rendering foundation for a
+ * switch component.
+ *
+ * State observers and event handler entrypoints update a component's
+ * adapter's state with the logic needed for switch to function.
+ *
+ * In response to state changes, the rendering foundation uses the component's
+ * render adapter to keep the component's DOM updated with the state.
+ */
+var MDCSwitchRenderFoundation = /** @class */function (_super) {
+    __extends(MDCSwitchRenderFoundation, _super);
+    function MDCSwitchRenderFoundation() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    /**
+     * Initializes the foundation and starts observing state changes.
+     */
+    MDCSwitchRenderFoundation.prototype.init = function () {
+        _super.prototype.init.call(this);
+        this.observe(this.adapter.state, {
+            disabled: this.onDisabledChange,
+            processing: this.onProcessingChange,
+            selected: this.onSelectedChange
+        });
+    };
+    /**
+     * Initializes the foundation from a server side rendered (SSR) component.
+     * This will sync the adapter's state with the current state of the DOM.
+     *
+     * This method should be called after `init()`.
+     */
+    MDCSwitchRenderFoundation.prototype.initFromDOM = function () {
+        // Turn off observers while setting state
+        this.setObserversEnabled(this.adapter.state, false);
+        this.adapter.state.selected = this.adapter.hasClass(constants_1.CssClasses.SELECTED);
+        // Ensure aria-checked is set if attribute is not present
+        this.onSelectedChange();
+        this.adapter.state.disabled = this.adapter.isDisabled();
+        this.adapter.state.processing = this.adapter.hasClass(constants_1.CssClasses.PROCESSING);
+        // Re-observe state
+        this.setObserversEnabled(this.adapter.state, true);
+        this.stopProcessingIfDisabled();
+    };
+    MDCSwitchRenderFoundation.prototype.onDisabledChange = function () {
+        this.adapter.setDisabled(this.adapter.state.disabled);
+    };
+    MDCSwitchRenderFoundation.prototype.onProcessingChange = function () {
+        this.toggleClass(this.adapter.state.processing, constants_1.CssClasses.PROCESSING);
+    };
+    MDCSwitchRenderFoundation.prototype.onSelectedChange = function () {
+        this.adapter.setAriaChecked(String(this.adapter.state.selected));
+        this.toggleClass(this.adapter.state.selected, constants_1.CssClasses.SELECTED);
+        this.toggleClass(!this.adapter.state.selected, constants_1.CssClasses.UNSELECTED);
+    };
+    MDCSwitchRenderFoundation.prototype.toggleClass = function (addClass, className) {
+        if (addClass) {
+            this.adapter.addClass(className);
+        } else {
+            this.adapter.removeClass(className);
+        }
+    };
+    return MDCSwitchRenderFoundation;
+}(MDCSwitchFoundation);
+exports.MDCSwitchRenderFoundation = MDCSwitchRenderFoundation;
+
+/***/ }),
+
+/***/ "./packages/mdc-switch/index.ts":
+/*!**************************************!*\
+  !*** ./packages/mdc-switch/index.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * @license
+ * Copyright 2021 Google Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+var __createBinding = this && this.__createBinding || (Object.create ? function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function get() {
+            return m[k];
+        } });
+} : function (o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+});
+var __setModuleDefault = this && this.__setModuleDefault || (Object.create ? function (o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+} : function (o, v) {
+    o["default"] = v;
+});
+var __importStar = this && this.__importStar || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) {
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    }__setModuleDefault(result, mod);
+    return result;
+};
+var __exportStar = this && this.__exportStar || function (m, exports) {
+    for (var p in m) {
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+    }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deprecated = void 0;
+// TODO(b/185410690): remove deprecated export
+var deprecated = __importStar(__webpack_require__(/*! ./deprecated */ "./packages/mdc-switch/deprecated/index.ts"));
+exports.deprecated = deprecated;
+__exportStar(__webpack_require__(/*! ./adapter */ "./packages/mdc-switch/adapter.ts"), exports);
+__exportStar(__webpack_require__(/*! ./component */ "./packages/mdc-switch/component.ts"), exports);
+__exportStar(__webpack_require__(/*! ./constants */ "./packages/mdc-switch/constants.ts"), exports);
+__exportStar(__webpack_require__(/*! ./foundation */ "./packages/mdc-switch/foundation.ts"), exports);
+
+/***/ })
+
+/******/ });
+});
+
+},{}],30:[function(require,module,exports){
 var trailingNewlineRegex = /\n[\s]+$/
 var leadingNewlineRegex = /^\n[\s]+/
 var trailingSpaceRegex = /[\s]+$/
@@ -2661,7 +8430,7 @@ module.exports = function appendChild (el, childs) {
   }
 }
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var hyperx = require('hyperx')
 var appendChild = require('./appendChild')
 
@@ -2762,7 +8531,7 @@ module.exports = hyperx(belCreateElement, {comments: true})
 module.exports.default = module.exports
 module.exports.createElement = belCreateElement
 
-},{"./appendChild":28,"hyperx":34}],30:[function(require,module,exports){
+},{"./appendChild":30,"hyperx":36}],32:[function(require,module,exports){
 function rawCreateElement (tag) {
   if (typeof window !== 'undefined') {
     return browser()
@@ -2789,7 +8558,7 @@ function toArray (arr) {
 
 module.exports = rawCreateElement
 
-},{}],31:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 module.exports = function deepFreeze (o) {
   Object.freeze(o);
 
@@ -2805,7 +8574,7 @@ module.exports = function deepFreeze (o) {
   return o;
 };
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 (function (process){(function (){
 /*!
  * EventEmitter2
@@ -3585,7 +9354,7 @@ module.exports = function deepFreeze (o) {
 }();
 
 }).call(this)}).call(this,require('_process'))
-},{"_process":46}],33:[function(require,module,exports){
+},{"_process":47}],35:[function(require,module,exports){
 module.exports = attributeToProperty
 
 var transform = {
@@ -3606,7 +9375,7 @@ function attributeToProperty (h) {
   }
 }
 
-},{}],34:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 var attrToProp = require('hyperscript-attribute-to-property')
 
 var VAR = 0, TEXT = 1, OPEN = 2, CLOSE = 3, ATTR = 4
@@ -3903,7 +9672,7 @@ var closeRE = RegExp('^(' + [
 ].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
 function selfClosing (tag) { return closeRE.test(tag) }
 
-},{"hyperscript-attribute-to-property":33}],35:[function(require,module,exports){
+},{"hyperscript-attribute-to-property":35}],37:[function(require,module,exports){
 "use strict";
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -4041,7 +9810,7 @@ var ICU = /*#__PURE__*/function () {
 ICU.type = 'i18nFormat';
 var _default = ICU;
 exports["default"] = _default;
-},{"./utils.js":36,"intl-messageformat":39}],36:[function(require,module,exports){
+},{"./utils.js":38,"intl-messageformat":41}],38:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -4130,10 +9899,10 @@ function extend(obj) {
   });
   return obj;
 }
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 module.exports = require('./dist/commonjs/index.js').default;
 
-},{"./dist/commonjs/index.js":35}],38:[function(require,module,exports){
+},{"./dist/commonjs/index.js":37}],40:[function(require,module,exports){
 'use strict';
 
 var _typeof = require('@babel/runtime/helpers/typeof');
@@ -4439,7 +10208,7 @@ function escape(data) {
 
   return data;
 }
-var isIE10 = typeof window !== 'undefined' && window.navigator && window.navigator.userAgent && window.navigator.userAgent.indexOf('MSIE') > -1;
+var isIE10 = typeof window !== 'undefined' && window.navigator && typeof window.navigator.userAgentData === 'undefined' && window.navigator.userAgent && window.navigator.userAgent.indexOf('MSIE') > -1;
 var chars = [' ', ',', '?', '!', ';'];
 function looksLikeObjectPath(key, nsSeparator, keySeparator) {
   nsSeparator = nsSeparator || '';
@@ -4498,6 +10267,7 @@ function deepFind(obj, path) {
       }
 
       if (mix === undefined) return undefined;
+      if (mix === null) return null;
 
       if (path.endsWith(p)) {
         if (typeof mix === 'string') return mix;
@@ -4808,6 +10578,7 @@ var Translator = function (_EventEmitter) {
       if (!options) options = {};
       if (keys === undefined || keys === null) return '';
       if (!Array.isArray(keys)) keys = [String(keys)];
+      var returnDetails = options.returnDetails !== undefined ? options.returnDetails : this.options.returnDetails;
       var keySeparator = options.keySeparator !== undefined ? options.keySeparator : this.options.keySeparator;
 
       var _this$extractFromKey = this.extractFromKey(keys[keys.length - 1], options),
@@ -4821,7 +10592,18 @@ var Translator = function (_EventEmitter) {
       if (lng && lng.toLowerCase() === 'cimode') {
         if (appendNamespaceToCIMode) {
           var nsSeparator = options.nsSeparator || this.options.nsSeparator;
-          return namespace + nsSeparator + key;
+
+          if (returnDetails) {
+            resolved.res = "".concat(namespace).concat(nsSeparator).concat(key);
+            return resolved;
+          }
+
+          return "".concat(namespace).concat(nsSeparator).concat(key);
+        }
+
+        if (returnDetails) {
+          resolved.res = key;
+          return resolved;
         }
 
         return key;
@@ -4843,9 +10625,16 @@ var Translator = function (_EventEmitter) {
             this.logger.warn('accessing an object - but returnObjects options is not enabled!');
           }
 
-          return this.options.returnedObjectHandler ? this.options.returnedObjectHandler(resUsedKey, res, _objectSpread$2(_objectSpread$2({}, options), {}, {
+          var r = this.options.returnedObjectHandler ? this.options.returnedObjectHandler(resUsedKey, res, _objectSpread$2(_objectSpread$2({}, options), {}, {
             ns: namespaces
           })) : "key '".concat(key, " (").concat(this.language, ")' returned an object instead of string.");
+
+          if (returnDetails) {
+            resolved.res = r;
+            return resolved;
+          }
+
+          return r;
         }
 
         if (keySeparator) {
@@ -4944,11 +10733,16 @@ var Translator = function (_EventEmitter) {
 
         if ((usedKey || usedDefault) && this.options.parseMissingKeyHandler) {
           if (this.options.compatibilityAPI !== 'v1') {
-            res = this.options.parseMissingKeyHandler(key, usedDefault ? res : undefined);
+            res = this.options.parseMissingKeyHandler(this.options.appendNamespaceToMissingKey ? "".concat(namespace, ":").concat(key) : key, usedDefault ? res : undefined);
           } else {
             res = this.options.parseMissingKeyHandler(res);
           }
         }
+      }
+
+      if (returnDetails) {
+        resolved.res = res;
+        return resolved;
       }
 
       return res;
@@ -4959,7 +10753,7 @@ var Translator = function (_EventEmitter) {
       var _this3 = this;
 
       if (this.i18nFormat && this.i18nFormat.parse) {
-        res = this.i18nFormat.parse(res, options, resolved.usedLng, resolved.usedNS, resolved.usedKey, {
+        res = this.i18nFormat.parse(res, _objectSpread$2(_objectSpread$2({}, this.options.interpolation.defaultVariables), options), resolved.usedLng, resolved.usedNS, resolved.usedKey, {
           resolved: resolved
         });
       } else if (!options.skipInterpolation) {
@@ -5738,7 +11532,7 @@ var Interpolator = function () {
           str = str.replace(match[0], safeValue);
 
           if (skipOnVariables) {
-            todo.regex.lastIndex += safeValue.length;
+            todo.regex.lastIndex += value.length;
             todo.regex.lastIndex -= match[0].length;
           } else {
             todo.regex.lastIndex = 0;
@@ -5856,11 +11650,11 @@ function parseFormatStr(formatStr) {
             key = _opt$split2[0],
             rest = _opt$split2.slice(1);
 
-        var val = rest.join(':');
-        if (!formatOptions[key.trim()]) formatOptions[key.trim()] = val.trim();
-        if (val.trim() === 'false') formatOptions[key.trim()] = false;
-        if (val.trim() === 'true') formatOptions[key.trim()] = true;
-        if (!isNaN(val.trim())) formatOptions[key.trim()] = parseInt(val.trim(), 10);
+        var val = rest.join(':').trim().replace(/^'+|'+$/g, '');
+        if (!formatOptions[key.trim()]) formatOptions[key.trim()] = val;
+        if (val === 'false') formatOptions[key.trim()] = false;
+        if (val === 'true') formatOptions[key.trim()] = true;
+        if (!isNaN(val)) formatOptions[key.trim()] = parseInt(val, 10);
       });
     }
   }
@@ -5960,12 +11754,10 @@ function _createSuper$2(Derived) { var hasNativeReflectConstruct = _isNativeRefl
 
 function _isNativeReflectConstruct$2() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
 
-function remove(arr, what) {
-  var found = arr.indexOf(what);
-
-  while (found !== -1) {
-    arr.splice(found, 1);
-    found = arr.indexOf(what);
+function removePending(q, name) {
+  if (q.pending[name] !== undefined) {
+    delete q.pending[name];
+    q.pendingCount--;
   }
 }
 
@@ -5993,6 +11785,9 @@ var Connector = function (_EventEmitter) {
     _this.languageUtils = services.languageUtils;
     _this.options = options;
     _this.logger = baseLogger.create('backendConnector');
+    _this.waitingReads = [];
+    _this.maxParallelReads = options.maxParallelReads || 10;
+    _this.readingCalls = 0;
     _this.state = {};
     _this.queue = [];
 
@@ -6008,10 +11803,10 @@ var Connector = function (_EventEmitter) {
     value: function queueLoad(languages, namespaces, options, callback) {
       var _this2 = this;
 
-      var toLoad = [];
-      var pending = [];
-      var toLoadLanguages = [];
-      var toLoadNamespaces = [];
+      var toLoad = {};
+      var pending = {};
+      var toLoadLanguages = {};
+      var toLoadNamespaces = {};
       languages.forEach(function (lng) {
         var hasAllNamespaces = true;
         namespaces.forEach(function (ns) {
@@ -6020,21 +11815,22 @@ var Connector = function (_EventEmitter) {
           if (!options.reload && _this2.store.hasResourceBundle(lng, ns)) {
             _this2.state[name] = 2;
           } else if (_this2.state[name] < 0) ; else if (_this2.state[name] === 1) {
-            if (pending.indexOf(name) < 0) pending.push(name);
+            if (pending[name] === undefined) pending[name] = true;
           } else {
             _this2.state[name] = 1;
             hasAllNamespaces = false;
-            if (pending.indexOf(name) < 0) pending.push(name);
-            if (toLoad.indexOf(name) < 0) toLoad.push(name);
-            if (toLoadNamespaces.indexOf(ns) < 0) toLoadNamespaces.push(ns);
+            if (pending[name] === undefined) pending[name] = true;
+            if (toLoad[name] === undefined) toLoad[name] = true;
+            if (toLoadNamespaces[ns] === undefined) toLoadNamespaces[ns] = true;
           }
         });
-        if (!hasAllNamespaces) toLoadLanguages.push(lng);
+        if (!hasAllNamespaces) toLoadLanguages[lng] = true;
       });
 
-      if (toLoad.length || pending.length) {
+      if (Object.keys(toLoad).length || Object.keys(pending).length) {
         this.queue.push({
           pending: pending,
+          pendingCount: Object.keys(pending).length,
           loaded: {},
           errors: [],
           callback: callback
@@ -6042,10 +11838,10 @@ var Connector = function (_EventEmitter) {
       }
 
       return {
-        toLoad: toLoad,
-        pending: pending,
-        toLoadLanguages: toLoadLanguages,
-        toLoadNamespaces: toLoadNamespaces
+        toLoad: Object.keys(toLoad),
+        pending: Object.keys(pending),
+        toLoadLanguages: Object.keys(toLoadLanguages),
+        toLoadNamespaces: Object.keys(toLoadNamespaces)
       };
     }
   }, {
@@ -6064,16 +11860,17 @@ var Connector = function (_EventEmitter) {
       var loaded = {};
       this.queue.forEach(function (q) {
         pushPath(q.loaded, [lng], ns);
-        remove(q.pending, name);
+        removePending(q, name);
         if (err) q.errors.push(err);
 
-        if (q.pending.length === 0 && !q.done) {
+        if (q.pendingCount === 0 && !q.done) {
           Object.keys(q.loaded).forEach(function (l) {
-            if (!loaded[l]) loaded[l] = [];
+            if (!loaded[l]) loaded[l] = {};
+            var loadedKeys = q.loaded[l];
 
-            if (q.loaded[l].length) {
-              q.loaded[l].forEach(function (ns) {
-                if (loaded[l].indexOf(ns) < 0) loaded[l].push(ns);
+            if (loadedKeys.length) {
+              loadedKeys.forEach(function (ns) {
+                if (loaded[l][ns] === undefined) loaded[l][ns] = true;
               });
             }
           });
@@ -6100,12 +11897,34 @@ var Connector = function (_EventEmitter) {
       var wait = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 350;
       var callback = arguments.length > 5 ? arguments[5] : undefined;
       if (!lng.length) return callback(null, {});
+
+      if (this.readingCalls >= this.maxParallelReads) {
+        this.waitingReads.push({
+          lng: lng,
+          ns: ns,
+          fcName: fcName,
+          tried: tried,
+          wait: wait,
+          callback: callback
+        });
+        return;
+      }
+
+      this.readingCalls++;
       return this.backend[fcName](lng, ns, function (err, data) {
         if (err && data && tried < 5) {
           setTimeout(function () {
             _this3.read.call(_this3, lng, ns, fcName, tried + 1, wait * 2, callback);
           }, wait);
           return;
+        }
+
+        _this3.readingCalls--;
+
+        if (_this3.waitingReads.length > 0) {
+          var next = _this3.waitingReads.shift();
+
+          _this3.read(next.lng, next.ns, next.fcName, next.tried, next.wait, next.callback);
         }
 
         callback(err, data);
@@ -6767,7 +12586,7 @@ var I18n = function (_EventEmitter) {
       }
 
       if (this.hasResourceBundle(lng, ns)) return true;
-      if (!this.services.backendConnector.backend) return true;
+      if (!this.services.backendConnector.backend || this.options.resources && !this.options.partialBundledLanguages) return true;
       if (loadNotPending(lng, ns) && (!fallbackLng || loadNotPending(lastLng, ns))) return true;
       return false;
     }
@@ -6886,7 +12705,7 @@ instance.createInstance = I18n.createInstance;
 
 module.exports = instance;
 
-},{"@babel/runtime/helpers/assertThisInitialized":3,"@babel/runtime/helpers/classCallCheck":4,"@babel/runtime/helpers/createClass":5,"@babel/runtime/helpers/defineProperty":6,"@babel/runtime/helpers/getPrototypeOf":7,"@babel/runtime/helpers/inherits":8,"@babel/runtime/helpers/possibleConstructorReturn":11,"@babel/runtime/helpers/toArray":13,"@babel/runtime/helpers/typeof":14}],39:[function(require,module,exports){
+},{"@babel/runtime/helpers/assertThisInitialized":3,"@babel/runtime/helpers/classCallCheck":4,"@babel/runtime/helpers/createClass":5,"@babel/runtime/helpers/defineProperty":6,"@babel/runtime/helpers/getPrototypeOf":7,"@babel/runtime/helpers/inherits":8,"@babel/runtime/helpers/possibleConstructorReturn":11,"@babel/runtime/helpers/toArray":13,"@babel/runtime/helpers/typeof":14}],41:[function(require,module,exports){
 "use strict";
 /*
 Copyright (c) 2014, Yahoo! Inc. All rights reserved.
@@ -6901,9 +12720,7 @@ var core_1 = require("./src/core");
 (0, tslib_1.__exportStar)(require("./src/error"), exports);
 exports.default = core_1.IntlMessageFormat;
 
-},{"./src/core":41,"./src/error":42,"./src/formatters":43,"tslib":40}],40:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"dup":19}],41:[function(require,module,exports){
+},{"./src/core":42,"./src/error":43,"./src/formatters":44,"tslib":48}],42:[function(require,module,exports){
 "use strict";
 /*
 Copyright (c) 2014, Yahoo! Inc. All rights reserved.
@@ -7026,9 +12843,12 @@ var IntlMessageFormat = /** @class */ (function () {
             return (0, formatters_1.formatToParts)(_this.ast, _this.locales, _this.formatters, _this.formats, values, undefined, _this.message);
         };
         this.resolvedOptions = function () { return ({
-            locale: Intl.NumberFormat.supportedLocalesOf(_this.locales)[0],
+            locale: _this.resolvedLocale.toString(),
         }); };
         this.getAst = function () { return _this.ast; };
+        // Defined first because it's used to build the format pattern.
+        this.locales = locales;
+        this.resolvedLocale = IntlMessageFormat.resolveLocale(locales);
         if (typeof message === 'string') {
             this.message = message;
             if (!IntlMessageFormat.__parse) {
@@ -7037,6 +12857,7 @@ var IntlMessageFormat = /** @class */ (function () {
             // Parse string messages into an AST.
             this.ast = IntlMessageFormat.__parse(message, {
                 ignoreTag: opts === null || opts === void 0 ? void 0 : opts.ignoreTag,
+                locale: this.resolvedLocale,
             });
         }
         else {
@@ -7048,8 +12869,6 @@ var IntlMessageFormat = /** @class */ (function () {
         // Creates a new object with the specified `formats` merged with the default
         // formats.
         this.formats = mergeConfigs(IntlMessageFormat.formats, overrideFormats);
-        // Defined first because it's used to build the format pattern.
-        this.locales = locales;
         this.formatters =
             (opts && opts.formatters) || createDefaultFormatters(this.formatterCache);
     }
@@ -7065,6 +12884,13 @@ var IntlMessageFormat = /** @class */ (function () {
         configurable: true
     });
     IntlMessageFormat.memoizedDefaultLocale = null;
+    IntlMessageFormat.resolveLocale = function (locales) {
+        var supportedLocales = Intl.NumberFormat.supportedLocalesOf(locales);
+        if (supportedLocales.length > 0) {
+            return new Intl.Locale(supportedLocales[0]);
+        }
+        return new Intl.Locale(typeof locales === 'string' ? locales : locales[0]);
+    };
     IntlMessageFormat.__parse = icu_messageformat_parser_1.parse;
     // Default format options used as the prototype of the `formats` provided to the
     // constructor. These are used when constructing the internal Intl.NumberFormat
@@ -7132,7 +12958,7 @@ var IntlMessageFormat = /** @class */ (function () {
 }());
 exports.IntlMessageFormat = IntlMessageFormat;
 
-},{"./formatters":43,"@formatjs/fast-memoize":16,"@formatjs/icu-messageformat-parser":18,"tslib":40}],42:[function(require,module,exports){
+},{"./formatters":44,"@formatjs/fast-memoize":16,"@formatjs/icu-messageformat-parser":19,"tslib":48}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MissingValueError = exports.InvalidValueTypeError = exports.InvalidValueError = exports.FormatError = exports.ErrorCode = void 0;
@@ -7185,7 +13011,7 @@ var MissingValueError = /** @class */ (function (_super) {
 }(FormatError));
 exports.MissingValueError = MissingValueError;
 
-},{"tslib":40}],43:[function(require,module,exports){
+},{"tslib":48}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatToParts = exports.isFormatXMLElementFn = exports.PART_TYPE = void 0;
@@ -7369,7 +13195,7 @@ originalMessage) {
 }
 exports.formatToParts = formatToParts;
 
-},{"./error":42,"@formatjs/icu-messageformat-parser":18}],44:[function(require,module,exports){
+},{"./error":43,"@formatjs/icu-messageformat-parser":19}],45:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -7409,7 +13235,7 @@ function isPlainObject(o) {
 
 exports.isPlainObject = isPlainObject;
 
-},{}],45:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.6.0
  * https://jquery.com/
@@ -18292,7 +24118,7 @@ if ( typeof noGlobal === "undefined" ) {
 return jQuery;
 } );
 
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -18478,152 +24304,351 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
+(function (global){(function (){
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+/* global global, define, System, Reflect, Promise */
+var __extends;
+var __assign;
+var __rest;
+var __decorate;
+var __param;
+var __metadata;
+var __awaiter;
+var __generator;
+var __exportStar;
+var __values;
+var __read;
+var __spread;
+var __spreadArrays;
+var __spreadArray;
+var __await;
+var __asyncGenerator;
+var __asyncDelegator;
+var __asyncValues;
+var __makeTemplateObject;
+var __importStar;
+var __importDefault;
+var __classPrivateFieldGet;
+var __classPrivateFieldSet;
+var __classPrivateFieldIn;
+var __createBinding;
+(function (factory) {
+    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
+    if (typeof define === "function" && define.amd) {
+        define("tslib", ["exports"], function (exports) { factory(createExporter(root, createExporter(exports))); });
+    }
+    else if (typeof module === "object" && typeof module.exports === "object") {
+        factory(createExporter(root, createExporter(module.exports)));
+    }
+    else {
+        factory(createExporter(root));
+    }
+    function createExporter(exports, previous) {
+        if (exports !== root) {
+            if (typeof Object.create === "function") {
+                Object.defineProperty(exports, "__esModule", { value: true });
+            }
+            else {
+                exports.__esModule = true;
+            }
+        }
+        return function (id, v) { return exports[id] = previous ? previous(id, v) : v; };
+    }
+})
+(function (exporter) {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+
+    __extends = function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+    };
+
+    __rest = function (s, e) {
+        var t = {};
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+            t[p] = s[p];
+        if (s != null && typeof Object.getOwnPropertySymbols === "function")
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
+        return t;
+    };
+
+    __decorate = function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+
+    __param = function (paramIndex, decorator) {
+        return function (target, key) { decorator(target, key, paramIndex); }
+    };
+
+    __metadata = function (metadataKey, metadataValue) {
+        if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
+    };
+
+    __awaiter = function (thisArg, _arguments, P, generator) {
+        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+        return new (P || (P = Promise))(function (resolve, reject) {
+            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+            step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
+    };
+
+    __generator = function (thisArg, body) {
+        var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+        return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+        function verb(n) { return function (v) { return step([n, v]); }; }
+        function step(op) {
+            if (f) throw new TypeError("Generator is already executing.");
+            while (_) try {
+                if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+                if (y = 0, t) op = [op[0] & 2, t.value];
+                switch (op[0]) {
+                    case 0: case 1: t = op; break;
+                    case 4: _.label++; return { value: op[1], done: false };
+                    case 5: _.label++; y = op[1]; op = [0]; continue;
+                    case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                    default:
+                        if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                        if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                        if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                        if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                        if (t[2]) _.ops.pop();
+                        _.trys.pop(); continue;
+                }
+                op = body.call(thisArg, _);
+            } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+            if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+        }
+    };
+
+    __exportStar = function(m, o) {
+        for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p)) __createBinding(o, m, p);
+    };
+
+    __createBinding = Object.create ? (function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+            desc = { enumerable: true, get: function() { return m[k]; } };
+        }
+        Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+    });
+
+    __values = function (o) {
+        var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+        if (m) return m.call(o);
+        if (o && typeof o.length === "number") return {
+            next: function () {
+                if (o && i >= o.length) o = void 0;
+                return { value: o && o[i++], done: !o };
+            }
+        };
+        throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+
+    __read = function (o, n) {
+        var m = typeof Symbol === "function" && o[Symbol.iterator];
+        if (!m) return o;
+        var i = m.call(o), r, ar = [], e;
+        try {
+            while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+        }
+        catch (error) { e = { error: error }; }
+        finally {
+            try {
+                if (r && !r.done && (m = i["return"])) m.call(i);
+            }
+            finally { if (e) throw e.error; }
+        }
+        return ar;
+    };
+
+    /** @deprecated */
+    __spread = function () {
+        for (var ar = [], i = 0; i < arguments.length; i++)
+            ar = ar.concat(__read(arguments[i]));
+        return ar;
+    };
+
+    /** @deprecated */
+    __spreadArrays = function () {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
+    };
+
+    __spreadArray = function (to, from, pack) {
+        if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+            if (ar || !(i in from)) {
+                if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+                ar[i] = from[i];
+            }
+        }
+        return to.concat(ar || Array.prototype.slice.call(from));
+    };
+
+    __await = function (v) {
+        return this instanceof __await ? (this.v = v, this) : new __await(v);
+    };
+
+    __asyncGenerator = function (thisArg, _arguments, generator) {
+        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+        var g = generator.apply(thisArg, _arguments || []), i, q = [];
+        return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i;
+        function verb(n) { if (g[n]) i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; }
+        function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
+        function step(r) { r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);  }
+        function fulfill(value) { resume("next", value); }
+        function reject(value) { resume("throw", value); }
+        function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
+    };
+
+    __asyncDelegator = function (o) {
+        var i, p;
+        return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
+        function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: __await(o[n](v)), done: n === "return" } : f ? f(v) : v; } : f; }
+    };
+
+    __asyncValues = function (o) {
+        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+        var m = o[Symbol.asyncIterator], i;
+        return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+        function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+        function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+    };
+
+    __makeTemplateObject = function (cooked, raw) {
+        if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+        return cooked;
+    };
+
+    var __setModuleDefault = Object.create ? (function(o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+        o["default"] = v;
+    };
+
+    __importStar = function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+
+    __importDefault = function (mod) {
+        return (mod && mod.__esModule) ? mod : { "default": mod };
+    };
+
+    __classPrivateFieldGet = function (receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+    };
+
+    __classPrivateFieldSet = function (receiver, state, value, kind, f) {
+        if (kind === "m") throw new TypeError("Private method is not writable");
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+    };
+
+    __classPrivateFieldIn = function (state, receiver) {
+        if (receiver === null || (typeof receiver !== "object" && typeof receiver !== "function")) throw new TypeError("Cannot use 'in' operator on non-object");
+        return typeof state === "function" ? receiver === state : state.has(receiver);
+    };
+
+    exporter("__extends", __extends);
+    exporter("__assign", __assign);
+    exporter("__rest", __rest);
+    exporter("__decorate", __decorate);
+    exporter("__param", __param);
+    exporter("__metadata", __metadata);
+    exporter("__awaiter", __awaiter);
+    exporter("__generator", __generator);
+    exporter("__exportStar", __exportStar);
+    exporter("__createBinding", __createBinding);
+    exporter("__values", __values);
+    exporter("__read", __read);
+    exporter("__spread", __spread);
+    exporter("__spreadArrays", __spreadArrays);
+    exporter("__spreadArray", __spreadArray);
+    exporter("__await", __await);
+    exporter("__asyncGenerator", __asyncGenerator);
+    exporter("__asyncDelegator", __asyncDelegator);
+    exporter("__asyncValues", __asyncValues);
+    exporter("__makeTemplateObject", __makeTemplateObject);
+    exporter("__importStar", __importStar);
+    exporter("__importDefault", __importDefault);
+    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
+    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
+    exporter("__classPrivateFieldIn", __classPrivateFieldIn);
+});
+
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],49:[function(require,module,exports){
 "use strict";
 
 module.exports = {
-  "entityList": "https://duckduckgo.com/contentblocking.js?l=entitylist2",
-  "entityMap": "data/tracker_lists/entityMap.json",
   "displayCategories": {
     "Analytics": "site:analyticsCategory.title",
     "Advertising": "site:advertisingCategory.title",
     "Social Network": "site:socialCategory.title"
   },
-  "requestListenerTypes": ["main_frame", "sub_frame", "stylesheet", "script", "image", "object", "xmlhttprequest", "other"],
-  "feedbackUrl": "https://duckduckgo.com/feedback.js?type=extension-feedback",
-  "httpsService": "https://duckduckgo.com/smarter_encryption.js",
-  "duckDuckGoSerpHostname": "duckduckgo.com",
   "httpsMessages": {
     "secure": "site:connectionSecure.title",
     "upgraded": "site:connectionSecure.title",
     "none": "site:connectionNotSecure.title"
   },
-
-  /**
-   * Major tracking networks data:
-   * percent of the top 1 million sites a tracking network has been seen on.
-   * see: https://webtransparency.cs.princeton.edu/webcensus/
-   */
-  "majorTrackingNetworks": {
-    "google": 84,
-    "facebook": 36,
-    "twitter": 16,
-    "amazon": 14,
-    "appnexus": 10,
-    "oracle": 10,
-    "mediamath": 9,
-    "oath": 9,
-    "maxcdn": 7,
-    "automattic": 7
-  },
-
-  /*
-   * Mapping entity names to CSS class name for popup icons
-   */
-  "entityIconMapping": {
-    "Google LLC": "google",
-    "Facebook, Inc.": "facebook",
-    "Twitter, Inc.": "twitter",
-    "Amazon Technologies, Inc.": "amazon",
-    "AppNexus, Inc.": "appnexus",
-    "MediaMath, Inc.": "mediamath",
-    "StackPath, LLC": "maxcdn",
-    "Automattic, Inc.": "automattic",
-    "Adobe Inc.": "adobe",
-    "Quantcast Corporation": "quantcast",
-    "The Nielsen Company": "nielsen"
-  },
-  "httpsDBName": "https",
-  "httpsLists": [{
-    "type": "upgrade bloom filter",
-    "name": "httpsUpgradeBloomFilter",
-    "url": "https://staticcdn.duckduckgo.com/https/https-bloom.json"
-  }, {
-    "type": "don\'t upgrade bloom filter",
-    "name": "httpsDontUpgradeBloomFilters",
-    "url": "https://staticcdn.duckduckgo.com/https/negative-https-bloom.json"
-  }, {
-    "type": "upgrade safelist",
-    "name": "httpsUpgradeList",
-    "url": "https://staticcdn.duckduckgo.com/https/negative-https-whitelist.json"
-  }, {
-    "type": "don\'t upgrade safelist",
-    "name": "httpsDontUpgradeList",
-    "url": "https://staticcdn.duckduckgo.com/https/https-whitelist.json"
-  }],
-  "tdsLists": [{
-    "name": "surrogates",
-    "url": "/data/surrogates.txt",
-    "format": "text",
-    "source": "local"
-  }, {
-    "name": "tds",
-    "url": "https://staticcdn.duckduckgo.com/trackerblocking/v2.1/tds.json",
-    "format": "json",
-    "source": "external"
-  }, {
-    "name": "brokenSiteList",
-    "url": "https://duckduckgo.com/contentblocking/trackers-unprotected-temporary.txt",
-    "format": "text",
-    "source": "external"
-  }, {
-    "name": "protections",
-    "url": "https://duckduckgo.com/contentblocking/protections.json",
-    "format": "json",
-    "source": "external"
-  }, {
-    "name": "ReferrerExcludeList",
-    "url": "https://staticcdn.duckduckgo.com/useragents/referrer_excludes.json",
-    "format": "json",
-    "source": "external"
-  }, {
-    "name": "ClickToLoadConfig",
-    "url": "https://staticcdn.duckduckgo.com/useragents/social_ctp_configuration.json",
-    "format": "json",
-    "source": "external"
-  }],
-  "UserAgentLists": [{
-    "name": "agents",
-    "url": "https://staticcdn.duckduckgo.com/useragents/random_useragent.json",
-    "format": "json",
-    "source": "external"
-  }, {
-    "name": "excludeList",
-    "url": "https://staticcdn.duckduckgo.com/useragents/useragent_excludes.json",
-    "format": "json",
-    "source": "external"
-  }],
-  "CookieLists": [{
-    "name": "cookieExcludeList",
-    "url": "https://staticcdn.duckduckgo.com/useragents/cookie_configuration.json",
-    "format": "json",
-    "source": "external"
-  }],
-  "httpsErrorCodes": {
-    "net::ERR_CONNECTION_REFUSED": 1,
-    "net::ERR_ABORTED": 2,
-    "net::ERR_SSL_PROTOCOL_ERROR": 3,
-    "net::ERR_SSL_VERSION_OR_CIPHER_MISMATCH": 4,
-    "net::ERR_NAME_NOT_RESOLVED": 5,
-    "NS_ERROR_CONNECTION_REFUSED": 6,
-    "NS_ERROR_UNKNOWN_HOST": 7,
-    "An additional policy constraint failed when validating this certificate.": 8,
-    "Unable to communicate securely with peer: requested domain name does not match the server’s certificate.": 9,
-    "Cannot communicate securely with peer: no common encryption algorithm(s).": 10,
-    "SSL received a record that exceeded the maximum permissible length.": 11,
-    "The certificate is not trusted because it is self-signed.": 12,
-    "downgrade_redirect_loop": 13
-  },
   "supportedLocales": ["cimode", "en", "pl"] // cimode is for testing
 
 };
 
-},{}],48:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 "use strict";
 
 var _common = require("./common.es6");
 
-function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
 
 var convertTrackerDataPayload = function convertTrackerDataPayload(tabUrl, upgradedHttps, whitelisted, data) {
   var trackers = data.trackers || {};
@@ -18780,6 +24805,11 @@ var fetch = function fetch(message) {
     window.PrivacyDashboard.close();
   }
 
+  if (message.checkBrokenSiteReportHandled) {
+    window.PrivacyDashboard.displayBrokenSiteReport();
+    return true; // Return true to prevent HTML form from showing
+  }
+
   if (message.firePixel) {
     var pixelName = message.firePixel[0]; // Only allow broken site reports
 
@@ -18808,22 +24838,22 @@ module.exports = {
   getBackgroundTabData: getBackgroundTabData
 };
 
-},{"./common.es6":49}],49:[function(require,module,exports){
+},{"./common.es6":51}],51:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.concatParams = concatParams;
-exports.setupMutationObserver = setupMutationObserver;
-exports.setupColorScheme = setupColorScheme;
 exports.getContentHeight = exports.convertTrackerDataPayload = void 0;
+exports.setupColorScheme = setupColorScheme;
+exports.setupMutationObserver = setupMutationObserver;
 
 var _oppositeTheme;
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
 
 var getHostname = function getHostname(url) {
   if (url.indexOf('//') === 0) {
@@ -18978,12 +25008,12 @@ function setupColorScheme() {
   };
 }
 
-},{}],50:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 "use strict";
 
 module.exports = require('./android-communication.es6.js');
 
-},{"./android-communication.es6.js":48}],51:[function(require,module,exports){
+},{"./android-communication.es6.js":50}],53:[function(require,module,exports){
 "use strict";
 
 // create global $
@@ -19012,7 +25042,7 @@ window.DDG.base = {
 
 require('../pages/popup.es6.js');
 
-},{"../pages/popup.es6.js":65,"./localize.es6.js":52,"./mixins/index.es6.js":54,"./model.es6.js":55,"./page.es6.js":57,"./view.es6.js":59,"jquery":45}],52:[function(require,module,exports){
+},{"../pages/popup.es6.js":67,"./localize.es6.js":54,"./mixins/index.es6.js":56,"./model.es6.js":57,"./page.es6.js":59,"./view.es6.js":61,"jquery":46}],54:[function(require,module,exports){
 "use strict";
 
 var _i18next = _interopRequireDefault(require("i18next"));
@@ -19055,7 +25085,7 @@ _i18next["default"].use(_i18nextIcu["default"]).init({
 
 module.exports = _i18next["default"];
 
-},{"../../../locales/en/connection.json":79,"../../../locales/en/permissions.json":80,"../../../locales/en/report.json":81,"../../../locales/en/shared.json":82,"../../../locales/en/site.json":83,"../../../locales/pl/connection.json":84,"../../../locales/pl/permissions.json":85,"../../../locales/pl/report.json":86,"../../../locales/pl/shared.json":87,"../../../locales/pl/site.json":88,"./../../../data/constants.js":47,"i18next":38,"i18next-icu":37}],53:[function(require,module,exports){
+},{"../../../locales/en/connection.json":82,"../../../locales/en/permissions.json":83,"../../../locales/en/report.json":84,"../../../locales/en/shared.json":85,"../../../locales/en/site.json":86,"../../../locales/pl/connection.json":87,"../../../locales/pl/permissions.json":88,"../../../locales/pl/report.json":89,"../../../locales/pl/shared.json":90,"../../../locales/pl/site.json":91,"./../../../data/constants.js":49,"i18next":40,"i18next-icu":39}],55:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -19104,7 +25134,7 @@ module.exports = {
   }
 };
 
-},{}],54:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -19112,10 +25142,10 @@ module.exports = {
 
 };
 
-},{"./events.es6.js":53}],55:[function(require,module,exports){
+},{"./events.es6.js":55}],57:[function(require,module,exports){
 "use strict";
 
-function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
 
 var $ = require('jquery');
 
@@ -19260,7 +25290,7 @@ BaseModel.prototype = $.extend({}, mixins.events, {
 });
 module.exports = BaseModel;
 
-},{"../../browser/communication.es6.js":50,"./mixins/index.es6.js":54,"./store.es6.js":58,"jquery":45}],56:[function(require,module,exports){
+},{"../../browser/communication.es6.js":52,"./mixins/index.es6.js":56,"./store.es6.js":60,"jquery":46}],58:[function(require,module,exports){
 "use strict";
 
 /**
@@ -19367,7 +25397,7 @@ module.exports = {
 
 };
 
-},{}],57:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 "use strict";
 
 var mixins = require('./mixins/index.es6.js');
@@ -19386,7 +25416,7 @@ BasePage.prototype = window.$.extend({}, mixins.events, {
 });
 module.exports = BasePage;
 
-},{"./mixins/index.es6.js":54,"./store.es6.js":58}],58:[function(require,module,exports){
+},{"./mixins/index.es6.js":56,"./store.es6.js":60}],60:[function(require,module,exports){
 "use strict";
 
 /**
@@ -19584,7 +25614,7 @@ module.exports = {
 
 };
 
-},{"./notifiers.es6.js":56,"deep-freeze":31,"eventemitter2":32,"is-plain-object":44}],59:[function(require,module,exports){
+},{"./notifiers.es6.js":58,"deep-freeze":33,"eventemitter2":34,"is-plain-object":45}],61:[function(require,module,exports){
 "use strict";
 
 var $ = require('jquery');
@@ -19778,22 +25808,27 @@ BaseView.prototype = $.extend({}, mixins.events, {
 });
 module.exports = BaseView;
 
-},{"./mixins/index.es6.js":54,"./store.es6.js":58,"jquery":45}],60:[function(require,module,exports){
+},{"./mixins/index.es6.js":56,"./store.es6.js":60,"jquery":46}],62:[function(require,module,exports){
 "use strict";
 
 var isEnvironment = function isEnvironment(environment) {
-  return environment === 'android';
+  return environment === 'android' || environment === window.environmentOverride;
 };
 
 var isIOS = function isIOS() {
   return isEnvironment('ios');
 };
 
-module.exports = {
-  isIOS: isIOS
+var isAndroid = function isAndroid() {
+  return isEnvironment('android');
 };
 
-},{}],61:[function(require,module,exports){
+module.exports = {
+  isIOS: isIOS,
+  isAndroid: isAndroid
+};
+
+},{}],63:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Model;
@@ -19830,7 +25865,7 @@ BackgroundMessage.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = BackgroundMessage;
 
-},{"../../browser/communication.es6.js":50}],62:[function(require,module,exports){
+},{"../../browser/communication.es6.js":52}],64:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -19843,7 +25878,7 @@ module.exports = {
   }
 };
 
-},{}],63:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Model;
@@ -19955,7 +25990,7 @@ SiteCompanyList.prototype = window.$.extend({}, Parent.prototype, normalizeCompa
 });
 module.exports = SiteCompanyList;
 
-},{"../../browser/communication.es6.js":50,"./mixins/normalize-company-name.es6":62}],64:[function(require,module,exports){
+},{"../../browser/communication.es6.js":52,"./mixins/normalize-company-name.es6":64}],66:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Model;
@@ -20230,6 +26265,15 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
       return name;
     });
   },
+  checkBrokenSiteReportHandled: function checkBrokenSiteReportHandled() {
+    try {
+      return this.fetch({
+        checkBrokenSiteReportHandled: true
+      });
+    } catch (e) {
+      return false;
+    }
+  },
   submitBreakageForm: function submitBreakageForm(category, description) {
     if (!this.tab) return;
     var blockedTrackers = [];
@@ -20308,7 +26352,7 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = Site;
 
-},{"../../../data/constants":47,"../../browser/communication.es6.js":50}],65:[function(require,module,exports){
+},{"../../../data/constants":49,"../../browser/communication.es6.js":52}],67:[function(require,module,exports){
 "use strict";
 
 var Parent = window.DDG.base.Page;
@@ -20343,7 +26387,7 @@ Trackers.prototype = window.$.extend({}, Parent.prototype, {
 window.DDG = window.DDG || {};
 window.DDG.page = new Trackers();
 
-},{"./../models/background-message.es6.js":61,"./../models/site.es6.js":64,"./../templates/site.es6.js":73,"./../views/site.es6.js":76}],66:[function(require,module,exports){
+},{"./../models/background-message.es6.js":63,"./../models/site.es6.js":66,"./../templates/site.es6.js":75,"./../views/site.es6.js":78}],68:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3;
@@ -20405,12 +26449,12 @@ function renderHero() {
 }
 
 module.exports = function () {
-  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["<section class=\"sliding-subview\">\n        <div class=\"breakage-form js-breakage-form\">\n        ", "\n        <div class=\"breakage-form__content\">\n            <div class=\"breakage-form__element js-breakage-form-element\">\n                <div class=\"breakage-form__explanation\">\n                    ", "\n                </div>\n                <div class=\"form__group\">\n                    <div class=\"form__select breakage-form__input--dropdown\">\n                        <select class=\"js-breakage-form-dropdown\">\n                            <option value=''>", "</option>\n                            ", "\n                            <option value='Other'>", "</option>\n                        </select>\n                    </div>\n                    <textarea class=\"form__textarea js-breakage-form-description\" placeholder=\"", "\"></textarea>\n                    <button class=\"form__submit js-breakage-form-submit\" role=\"button\">", "</button>\n                </div>\n                <div class=\"breakage-form__footer\">\n                    ", "\n                </div>\n            </div>\n            <div class=\"breakage-form__message js-breakage-form-message is-transparent\">\n                <h2 class=\"breakage-form__success--title\">", "</h2>\n                <div class=\"breakage-form__success--message\">", "</div>\n            </div>\n        </div>\n    </div>\n    </section>"])), renderHero(), i18n.t('report:selectTheOptionDesc.title'), i18n.t('report:pickYourIssueFromTheList.title'), shuffle(categories()).map(function (item) {
+  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["<section class=\"sliding-subview\">\n        <div class=\"breakage-form js-breakage-form card\">\n        ", "\n        <div class=\"breakage-form__content\">\n            <div class=\"breakage-form__element js-breakage-form-element\">\n                <div class=\"breakage-form__explanation\">\n                    ", "\n                </div>\n                <div class=\"form__group\">\n                    <div class=\"form__select breakage-form__input--dropdown\">\n                        <select class=\"js-breakage-form-dropdown\">\n                            <option value=''>", "</option>\n                            ", "\n                            <option value='Other'>", "</option>\n                        </select>\n                    </div>\n                    <textarea class=\"form__textarea js-breakage-form-description\" placeholder=\"", "\"></textarea>\n                    <button class=\"form__submit js-breakage-form-submit\" role=\"button\">", "</button>\n                </div>\n                <div class=\"breakage-form__footer\">\n                    ", "\n                </div>\n            </div>\n            <div class=\"breakage-form__message js-breakage-form-message is-transparent\">\n                <h2 class=\"breakage-form__success--title\">", "</h2>\n                <div class=\"breakage-form__success--message\">", "</div>\n            </div>\n        </div>\n    </div>\n    </section>"])), renderHero(), i18n.t('report:selectTheOptionDesc.title'), i18n.t('report:pickYourIssueFromTheList.title'), shuffle(categories()).map(function (item) {
     return bel(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["<option value=", ">", "</option>"])), item.value, item.category);
   }), i18n.t('report:other.title'), i18n.t('report:tellUsMoreDesc.title'), i18n.t('report:sendReport.title'), i18n.t('report:reportsAreAnonymousDesc.title'), i18n.t('report:thankYou.title'), i18n.t('report:yourReportWillHelpDesc.title'));
 };
 
-},{"./shared/hero.es6.js":68,"bel":29}],67:[function(require,module,exports){
+},{"./shared/hero.es6.js":70,"bel":31}],69:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9;
@@ -20499,7 +26543,7 @@ function renderHero(site) {
   }));
 }
 
-},{"./shared/hero.es6.js":68,"bel":29}],68:[function(require,module,exports){
+},{"./shared/hero.es6.js":70,"bel":31}],70:[function(require,module,exports){
 "use strict";
 
 var _templateObject;
@@ -20512,23 +26556,35 @@ module.exports = function (ops) {
   return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n        <div class=\"hero-wrapper\">\n            <div class=\"hero text--center ", "\">\n                <a href=\"javascript:void(0)\"\n                    class=\"hero__close js-sliding-subview-close js-site-done\"\n                    role=\"button\"\n                    aria-label=\"Go back\"\n                >\n                    <span class=\"icon icon__back-arrow\"></span>\n                </a>\n                <a href=\"javascript:void(0)\"\n                    class=\"hero__done js-sliding-subview-done js-site-done link-action\"\n                    role=\"button\"\n                >\n                    Done\n                </a>\n            </div>\n             <div class=\"hero__icon hero__icon--", "\"></div>\n        </div>\n    "])), ops.className || '', ops.status);
 };
 
-},{"bel":29}],69:[function(require,module,exports){
+},{"bel":31}],71:[function(require,module,exports){
 "use strict";
 
-var _templateObject;
+var _templateObject, _templateObject2;
 
 function _taggedTemplateLiteral(strings, raw) { if (!raw) { raw = strings.slice(0); } return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
 var bel = require('bel');
 
+var _require = require('../../environment-check'),
+    isAndroid = _require.isAndroid;
+
+var generateMaterialDesignToggle = function generateMaterialDesignToggle(isActiveBoolean, klass, dataKey) {
+  return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n    <button\n        id=\"basic-switch\"\n        class=\"mdc-switch mdc-switch--", " ", "\"\n        data-key=\"", "\"\n        type=\"button\"\n        role=\"switch\"\n        aria-checked=\"false\"\n    >\n        <div class=\"mdc-switch__track\"></div>\n        <div class=\"mdc-switch__handle-track\">\n            <div class=\"mdc-switch__handle\">\n            <div class=\"mdc-switch__shadow\">\n                <div class=\"mdc-elevation-overlay\"></div>\n            </div>\n            <div class=\"mdc-switch__ripple\"></div>\n            </div>\n        </div>\n        <span class=\"mdc-switch__focus-ring-wrapper\">\n            <div class=\"mdc-switch__focus-ring\"></div>\n        </span>\n    </button>\n        "])), isActiveBoolean ? 'selected' : 'unselected', klass, dataKey);
+};
+
 module.exports = function (isActiveBoolean, klass, dataKey) {
   // make `klass` and `dataKey` optional:
   klass = klass || '';
   dataKey = dataKey || '';
-  return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n<button class=\"toggle-button toggle-button--is-active-", " ", "\"\n    data-key=\"", "\"\n    type=\"button\"\n    aria-pressed=\"", "\"\n    >\n    <div class=\"toggle-button__bg\">\n    </div>\n    <div class=\"toggle-button__knob\"></div>\n</button>"])), isActiveBoolean, klass, dataKey, isActiveBoolean ? 'true' : 'false');
+
+  if (isAndroid()) {
+    return generateMaterialDesignToggle(isActiveBoolean, klass, dataKey);
+  }
+
+  return bel(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["\n<button class=\"toggle-button toggle-button--is-active-", " ", "\"\n    data-key=\"", "\"\n    type=\"button\"\n    aria-pressed=\"", "\"\n    >\n    <div class=\"toggle-button__bg\">\n    </div>\n    <div class=\"toggle-button__knob\"></div>\n</button>"])), isActiveBoolean, klass, dataKey, isActiveBoolean ? 'true' : 'false');
 };
 
-},{"bel":29}],70:[function(require,module,exports){
+},{"../../environment-check":62,"bel":31}],72:[function(require,module,exports){
 "use strict";
 
 var _templateObject;
@@ -20557,7 +26613,7 @@ module.exports = function (site) {
   return bel(_templateObject || (_templateObject = _taggedTemplateLiteral(["", ""])), iconName);
 };
 
-},{"./utils.es6.js":72,"bel":29}],71:[function(require,module,exports){
+},{"./utils.es6.js":74,"bel":31}],73:[function(require,module,exports){
 "use strict";
 
 var _templateObject;
@@ -20595,7 +26651,7 @@ function trackersBlocked(site) {
   return true;
 }
 
-},{"./utils.es6":72,"bel":29}],72:[function(require,module,exports){
+},{"./utils.es6":74,"bel":31}],74:[function(require,module,exports){
 "use strict";
 
 var isSiteWithOnlyOwnTrackers = function isSiteWithOnlyOwnTrackers(_ref) {
@@ -20639,10 +26695,10 @@ module.exports = {
   getColorId: getColorId
 };
 
-},{}],73:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 "use strict";
 
-var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9, _templateObject10, _templateObject11, _templateObject12, _templateObject13, _templateObject14, _templateObject15, _templateObject16, _templateObject17, _templateObject18, _templateObject19, _templateObject20, _templateObject21;
+var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8, _templateObject9, _templateObject10, _templateObject11, _templateObject12, _templateObject13, _templateObject14, _templateObject15, _templateObject16, _templateObject17, _templateObject18, _templateObject19, _templateObject20, _templateObject21, _templateObject22;
 
 function _taggedTemplateLiteral(strings, raw) { if (!raw) { raw = strings.slice(0); } return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
@@ -20679,7 +26735,7 @@ function renderHero() {
 module.exports = function () {
   var protectionStatus = this.model.isWhitelisted ? bel(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["", ""])), raw(i18n.t('site:protectionsDisabled.title'))) : bel(_templateObject4 || (_templateObject4 = _taggedTemplateLiteral(["", ""])), raw(i18n.t('site:protectionsEnabled.title')));
   var protectionToggle = this.model.tab.isPendingUpdates ? renderUpdatingSpinner() : toggleButton(!this.model.isWhitelisted, 'js-site-toggle pull-right');
-  return bel(_templateObject5 || (_templateObject5 = _taggedTemplateLiteral(["<div class=\"site-info site-info--main\">\n    ", "\n    <div class=\"list-wrapper\">\n        <ul class=\"default-list card-list\">\n            ", "\n        </ul>\n    </div>\n    <div class=\"list-wrapper\">\n        <ul class=\"default-list card-list card-list--bordered\">\n            <li class=\"js-site-tracker-networks js-site-show-page-trackers site-info__li--trackers\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    ", "\n                </a>\n            </li>\n            <li class=\"js-site-show-page-connection site-info__li--https-status border-light--top\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    ", "\n                </a>\n            </li>\n        ", "\n        </ul>\n    </div>\n    <div class=\"list-wrapper site-info__protection-wrapper\">\n        <ul class=\"default-list\">\n            <li class=\"site-info__li--toggle padded ", "\">\n                <p class=\"site-info__protection js-site-protection\"><span>", "</span></p>\n                <div class=\"site-info__toggle-container\">", "</div>\n            </li>\n        </ul>\n    </div>\n    <div class=\"list-wrapper card-list--last\">\n        <ul class=\"default-list\">\n            <li class=\"js-site-manage-whitelist-li site-info__li--manage-whitelist\">\n                ", "\n            </li>\n        </ul>\n    </div>\n    <ul class=\"default-list\">\n        <li class=\"site-info__li--manage-permissions\">\n            ", "\n        </li>\n    </ul>\n</div>"])), renderHero(), renderKeyInsight(this.model), renderTrackerNetworks(this.model), renderConnection(this.model), renderCookieConsentManaged(this.model), this.model.isWhitelisted ? '' : 'is-active', protectionStatus, protectionToggle, renderManageWhitelist(this.model), renderManagePermissions(this.model));
+  return bel(_templateObject5 || (_templateObject5 = _taggedTemplateLiteral(["<div class=\"site-info site-info--main\">\n    ", "\n    <div class=\"list-wrapper\">\n        <ul class=\"default-list card-list\">\n            ", "\n        </ul>\n    </div>\n    <div class=\"list-wrapper\">\n        <ul class=\"default-list card-list card-list--bordered\">\n            <li class=\"js-site-tracker-networks js-site-show-page-trackers site-info__li--trackers\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    ", "\n                </a>\n            </li>\n            <li class=\"js-site-show-page-connection site-info__li--https-status border-light--top\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    ", "\n                </a>\n            </li>\n        ", "\n        </ul>\n    </div>\n    <div class=\"list-wrapper site-info__protection-wrapper\">\n        <ul class=\"default-list\">\n            <li class=\"site-info__li--toggle padded ", "\">\n                <p class=\"site-info__protection js-site-protection\"><span>", "</span></p>\n                <div class=\"site-info__toggle-container\">", "</div>\n            </li>\n        </ul>\n    </div>\n    <div class=\"list-wrapper card-list--last\">\n        <ul class=\"default-list border--top\">\n            <li class=\"js-site-manage-whitelist-li site-info__li--manage-whitelist\">\n                ", "\n            </li>\n        </ul>\n    </div>\n    ", "\n</div>"])), renderHero(), renderKeyInsight(this.model), renderTrackerNetworks(this.model), renderConnection(this.model), renderCookieConsentManaged(this.model), this.model.isWhitelisted ? '' : 'is-active', protectionStatus, protectionToggle, renderManageWhitelist(this.model), renderManagePermissions(this.model));
 };
 
 function renderConnection(model) {
@@ -20697,21 +26753,21 @@ function renderManagePermissions(model) {
   }
 
   var localizedPerms = localizePermissions(model.permissions);
-  return localizedPerms.map(function (_ref, index) {
+  return bel(_templateObject8 || (_templateObject8 = _taggedTemplateLiteral(["<ul class=\"default-list\">\n        <li class=\"site-info__li--manage-permissions\">\n            ", "\n        </li>\n    </ul>"])), localizedPerms.map(function (_ref, index) {
     var permissionId = _ref.key,
         title = _ref.title,
         permission = _ref.permission,
         options = _ref.options;
-    return bel(_templateObject8 || (_templateObject8 = _taggedTemplateLiteral(["<div class=\"site-info__page-permission ", "\">\n                <label>\n                    <div>\n                        <div class=\"site-info__page-permission__icon ", "\"></div>\n                        ", "\n                    </div>\n                    <select class=\"js-site-permission\" name=\"", "\">\n                        ", "\n                    </select>\n                </label>\n            </div>"])), index !== model.permissions.length - 1 ? 'border-light--bottom--inner' : '', permissionId, title, permissionId, options.map(function (_ref2) {
+    return bel(_templateObject9 || (_templateObject9 = _taggedTemplateLiteral(["<div class=\"site-info__page-permission ", "\">\n                    <label>\n                        <div>\n                            <div class=\"site-info__page-permission__icon ", "\"></div>\n                            ", "\n                        </div>\n                        <select class=\"js-site-permission\" name=\"", "\">\n                            ", "\n                        </select>\n                    </label>\n                </div>"])), index !== model.permissions.length - 1 ? 'border-light--bottom--inner' : '', permissionId, title, permissionId, options.map(function (_ref2) {
       var id = _ref2.id,
           title = _ref2.title;
-      return bel(_templateObject9 || (_templateObject9 = _taggedTemplateLiteral(["<option value=\"", "\" ", ">", "</option>"])), id, permission === id ? 'selected' : '', title);
+      return bel(_templateObject10 || (_templateObject10 = _taggedTemplateLiteral(["<option value=\"", "\" ", ">", "</option>"])), id, permission === id ? 'selected' : '', title);
     }));
-  });
+  }));
 }
 
 function renderManageWhitelist(model) {
-  return bel(_templateObject10 || (_templateObject10 = _taggedTemplateLiteral(["<div class=\"manage-whitelist\">\n            <a href=\"javascript:void(0)\" class=\"js-site-report-broken site-info__report-broken\">\n                ", "\n            </a>\n        </div>"])), i18n.t('site:websiteNotWorkingQ.title'));
+  return bel(_templateObject11 || (_templateObject11 = _taggedTemplateLiteral(["<div class=\"manage-whitelist\">\n            <a href=\"javascript:void(0)\" class=\"js-site-report-broken site-info__report-broken\">\n                ", "\n            </a>\n        </div>"])), i18n.t('site:websiteNotWorkingQ.title'));
 }
 
 function generateCompanyNamesList(model) {
@@ -20728,52 +26784,52 @@ function renderCompanyIconsList(model) {
   if (companyNames.length === 0) return '';
   var topCompanies = companyNames.slice(0, 4);
   var remainingCount = companyNames.length - topCompanies.length;
-  var remainingCountIcon = remainingCount <= 0 ? '' : bel(_templateObject11 || (_templateObject11 = _taggedTemplateLiteral(["\n            <span class=\"site-info__tracker__icon-positioner\">\n                <span class=\"site-info__tracker__icon-wrapper site-info__tracker__icon-wrapper--count\">\n                    <span class=\"site-info__tracker__count\">+", "</span>\n                </span>\n            </div>\n            "])), remainingCount);
+  var remainingCountIcon = remainingCount <= 0 ? '' : bel(_templateObject12 || (_templateObject12 = _taggedTemplateLiteral(["\n            <span class=\"site-info__tracker__icon-positioner\">\n                <span class=\"site-info__tracker__icon-wrapper site-info__tracker__icon-wrapper--count\">\n                    <span class=\"site-info__tracker__count\">+", "</span>\n                </span>\n            </div>\n            "])), remainingCount);
   var topCompaniesIcons = topCompanies.map(function (name, index) {
     var slug = normalizeCompanyName(name);
     var locationClass = index === topCompanies.length - 1 ? 'first' : 'other';
-    return bel(_templateObject12 || (_templateObject12 = _taggedTemplateLiteral(["\n            <span class=\"site-info__tracker__icon-positioner\">\n                <span class=\"site-info__tracker__icon-wrapper site-info__tracker__icon-wrapper--", "\">\n                    <span class=\"site-info__tracker__icon ", " color-", " ", "\"></span>\n                    <span class=\"site-info__tracker__blocked-icon\"></span>\n                </span>\n            </span>\n            "])), locationClass, slug[0].toUpperCase(), getColorId(slug), slug);
+    return bel(_templateObject13 || (_templateObject13 = _taggedTemplateLiteral(["\n            <span class=\"site-info__tracker__icon-positioner\">\n                <span class=\"site-info__tracker__icon-wrapper site-info__tracker__icon-wrapper--", "\">\n                    <span class=\"site-info__tracker__icon ", " color-", " ", "\"></span>\n                    <span class=\"site-info__tracker__blocked-icon\"></span>\n                </span>\n            </span>\n            "])), locationClass, slug[0].toUpperCase(), getColorId(slug), slug);
   });
-  return bel(_templateObject13 || (_templateObject13 = _taggedTemplateLiteral(["\n            <div class=\"site-info__key-insight_trackers-icons\">\n                ", "\n                ", "\n            </div>\n        "])), topCompaniesIcons, remainingCountIcon);
+  return bel(_templateObject14 || (_templateObject14 = _taggedTemplateLiteral(["\n            <div class=\"site-info__key-insight_trackers-icons\">\n                ", "\n                ", "\n            </div>\n        "])), topCompaniesIcons, remainingCountIcon);
 }
 
 function renderKeyInsight(model) {
   if (model.httpsState === 'none') {
-    return bel(_templateObject14 || (_templateObject14 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-connection site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--insecure-connection\">\n                            <h1>", "</h1>\n                            <div>", "</div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:connectionDescriptionUnencrypted.title')));
+    return bel(_templateObject15 || (_templateObject15 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-connection site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--insecure-connection\">\n                            <h1>", "</h1>\n                            <div>", "</div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:connectionDescriptionUnencrypted.title')));
   }
 
   if (model.isWhitelisted) {
-    return bel(_templateObject15 || (_templateObject15 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--protections-off\">\n                            <h1>", "</h1>\n                            <div>\n                                ", "\n                            </div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:protectionsDisabled.title')));
+    return bel(_templateObject16 || (_templateObject16 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--protections-off\">\n                            <h1>", "</h1>\n                            <div>\n                                ", "\n                            </div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:protectionsDisabled.title')));
   }
 
   if (model.isaMajorTrackingNetwork) {
     var company = model.tab.parentEntity;
-    return bel(_templateObject16 || (_templateObject16 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--tracker-network\">\n                            <h1>", "</h1>\n                            <div>\n                                ", "\n                            </div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:majorTrackingNetworkDesc.title', {
+    return bel(_templateObject17 || (_templateObject17 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--tracker-network\">\n                            <h1>", "</h1>\n                            <div>\n                                ", "\n                            </div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:majorTrackingNetworkDesc.title', {
       companyDisplayName: company.displayName,
       companyPrevalence: Math.round(company.prevalence)
     })));
   }
 
   if (model.trackersCount === 0) {
-    return bel(_templateObject17 || (_templateObject17 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--no-activity\">\n                            <h1>", "</h1>\n                            <div>", "</div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:trackerNetworksSummaryNone.title')));
+    return bel(_templateObject18 || (_templateObject18 = _taggedTemplateLiteral(["\n                <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                    <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                        <div class=\"site-info__key-insight site-info__key-insight--no-activity\">\n                            <h1>", "</h1>\n                            <div>", "</div>\n                        </div>\n                    </a>\n                </li>\n            "])), model.tab.site.domain, raw(i18n.t('site:trackerNetworksSummaryNone.title')));
   }
 
-  return bel(_templateObject18 || (_templateObject18 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    <div class=\"site-info__key-insight site-info__key-insight--trackers-blocked\">\n                        ", "\n                        <h1>", "</h1>\n                        <div><span>", "</span></div>\n                    </div>\n                </a>\n            </li>\n        "])), renderCompanyIconsList(model), model.tab.site.domain, raw(i18n.t('site:trackersBlockedDesc.title', generateCompanyNamesList(model))));
+  return bel(_templateObject19 || (_templateObject19 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-page-trackers site-info__li--key-insight\">\n                <a href=\"javascript:void(0)\" class=\"link-action\" role=\"button\">\n                    <div class=\"site-info__key-insight site-info__key-insight--trackers-blocked\">\n                        ", "\n                        <h1>", "</h1>\n                        <div><span>", "</span></div>\n                    </div>\n                </a>\n            </li>\n        "])), renderCompanyIconsList(model), model.tab.site.domain, raw(i18n.t('site:trackersBlockedDesc.title', generateCompanyNamesList(model))));
 }
 
 function renderCookieConsentManaged(model) {
   var _model$tab;
 
-  if (!((_model$tab = model.tab) !== null && _model$tab !== void 0 && _model$tab.consentManaged)) return bel(_templateObject19 || (_templateObject19 = _taggedTemplateLiteral([""])));
+  if (!((_model$tab = model.tab) !== null && _model$tab !== void 0 && _model$tab.consentManaged)) return bel(_templateObject20 || (_templateObject20 = _taggedTemplateLiteral([""])));
   var _model$tab$consentMan = model.tab.consentManaged,
       consentManaged = _model$tab$consentMan.consentManaged,
       optoutFailed = _model$tab$consentMan.optoutFailed;
 
   if (consentManaged && !optoutFailed) {
-    return bel(_templateObject20 || (_templateObject20 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-consent-managed site-info__li--consent-managed border-light--top\">\n                <div>\n                    <div class=\"site-info__trackers\">\n                        <span class=\"site-info__https-status__icon is-secure\"></span>\n                        <span>", "</span>\n                    </div>\n                </div>\n            </li>\n            "])), i18n.t('site:cookiesMinimized.title'));
+    return bel(_templateObject21 || (_templateObject21 = _taggedTemplateLiteral(["\n            <li class=\"js-site-show-consent-managed site-info__li--consent-managed border-light--top\">\n                <div>\n                    <div class=\"site-info__trackers\">\n                        <span class=\"site-info__https-status__icon is-secure\"></span>\n                        <span>", "</span>\n                    </div>\n                </div>\n            </li>\n            "])), i18n.t('site:cookiesMinimized.title'));
   }
 
-  return bel(_templateObject21 || (_templateObject21 = _taggedTemplateLiteral([""])));
+  return bel(_templateObject22 || (_templateObject22 = _taggedTemplateLiteral([""])));
 }
 
 function localizePermissions(permissions) {
@@ -20799,7 +26855,7 @@ function localizePermissions(permissions) {
   });
 }
 
-},{"../models/mixins/normalize-company-name.es6.js":62,"./shared/hero.es6.js":68,"./shared/toggle-button.es6.js":69,"./shared/tracker-network-icon.es6.js":70,"./shared/tracker-networks-text.es6.js":71,"./shared/utils.es6.js":72,"bel":29,"bel/raw":30}],74:[function(require,module,exports){
+},{"../models/mixins/normalize-company-name.es6.js":64,"./shared/hero.es6.js":70,"./shared/toggle-button.es6.js":71,"./shared/tracker-network-icon.es6.js":72,"./shared/tracker-networks-text.es6.js":73,"./shared/utils.es6.js":74,"bel":31,"bel/raw":32}],76:[function(require,module,exports){
 "use strict";
 
 var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7, _templateObject8;
@@ -20938,7 +26994,7 @@ function renderTrackerDetails(model) {
   }), blockedCompanies.map(renderCompanyTrackers(model))));
 }
 
-},{"./../../../data/constants.js":47,"./shared/hero.es6.js":68,"./shared/tracker-network-icon.es6.js":70,"./shared/utils.es6.js":72,"bel":29,"bel/raw":30}],75:[function(require,module,exports){
+},{"./../../../data/constants.js":49,"./shared/hero.es6.js":70,"./shared/tracker-network-icon.es6.js":72,"./shared/utils.es6.js":74,"bel":31,"bel/raw":32}],77:[function(require,module,exports){
 "use strict";
 
 var ParentSlidingSubview = require('./sliding-subview.es6.js');
@@ -20987,8 +27043,14 @@ BreakageForm.prototype = window.$.extend({}, ParentSlidingSubview.prototype, {
 });
 module.exports = BreakageForm;
 
-},{"./sliding-subview.es6.js":77}],76:[function(require,module,exports){
+},{"./sliding-subview.es6.js":79}],78:[function(require,module,exports){
 "use strict";
+
+var _switch = require("@material/switch");
+
+var _environmentCheck = require("../environment-check.js");
+
+var _utils = require("./utils/utils.js");
 
 var Parent = window.DDG.base.View;
 
@@ -21041,6 +27103,14 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
   _setup: function _setup() {
     this._cacheElems('.js-site', ['toggle', 'protection', 'show-page-connection', 'show-page-trackers', 'report-broken', 'permission', 'done']);
 
+    if ((0, _environmentCheck.isAndroid)()) {
+      document.querySelectorAll('.mdc-switch').forEach(function ($el) {
+        return new _switch.MDCSwitch($el) // eslint-disable-line no-new
+        ;
+      });
+      (0, _utils.setupMaterialDesignRipple)('.js-site-show-page-connection', '.js-site-show-page-trackers', '.js-site-done');
+    }
+
     this.bindEvents([[this.$toggle, 'click', this._onWhitelistClick], [this.$showpageconnection, 'click', this._showPageConnection], [this.$showpagetrackers, 'click', this._showPageTrackers], [this.$reportbroken, 'click', this._onReportBrokenSiteClick], [this.$done, 'click', this._done], [this.$permission, 'change', this._changePermission], [this.store.subscribe, 'change:site', this.rerender]]);
   },
   rerender: function rerender() {
@@ -21072,7 +27142,11 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
       return;
     }
 
-    this.showBreakageForm('reportBrokenSite');
+    var isHandledExternally = this.model.checkBrokenSiteReportHandled();
+
+    if (!isHandledExternally) {
+      this.showBreakageForm('reportBrokenSite');
+    }
   },
   // pass clickSource to specify whether page should reload
   // after submitting breakage form.
@@ -21103,11 +27177,12 @@ Site.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = Site;
 
-},{"./../templates/breakage-form.es6.js":66,"./../templates/page-connection.es6.js":67,"./../templates/tracker-networks.es6.js":74,"./../views/breakage-form.es6.js":75,"./../views/tracker-networks.es6.js":78}],77:[function(require,module,exports){
+},{"../environment-check.js":62,"./../templates/breakage-form.es6.js":68,"./../templates/page-connection.es6.js":69,"./../templates/tracker-networks.es6.js":76,"./../views/breakage-form.es6.js":77,"./../views/tracker-networks.es6.js":80,"./utils/utils.js":81,"@material/switch":29}],79:[function(require,module,exports){
 "use strict";
 
-var _require = require('../environment-check'),
-    isIOS = _require.isIOS;
+var _utils = require("./utils/utils.js");
+
+var _environmentCheck = require("../environment-check.js");
 
 var Parent = window.DDG.base.View;
 
@@ -21124,7 +27199,11 @@ SlidingSubview.prototype = window.$.extend({}, Parent.prototype, {
   setupClose: function setupClose() {
     this._cacheElems('.js-sliding-subview', ['close', 'done']);
 
-    this.bindEvents([[this.$close, 'click', this._destroy], [this.$done, 'click', this._done]]);
+    this.bindEvents([[this.$close, 'click', this._destroy], [this.$done, 'click', this._done]]); // Set up Material design features on Android
+
+    if ((0, _environmentCheck.isAndroid)()) {
+      (0, _utils.setupMaterialDesignRipple)('.js-site-done');
+    }
   },
   setupNavigationSupport: function setupNavigationSupport() {
     var _this = this;
@@ -21158,7 +27237,7 @@ SlidingSubview.prototype = window.$.extend({}, Parent.prototype, {
     url.searchParams["delete"]('open');
     window.history.replaceState({}, '', url);
 
-    if (opts.fromNavigation && isIOS()) {
+    if (opts.fromNavigation && (0, _environmentCheck.isIOS)()) {
       // Don't animate out if we've navigated back to the root screen
       this.$root.addClass('sliding-subview--immediate');
       window.setTimeout(function () {
@@ -21187,7 +27266,7 @@ SlidingSubview.prototype = window.$.extend({}, Parent.prototype, {
 });
 module.exports = SlidingSubview;
 
-},{"../environment-check":60}],78:[function(require,module,exports){
+},{"../environment-check.js":62,"./utils/utils.js":81}],80:[function(require,module,exports){
 "use strict";
 
 var ParentSlidingSubview = require('./sliding-subview.es6.js');
@@ -21264,7 +27343,31 @@ TrackerNetworks.prototype = window.$.extend({}, ParentSlidingSubview.prototype, 
 });
 module.exports = TrackerNetworks;
 
-},{"./../models/site-company-list.es6.js":63,"./../models/site.es6.js":64,"./../templates/shared/hero.es6.js":68,"./../templates/shared/tracker-network-icon.es6.js":70,"./sliding-subview.es6.js":77}],79:[function(require,module,exports){
+},{"./../models/site-company-list.es6.js":65,"./../models/site.es6.js":66,"./../templates/shared/hero.es6.js":70,"./../templates/shared/tracker-network-icon.es6.js":72,"./sliding-subview.es6.js":79}],81:[function(require,module,exports){
+"use strict";
+
+var _ripple = require("@material/ripple");
+
+function setupMaterialDesignRipple() {
+  for (var _len = arguments.length, selectors = new Array(_len), _key = 0; _key < _len; _key++) {
+    selectors[_key] = arguments[_key];
+  }
+
+  selectors.forEach(function (selector) {
+    var $matches = document.querySelectorAll(selector);
+    $matches.forEach(function ($el) {
+      $el.classList.add('material-design-ripple');
+
+      _ripple.MDCRipple.attachTo($el);
+    });
+  });
+}
+
+module.exports = {
+  setupMaterialDesignRipple: setupMaterialDesignRipple
+};
+
+},{"@material/ripple":28}],82:[function(require,module,exports){
 module.exports={
     "smartling": {
         "string_format" : "icu",
@@ -21359,7 +27462,7 @@ module.exports={
         "note": "Shown when the user navigated directly to a secure connection"
     }
 }
-},{}],80:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 module.exports={
     "smartling": {
         "string_format" : "icu",
@@ -21402,7 +27505,7 @@ module.exports={
         "note": "A permission setting that always blocks the website from using this permission"
     }
 }
-},{}],81:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 module.exports={
     "smartling": {
         "string_format" : "icu",
@@ -21474,7 +27577,7 @@ module.exports={
     }
 }
 
-},{}],82:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 module.exports={
     "smartling": {
         "string_format" : "icu",
@@ -21486,7 +27589,7 @@ module.exports={
     }
 }
 
-},{}],83:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 module.exports={
     "smartling": {
         "string_format" : "icu",
@@ -21594,7 +27697,7 @@ module.exports={
     }
 }
 
-},{}],84:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 module.exports={
   "smartling" : {
     "string_format" : "icu",
@@ -21690,7 +27793,7 @@ module.exports={
     "note" : "Shown when the user navigated directly to a secure connection"
   }
 }
-},{}],85:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 module.exports={
   "smartling" : {
     "string_format" : "icu",
@@ -21734,7 +27837,7 @@ module.exports={
     "note" : "A permission setting that always blocks the website from using this permission"
   }
 }
-},{}],86:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 module.exports={
   "smartling" : {
     "string_format" : "icu",
@@ -21807,7 +27910,7 @@ module.exports={
   }
 }
 
-},{}],87:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 module.exports={
   "smartling" : {
     "string_format" : "icu",
@@ -21820,7 +27923,7 @@ module.exports={
   }
 }
 
-},{}],88:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 module.exports={
   "smartling" : {
     "string_format" : "icu",
@@ -21925,4 +28028,4 @@ module.exports={
   }
 }
 
-},{}]},{},[51]);
+},{}]},{},[53]);

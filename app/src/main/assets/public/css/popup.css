@@ -6,7 +6,6 @@
 /* #888 */
 /* #d0d0d0 */
 /* Cards */
-/* Popover */
 /* CSS Arrow */
 /* Font variables */
 /* Status icons */
@@ -16,7 +15,6 @@
 /* #888 */
 /* #d0d0d0 */
 /* Cards */
-/* Popover */
 /* CSS Arrow */
 /* Logo */
 /* App states */
@@ -57,17 +55,6 @@ body.environment--example {
 #popup-container section::-webkit-scrollbar {
   display: none;
 }
-#popup-container .popover-title {
-  background-color: #ffffff;
-  font-size: 15px;
-  font-weight: bold;
-  line-height: 22px;
-  padding: 11px;
-  text-align: center;
-}
-.body--theme-dark #popup-container .popover-title {
-  background-color: #333333;
-}
 #popup-container .failover.card {
   position: absolute;
   top: 14px;
@@ -94,31 +81,35 @@ body.environment--example {
 .body--theme-dark #popup-container .site-info .list-wrapper {
   background-color: #333333;
 }
+.body--theme-dark.environment--android #popup-container .site-info .list-wrapper {
+  background-color: #111111;
+}
 #popup-container .site-info .default-list {
   padding-bottom: 0;
 }
 #popup-container .site-info .card-list {
   background-color: #ffffff;
-  padding-bottom: 5px;
 }
 .body--theme-dark #popup-container .site-info .card-list {
   background-color: #333333;
+}
+.body--theme-dark.environment--android #popup-container .site-info .card-list {
+  background-color: #111111;
 }
 #popup-container .site-info .card-list--bordered {
   border: 1px solid #eeeeee;
   border-radius: 12px;
 }
 .body--theme-dark #popup-container .site-info .card-list--bordered {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: #444;
 }
 #popup-container .site-info .card-list--last {
-  border-top: 1px solid #eeeeee;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.05), 0px 1px 0px rgba(0, 0, 0, 0.1);
 }
 .body--theme-dark #popup-container .site-info .card-list--last {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: #444;
 }
 #popup-container .site-info .text-line-after-icon.privacy-on-off-message {
   margin-left: 2px;
@@ -145,6 +136,10 @@ body.environment--example {
   right: 24px;
   top: 25px;
 }
+.environment--android #popup-container .site-info .site-info__toggle-container {
+  top: 30px;
+  right: 10px;
+}
 #popup-container .site-info .site-info__toggle-container .toggle-button {
   position: absolute;
   right: -2px;
@@ -160,11 +155,15 @@ body.environment--example {
   position: relative;
   padding: 24px 48px 24px 52px;
   cursor: pointer;
+  overflow: hidden;
 }
 @media (hover: hover) {
   #popup-container .site-info .site-info__li--https-status:hover {
     border-radius: 12px;
     background-color: rgba(0, 0, 0, 0.05);
+  }
+  .body--theme-dark #popup-container .site-info .site-info__li--https-status:hover {
+    background-color: #444;
   }
   #popup-container .site-info .site-info__li--https-status:hover, #popup-container .site-info .site-info__li--https-status:hover + li {
     border-color: transparent;
@@ -265,11 +264,15 @@ body.environment--example {
   position: relative;
   padding: 24px 48px 24px 52px;
   cursor: pointer;
+  overflow: hidden;
 }
 @media (hover: hover) {
   #popup-container .site-info .site-info__li--trackers:hover {
     border-radius: 12px;
     background-color: rgba(0, 0, 0, 0.05);
+  }
+  .body--theme-dark #popup-container .site-info .site-info__li--trackers:hover {
+    background-color: #444;
   }
   #popup-container .site-info .site-info__li--trackers:hover, #popup-container .site-info .site-info__li--trackers:hover + li {
     border-color: transparent;
@@ -308,11 +311,16 @@ body.environment--example {
   position: relative;
   padding: 5px 12px 12px;
   cursor: pointer;
+  overflow: hidden;
+  padding-bottom: 36px;
 }
 @media (hover: hover) {
   #popup-container .site-info .site-info__li--key-insight:hover {
     border-radius: 12px;
     background-color: rgba(0, 0, 0, 0.05);
+  }
+  .body--theme-dark #popup-container .site-info .site-info__li--key-insight:hover {
+    background-color: #444;
   }
   #popup-container .site-info .site-info__li--key-insight:hover, #popup-container .site-info .site-info__li--key-insight:hover + li {
     border-color: transparent;
@@ -344,9 +352,11 @@ body.environment--example {
   font-size: 15px;
   font-weight: 600;
 }
-#popup-container .site-info .site-info__li--key-insight .site-info__key-insight div {
+.environment--android #popup-container .site-info .site-info__li--key-insight .site-info__key-insight h1 {
   font-size: 16px;
-  line-height: 20px;
+}
+#popup-container .site-info .site-info__li--key-insight .site-info__key-insight div {
+  line-height: 1.4;
   margin-top: 8px;
 }
 #popup-container .site-info .site-info__li--manage-whitelist {
@@ -356,7 +366,8 @@ body.environment--example {
   opacity: 0.5;
 }
 #popup-container .site-info .site-info__li--manage-whitelist .manage-whitelist {
-  padding: 16px 16px 16px 18px;
+  font-size: 14px;
+  padding: 17px;
 }
 #popup-container .site-info .site-info--is-site-broken {
   display: inline-block;
@@ -405,6 +416,9 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
 }
 .body--theme-dark #popup-container .sliding-subview {
   background-color: #333333;
+}
+.body--theme-dark.environment--android #popup-container .sliding-subview {
+  background-color: #111111;
 }
 
 .search-form {
@@ -476,10 +490,16 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   position: fixed;
   z-index: 5;
   width: 100%;
-  height: 45px;
+  height: 50px;
 }
 .body--theme-dark .hero {
   background-color: #333333;
+}
+.body--theme-dark.environment--android .hero {
+  background-color: #111111;
+}
+.environment--android .hero {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .hero__icon {
@@ -489,7 +509,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   width: 18px;
   height: 18px;
   vertical-align: middle;
-  margin: 45px 0 32px 0;
+  margin: 50px 0 32px 0;
 }
 .hero__icon--hidden {
   height: 0;
@@ -524,9 +544,12 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
 
 .hero__close {
   position: absolute;
-  padding: 6px;
+  padding: 10px;
   left: 14px;
-  top: 6px;
+  top: 7px;
+  overflow: hidden;
+  border-radius: 100%;
+  display: flex;
 }
 
 .hero__done {
@@ -534,8 +557,8 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   position: absolute;
   padding: 0 6px;
   right: 14px;
-  height: 45px;
-  line-height: 45px;
+  height: 50px;
+  line-height: 50px;
   font-size: 16px;
 }
 .environment--ios .hero__done {
@@ -596,6 +619,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   background-size: 134px;
   height: 92px;
   width: 100%;
+  padding-top: 32px;
 }
 .tracker-networks .hero__subtitle {
   line-height: 18px;
@@ -605,10 +629,9 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
 }
 .tracker-networks .tracker-list-header {
   color: rgba(0, 0, 0, 0.5);
-  font-size: 14px;
-  font-weight: bold;
-  padding: 9px 0;
+  padding: 12px 0;
   text-align: center;
+  line-height: 1.5;
 }
 .body--theme-dark .tracker-networks .tracker-list-header {
   color: rgba(255, 255, 255, 0.5);
@@ -641,11 +664,9 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
 #popup-container .tracker-networks .default-list.site-info__trackers__company-list__url-list {
   padding-bottom: 20px;
   padding-top: 6px;
-  font-size: 14px;
-  line-height: 1.5;
 }
 #popup-container .tracker-networks .default-list.site-info__trackers__company-list__url-list li {
-  padding-top: 0;
+  margin-top: 6px;
 }
 
 .site-info__tracker__icon {
@@ -1532,9 +1553,9 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  font-size: 14px;
 }
 .site-info__trackers__company-list__url-list .category {
-  text-transform: uppercase;
   font-size: 12px;
   position: absolute;
   right: 0;
@@ -1561,10 +1582,9 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
 
 .certificate-header {
   color: rgba(0, 0, 0, 0.5);
-  font-size: 12px;
-  font-weight: bold;
-  padding: 9px 0;
+  padding: 12px 0;
   text-align: center;
+  line-height: 1.5;
 }
 .certificate-header--not-found {
   color: #ee1025;
@@ -1576,6 +1596,9 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   color: #ee1025;
 }
 
+.page-connection .hero__icon {
+  padding-top: 32px;
+}
 .page-connection__certificate {
   margin: -16px 0;
   padding: 0 16px;
@@ -1588,13 +1611,15 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   font-size: 14px;
   margin-bottom: 14px;
 }
+.environment--android .page-connection__certificate-details h3 {
+  font-size: 17px;
+}
 .body--theme-dark .page-connection__certificate-details h3 {
   color: rgba(255, 255, 255, 0.9);
 }
 .page-connection__certificate-details > div {
   color: #333333;
   display: flex;
-  font-size: 14px;
   margin-top: 6px;
   justify-content: space-between;
 }
@@ -1615,11 +1640,12 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   background: #333333;
 }
 .breakage-form .hero__icon {
-  background-position: top;
+  background-position: bottom;
   background-repeat: no-repeat;
   background-size: 100px;
   height: 72px;
   width: 100%;
+  padding-top: 32px;
 }
 .breakage-form .hero__icon--breakage-form {
   background-image: url("../../img/refresh-assets/Breakage-96.svg");
@@ -1633,7 +1659,13 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   text-align: center;
 }
 .body--theme-dark .breakage-form__content {
-  background: #333333;
+  background-color: #333333;
+}
+.body--theme-dark.environment--android .breakage-form__content {
+  background-color: #111111;
+}
+.body--theme-dark.environment--android .breakage-form__content {
+  background-color: #111111;
 }
 .breakage-form__content .breakage-form__close-container {
   top: 13px;
@@ -1706,7 +1738,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
   text-align: right;
 }
 .body--theme-dark .breakage-form__content .form__group {
-  background: #444;
+  background-color: #444;
 }
 .breakage-form__content .form__select {
   margin-bottom: 10px;
@@ -1737,7 +1769,7 @@ body.is-disabled #popup-container .site-info .link-secondary:hover {
 }
 .breakage-form__content .form__textarea .body--theme-dark.environment--windows {
   background-color: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: #444;
   color: #ffffff;
 }
 .breakage-form__content .form__textarea .body--theme-dark.environment--windows::placeholder {
