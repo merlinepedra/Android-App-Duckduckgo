@@ -325,7 +325,10 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                 pixel.fire(PRIVACY_DASHBOARD_WHITELIST_ADD)
             }
             withContext(dispatcher.main()) {
-                viewState.value = viewState.value!!.copy(userChangedValues = true)
+                viewState.value = viewState.value!!.copy(
+                    userSettingsViewState = viewState.value!!.userSettingsViewState.copy(privacyProtectionEnabled = enabled),
+                    userChangedValues = true
+                )
             }
         }
     }
