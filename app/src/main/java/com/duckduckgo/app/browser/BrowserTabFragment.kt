@@ -2349,20 +2349,24 @@ class BrowserTabFragment :
                 // TODO: put dark/light animation
                 when (privacyShield) {
                     PROTECTED -> {
-                        shieldIcon.setAnimation(raw.protected_shield)
+                        val res = if (appTheme.isLightModeEnabled()) raw.protected_shield else raw.dark_protected_shield
+                        shieldIcon.setAnimation(res)
                         Timber.i("Shield: PROTECTED")
                     }
                     UNPROTECTED -> {
-                        shieldIcon.setAnimation(raw.unprotected_shield)
+                        val res = if (appTheme.isLightModeEnabled()) raw.unprotected_shield else raw.dark_unprotected_shield
+                        shieldIcon.setAnimation(res)
                         shieldIcon.progress = 1.0f
                         Timber.i("Shield: UNPROTECTED")
                     }
                     UNKNOWN -> {
-                        shieldIcon.setAnimation(raw.protected_shield)
+                        val res = if (appTheme.isLightModeEnabled()) raw.protected_shield else raw.dark_protected_shield
+                        shieldIcon.setAnimation(res)
                         Timber.i("Shield: UNKNOWN")
                     }
                     WARNING -> {
-                        shieldIcon.setAnimation(raw.unprotected_shield)
+                        val res = if (appTheme.isLightModeEnabled()) raw.unprotected_shield else raw.dark_unprotected_shield
+                        shieldIcon.setAnimation(res)
                         shieldIcon.progress = 1.0f
                         Timber.i("Shield: WARNING")
                     }
