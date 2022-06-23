@@ -4,6 +4,12 @@ plugins {
 
 include ':app'
 
+"site-permissions".with {
+    include ":$it-api"; project(":$it-api").projectDir = new File("$it/$it-api")
+    include ":$it-impl"; project(":$it-impl").projectDir = new File("$it/$it-impl")
+    include ":$it-store"; project(":$it-store").projectDir = new File("$it/$it-store")
+}
+
 "feature-toggles".with {
     include ":$it-api"; project(":$it-api").projectDir = new File("$it/$it-api")
     include ":$it-impl"; project(":$it-impl").projectDir = new File("$it/$it-impl")
