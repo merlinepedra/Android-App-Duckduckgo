@@ -494,6 +494,11 @@ class BrowserLottieTrackersAnimatorHelper {
     private var listener: TrackersAnimatorListener? = null
     private lateinit var trackersAnimation: LottieAnimationView
     private lateinit var shieldAnimation: LottieAnimationView
+    private var currentCta: Cta? = null
+    private val isCtaVisible
+        get() = currentCta is DaxDialogCta.DaxTrackersBlockedCta
+
+    private var partialAnimation: Boolean = false
 
     fun startTrackersAnimation(
         cta: Cta?,
@@ -506,6 +511,7 @@ class BrowserLottieTrackersAnimatorHelper {
     ) {
         this.trackersAnimation = trackersAnimationView
         this.shieldAnimation = shieldAnimationView
+        this.currentCta = cta
 
         if (trackersAnimationView.isAnimating) return
 
@@ -558,12 +564,16 @@ class BrowserLottieTrackersAnimatorHelper {
             }
             this.addAnimatorListener(object : AnimatorListener {
                 override fun onAnimationStart(animation: Animator?) {
+                    if (partialAnimation) return
                     animateOmnibarOut(omnibarViews).start()
                 }
 
                 override fun onAnimationEnd(animation: Animator?) {
                     Timber.i("Lottie: onAnimationEnd")
-                    animateOmnibarIn(omnibarViews).start()
+                    if (!isCtaVisible) {
+                        animateOmnibarIn(omnibarViews).start()
+                        partialAnimation = false
+                    }
                 }
 
                 override fun onAnimationCancel(animation: Animator?) {
@@ -572,6 +582,15 @@ class BrowserLottieTrackersAnimatorHelper {
                 override fun onAnimationRepeat(animation: Animator?) {
                 }
             })
+
+            Timber.i("Lottie: isCtaVisible $isCtaVisible")
+            if (isCtaVisible) {
+                this.setMaxProgress(0.5f)
+                shieldAnimationView.setMaxProgress(0.5f)
+            } else {
+                this.setMaxProgress(1f)
+                shieldAnimationView.setMaxProgress(1f)
+            }
             shieldAnimationView.playAnimation()
             this.playAnimation()
         }
@@ -690,11 +709,20 @@ class BrowserLottieTrackersAnimatorHelper {
         omnibarViews: List<View>,
         container: ViewGroup
     ) {
-        TODO()
+        currentCta = null
+        partialAnimation = true
+        Timber.i("Lottie: finishTrackerAnimation")
+        this.trackersAnimation.setMinAndMaxProgress(0.5f, 1f)
+        this.shieldAnimation.setMinAndMaxProgress(0.5f, 1f)
+        this.trackersAnimation.playAnimation()
+        this.shieldAnimation.playAnimation()
     }
 
     private fun stopTrackersAnimation() {
+        Timber.i("Lottie: stopTrackersAnimation")
         if (!::trackersAnimation.isInitialized || !::shieldAnimation.isInitialized) return
+
+        Timber.i("Lottie: stopTrackersAnimation real")
         trackersAnimation.cancelAnimation()
         trackersAnimation.progress = 1f
         if (shieldAnimation.isAnimating) {

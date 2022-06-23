@@ -1994,7 +1994,8 @@ class BrowserTabFragment :
 
     private fun finishTrackerAnimation() {
         Timber.i("Lottie: finishTrackerAnimation")
-        animatorHelper.finishTrackerAnimation(omnibarViews(), animationContainer)
+        // animatorHelper.finishTrackerAnimation(omnibarViews(), animationContainer)
+        animatorHelper2.finishTrackerAnimation(omnibarViews(), animationContainer)
     }
 
     private fun showHideTipsDialog(cta: Cta) {
