@@ -49,7 +49,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.tls.certificatePem
-import okio.internal.commonToUtf8String
 import okio.utf8Size
 import timber.log.Timber
 import java.util.*
@@ -290,8 +289,6 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                 )
             }
 
-            site.certificate?.map()
-
             viewState.value = ViewState(
                 siteProtectionsViewState = SiteProtectionsViewState(
                     url = site.url,
@@ -356,8 +353,6 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     )
 
     private fun SslCertificate.map(): CertificateViewState {
-        Timber.i("cert: ${this.issuedBy.cName}")
-
         val publicKeyInfo = publicKeyInfo()
         return CertificateViewState(
             commonName = this.issuedTo.cName,
@@ -385,7 +380,10 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     private fun SslCertificate.publicKeyInfo(): PublicKeyInfo? {
         if (Build.VERSION.SDK_INT < VERSION_CODES.Q) return null
 
-        return this.x509Certificate?.let {
+        Timber.i("cert: issuedBy ${this.issuedBy.cName}")
+        Timber.i("cert: issuedTo ${this.issuedTo.cName}")
+
+        return this.x509Certificate?.let { it ->
             Timber.i("cert: constr ${it.basicConstraints}")
             Timber.i("cert: sigAlgName ${it.sigAlgName}")
             Timber.i("cert: sigAlgName size ${it.sigAlgName.utf8Size()}")
@@ -399,10 +397,16 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
             Timber.i("cert: certificatePem size ${it.certificatePem().utf8Size()}")
             Timber.i("cert: tbsCertificate ${it.tbsCertificate}")
             Timber.i("cert: tbsCertificate size ${it.tbsCertificate.size}")
+            it.keyUsage.forEach { usage ->
+                Timber.i("cert: keyUsage $usage")
+            }
+            it.extendedKeyUsage.forEach { usage ->
+                Timber.i("cert: extendedKeyUsage $usage")
+            }
             Timber.i("cert: alg ${it.publicKey.algorithm}")
             Timber.i("cert: format ${it.publicKey.format}")
             Timber.i("cert: encoded ${it.publicKey.encoded}")
-            Timber.i("cert: encoded size ${it.publicKey.encoded.commonToUtf8String().utf8Size()}")
+            Timber.i("cert: encoded size ${it.publicKey.encoded.size}")
 
             val bundle = SslCertificate.saveState(this)
             val bytes = bundle.getByteArray("x509-certificate")
