@@ -44,6 +44,7 @@ import com.duckduckgo.privacy.config.api.ContentBlocking
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -323,6 +324,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
                 userWhitelistDao.insert(viewState.value!!.siteProtectionsViewState.site.domain)
                 pixel.fire(PRIVACY_DASHBOARD_WHITELIST_ADD)
             }
+            delay(300)
             withContext(dispatcher.main()) {
                 viewState.value = viewState.value!!.copy(
                     userSettingsViewState = viewState.value!!.userSettingsViewState.copy(privacyProtectionEnabled = enabled),
