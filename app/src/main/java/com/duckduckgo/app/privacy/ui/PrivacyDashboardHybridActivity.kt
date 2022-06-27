@@ -229,6 +229,7 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
         Timber.i("PDHy: updateActivityResult $shouldReload")
         if (shouldReload) {
             setResult(RELOAD_RESULT_CODE)
+            finish()
         } else {
             setResult(Activity.RESULT_OK)
         }
