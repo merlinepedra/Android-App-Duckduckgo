@@ -48,9 +48,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.tls.certificatePem
-import okio.utf8Size
 import timber.log.Timber
+import java.security.cert.X509Certificate
+import java.security.interfaces.DSAPublicKey
+import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
 import java.util.*
 import javax.inject.Inject
 
@@ -189,7 +191,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     }
 
     fun onSiteChanged(site: Site?) {
-        Timber.i("PDHy: $site")
+        Timber.i("PDHy: onSiteChanged $site")
         this.site = site
         if (site == null) {
             resetViewState()
@@ -354,23 +356,25 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
 
     private fun SslCertificate.map(): CertificateViewState {
         val publicKeyInfo = publicKeyInfo()
+
         return CertificateViewState(
             commonName = this.issuedTo.cName,
+            summary = this.issuedTo.cName,
             publicKey = publicKeyInfo?.let {
                 PublicKeyViewState(
                     blockSize = publicKeyInfo.blockSize,
-                    canEncrypt = publicKeyInfo.canEncrypt,
                     bitSize = publicKeyInfo.bitSize,
+                    canEncrypt = publicKeyInfo.canEncrypt,
                     canSign = publicKeyInfo.canSign,
                     canDerive = publicKeyInfo.canDerive,
                     canUnwrap = publicKeyInfo.canUnwrap,
                     canWrap = publicKeyInfo.canWrap,
                     canDecrypt = publicKeyInfo.canDecrypt,
+                    canVerify = publicKeyInfo.canVerify,
                     effectiveSize = publicKeyInfo.effectiveSize,
                     isPermanent = publicKeyInfo.isPermanent,
                     type = publicKeyInfo.type,
                     externalRepresentation = publicKeyInfo.externalRepresentation,
-                    canVerify = publicKeyInfo.canVerify,
                     keyId = publicKeyInfo.keyId
                 )
             }
@@ -380,23 +384,7 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
     private fun SslCertificate.publicKeyInfo(): PublicKeyInfo? {
         if (Build.VERSION.SDK_INT < VERSION_CODES.Q) return null
 
-        Timber.i("cert: issuedBy ${this.issuedBy.cName}")
-        Timber.i("cert: issuedTo ${this.issuedTo.cName}")
-
         return this.x509Certificate?.let { it ->
-            Timber.i("cert: constr ${it.basicConstraints}")
-            Timber.i("cert: sigAlgName ${it.sigAlgName}")
-            Timber.i("cert: sigAlgName size ${it.sigAlgName.utf8Size()}")
-            Timber.i("cert: sigAlgOID ${it.sigAlgOID}")
-            Timber.i("cert: sigAlgOID size ${it.sigAlgOID.utf8Size()}")
-            Timber.i("cert: sigAlgParams ${it.sigAlgParams}")
-            Timber.i("cert: sigAlgParams size ${it.sigAlgParams?.size}")
-            Timber.i("cert: version ${it.version}")
-            Timber.i("cert: signature size ${it.signature.size}")
-            Timber.i("cert: certificatePem ${it.certificatePem()}")
-            Timber.i("cert: certificatePem size ${it.certificatePem().utf8Size()}")
-            Timber.i("cert: tbsCertificate ${it.tbsCertificate}")
-            Timber.i("cert: tbsCertificate size ${it.tbsCertificate?.size}")
             it.keyUsage.forEach { usage ->
                 Timber.i("cert: keyUsage $usage")
             }
@@ -405,18 +393,33 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
             }
             Timber.i("cert: alg ${it.publicKey.algorithm}")
             Timber.i("cert: format ${it.publicKey.format}")
-            Timber.i("cert: encoded ${it.publicKey.encoded}")
-            Timber.i("cert: encoded size ${it.publicKey.encoded.size}")
 
-            val bundle = SslCertificate.saveState(this)
-            val bytes = bundle.getByteArray("x509-certificate")
-            Timber.i("cert: bytes ${bytes!!.size}")
+            val bitSize = certificateBitSize(it)
+            Timber.i("cert: manual calculation $bitSize")
 
             PublicKeyInfo(
                 type = it.publicKey.algorithm,
-                bitSize = it.signature.size * 8,
-                effectiveSize = it.signature.size * 8
+                bitSize = bitSize
             )
         }
+    }
+
+    private fun SslCertificate.certificateBitSize(it: X509Certificate) = when (val publicKey = it.publicKey) {
+        is RSAPublicKey -> {
+            publicKey.modulus.bitLength()
+        }
+        is DSAPublicKey -> {
+            runCatching {
+                publicKey.params?.let {
+                    it.p.bitLength()
+                } ?: publicKey.y.bitLength()
+            }.getOrNull()
+        }
+        is ECPublicKey -> {
+            runCatching {
+                publicKey.params.order.bitLength()
+            }.getOrNull()
+        }
+        else -> null
     }
 }
