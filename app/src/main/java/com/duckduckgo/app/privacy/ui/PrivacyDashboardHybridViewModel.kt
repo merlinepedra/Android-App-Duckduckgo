@@ -390,13 +390,13 @@ class PrivacyDashboardHybridViewModel @Inject constructor(
             Timber.i("cert: sigAlgOID ${it.sigAlgOID}")
             Timber.i("cert: sigAlgOID size ${it.sigAlgOID.utf8Size()}")
             Timber.i("cert: sigAlgParams ${it.sigAlgParams}")
-            Timber.i("cert: sigAlgParams size ${it.sigAlgParams.size}")
+            Timber.i("cert: sigAlgParams size ${it.sigAlgParams?.size}")
             Timber.i("cert: version ${it.version}")
             Timber.i("cert: signature size ${it.signature.size}")
             Timber.i("cert: certificatePem ${it.certificatePem()}")
             Timber.i("cert: certificatePem size ${it.certificatePem().utf8Size()}")
             Timber.i("cert: tbsCertificate ${it.tbsCertificate}")
-            Timber.i("cert: tbsCertificate size ${it.tbsCertificate.size}")
+            Timber.i("cert: tbsCertificate size ${it.tbsCertificate?.size}")
             it.keyUsage.forEach { usage ->
                 Timber.i("cert: keyUsage $usage")
             }
