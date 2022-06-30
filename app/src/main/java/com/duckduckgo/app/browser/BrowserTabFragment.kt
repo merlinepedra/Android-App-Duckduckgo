@@ -1397,9 +1397,9 @@ class BrowserTabFragment :
     }
 
     private fun configurePrivacyGrade() {
-        toolbar.privacyGradeButton.setOnClickListener {
+        /*toolbar.privacyGradeButton.setOnClickListener {
             browserActivity?.launchPrivacyDashboard()
-        }
+        }*/
         toolbar.shieldIcon.setOnClickListener {
             browserActivity?.launchPrivacyDashboard()
         }
@@ -2338,7 +2338,6 @@ class BrowserTabFragment :
 
             Timber.i("Shield: event received with ${viewState.privacyShield}")
             renderIfChanged(viewState, lastSeenPrivacyGradeViewState) {
-
                 if (viewState.privacyShield == lastSeenPrivacyGradeViewState?.privacyShield) return
                 val oldShield = lastSeenPrivacyGradeViewState?.privacyShield
                 lastSeenPrivacyGradeViewState = viewState
@@ -2370,8 +2369,6 @@ class BrowserTabFragment :
                         Timber.i("Shield: WARNING")
                     }
                 }
-
-                // privacyGradeButton?.isEnabled = viewState.isEnabled
             }
         }
 
