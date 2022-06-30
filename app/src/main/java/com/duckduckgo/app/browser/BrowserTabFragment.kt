@@ -747,9 +747,10 @@ class BrowserTabFragment :
     }
 
     private fun processCommand(it: Command?) {
+        Timber.i("Lottie: command $it")
         if (it !is Command.DaxCommand) {
             Timber.i("Lottie: will cancel animations $it")
-            if (it == Command.Refresh) {
+            if (it is Command.Refresh || it is Command.NavigateForward || it is Command.Navigate || it is Command.NavigateBack) {
                 renderer.cancelTrackersAnimation()
             }
         }
@@ -2345,8 +2346,6 @@ class BrowserTabFragment :
                 val privacyShield = viewState.privacyShield
 
                 Timber.i("Shield: old $oldShield new $privacyShield ")
-                // TODO: put unprotected animation
-                // TODO: put dark/light animation
                 when (privacyShield) {
                     PROTECTED -> {
                         val res = if (appTheme.isLightModeEnabled()) raw.protected_shield else raw.dark_protected_shield
@@ -2360,8 +2359,8 @@ class BrowserTabFragment :
                         Timber.i("Shield: UNPROTECTED")
                     }
                     UNKNOWN -> {
-                        val res = if (appTheme.isLightModeEnabled()) raw.protected_shield else raw.dark_protected_shield
-                        shieldIcon.setAnimation(res)
+                        /*val res = if (appTheme.isLightModeEnabled()) raw.protected_shield else raw.dark_protected_shield
+                        shieldIcon.setAnimation(res)*/
                         Timber.i("Shield: UNKNOWN")
                     }
                     WARNING -> {
