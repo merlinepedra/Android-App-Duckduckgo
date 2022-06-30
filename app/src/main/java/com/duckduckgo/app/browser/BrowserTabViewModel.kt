@@ -124,7 +124,7 @@ import com.duckduckgo.privacy.config.api.AmpLinks
 import com.duckduckgo.privacy.config.api.AmpLinkInfo
 import com.duckduckgo.remote.messaging.api.RemoteMessage
 import com.duckduckgo.privacy.config.api.TrackingParameters
-import com.duckduckgo.site.permissions.api.SitePermissionsRepository
+import com.duckduckgo.site.permissions.api.SitePermissionsManager
 import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -178,7 +178,7 @@ class BrowserTabViewModel @Inject constructor(
     private val voiceSearchAvailability: VoiceSearchAvailability,
     private val voiceSearchPixelLogger: VoiceSearchAvailabilityPixelLogger,
     private val settingsDataStore: SettingsDataStore,
-    private val sitePermissionsRepository: SitePermissionsRepository
+    private val sitePermissionsManager: SitePermissionsManager
 ) : WebViewClientListener,
     EditSavedSiteListener,
     HttpAuthenticationListener,
@@ -437,6 +437,7 @@ class BrowserTabViewModel @Inject constructor(
         class ShowBackNavigationHistory(val history: List<NavigationHistoryEntry>) : Command()
         class NavigateToHistory(val historyStackIndex: Int) : Command()
         object EmailSignEvent : Command()
+        class ShowSitePermissionsDialog(val permissionsToRequest: Array<String>) : Command()
     }
 
     val autoCompleteViewState: MutableLiveData<AutoCompleteViewState> = MutableLiveData()
@@ -1382,7 +1383,10 @@ class BrowserTabViewModel @Inject constructor(
     }
 
     override fun onSitePermissionRequested(request: PermissionRequest) {
-        sitePermissionsRepository.sitePermissionsRequested(request)
+        val permissionsToRequest = sitePermissionsManager.getPermissionsAllowedToAsk(request)
+        if (permissionsToRequest.isNotEmpty()) {
+            command.value = ShowSitePermissionsDialog(permissionsToRequest)
+        }
     }
 
     override fun onSiteLocationPermissionRequested(
