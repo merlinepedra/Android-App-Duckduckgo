@@ -542,12 +542,14 @@ class BrowserTabFragment :
     }
 
     override fun onPause() {
+        Timber.i("PDHy: tabfragment onPause")
         dismissDownloadFragment()
         dismissAuthenticationDialog()
         super.onPause()
     }
 
     override fun onStop() {
+        trackerAnimationContainer.removeView(trackersAnimation)
         alertDialog?.dismiss()
         super.onStop()
     }
@@ -2465,11 +2467,21 @@ class BrowserTabFragment :
                     val site = viewModel.siteLiveData.value
                     val events = site?.orderedTrackingEntities()
 
+                    Timber.i("Lottie fix: trackers $trackersAnimation")
+                    Timber.i("Lottie fix: trackers attached ${trackersAnimation.isAttachedToWindow}")
+                    Timber.i("Lottie fix: container child count ${trackerAnimationContainer.childCount}")
+                    Timber.i("Lottie fix: shield $shieldIcon")
+                    val trackerAnimationView = if (trackersAnimation.isAttachedToWindow) {
+                        trackersAnimation
+                    } else {
+                        layoutInflater.inflate(R.layout.view_tracker_animation, trackerAnimationContainer, true).findViewById(R.id.trackersAnimation)
+                    }
+
                     activity?.let { activity ->
                         // animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
                         animatorHelper2.startTrackersAnimation(
                             lastSeenCtaViewState?.cta, activity,
-                            shieldIcon, trackersAnimation, omnibarViews(), events, appTheme
+                            shieldIcon, trackerAnimationView, omnibarViews(), events, appTheme
                         )
                     }
                 }

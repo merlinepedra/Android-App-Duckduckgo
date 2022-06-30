@@ -543,22 +543,24 @@ class BrowserLottieTrackersAnimatorHelper {
                     "image_0" -> {
                         kotlin.runCatching { logos[0].asDrawable(activity) }
                             .getOrDefault(
-                                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
+                                ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
                             )
                     }
                     "image_1" -> {
                         kotlin.runCatching { logos[1].asDrawable(activity) }
                             .getOrDefault(
-                                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
+                                ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
                             )
                     }
                     "image_2" -> {
                         kotlin.runCatching { logos[2].asDrawable(activity) }
                             .getOrDefault(
-                                ContextCompat.getDrawable(activity, R.drawable.network_logo_amazon_technologies_inc)!!.toBitmap()
+                                ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
                             )
                     }
-                    "image_3" -> ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
+                    "image_3" ->
+                        kotlin.runCatching { logos[3].asDrawable(activity) }
+                            .getOrNull()
                     else -> TODO()
                 }
             }
@@ -614,7 +616,7 @@ class BrowserLottieTrackersAnimatorHelper {
             when (this) {
                 is ImageLogo -> ContextCompat.getDrawable(activity, resId)!!.toBitmap()
                 is LetterLogo -> generateDefaultDrawable(activity, this.trackerLetter).toBitmap(24.toPx(), 24.toPx())
-                is StackedLogo -> TODO()
+                is StackedLogo -> ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
             }
         }.getOrThrow()
     }

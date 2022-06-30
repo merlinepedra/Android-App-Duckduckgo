@@ -21,9 +21,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
-import android.webkit.JsPromptResult
-import android.webkit.JsResult
-import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -37,7 +34,6 @@ import com.duckduckgo.app.browser.databinding.ActivityPrivacyHybridDashboardBind
 import com.duckduckgo.app.browser.webview.enableDarkMode
 import com.duckduckgo.app.browser.webview.enableLightMode
 import com.duckduckgo.app.global.DuckDuckGoActivity
-import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.CertificateViewState
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.Command.LaunchReportBrokenSite
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardHybridViewModel.EntityViewState
@@ -48,9 +44,7 @@ import com.duckduckgo.app.tabs.tabId
 import com.duckduckgo.di.scopes.ActivityScope
 import com.duckduckgo.mobile.android.ui.DuckDuckGoTheme
 import com.duckduckgo.mobile.android.ui.viewbinding.viewBinding
-import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -134,38 +128,6 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
                 setupObservers()
             }
         }
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onJsAlert(
-                view: WebView?,
-                url: String?,
-                message: String?,
-                result: JsResult?
-            ): Boolean {
-                Timber.i("PDHy: onJsAlert")
-                return super.onJsAlert(view, url, message, result)
-            }
-
-            override fun onJsConfirm(
-                view: WebView?,
-                url: String?,
-                message: String?,
-                result: JsResult?
-            ): Boolean {
-                Timber.i("PDHy: onJsConfirm")
-                return super.onJsConfirm(view, url, message, result)
-            }
-
-            override fun onJsPrompt(
-                view: WebView?,
-                url: String?,
-                message: String?,
-                defaultValue: String?,
-                result: JsPromptResult?
-            ): Boolean {
-                Timber.i("PDHy: onJsPrompt")
-                return super.onJsPrompt(view, url, message, defaultValue, result)
-            }
-        }
 
         webView.addJavascriptInterface(
             PrivacyDashboardJavascriptInterface(
@@ -206,10 +168,6 @@ class PrivacyDashboardHybridActivity : DuckDuckGoActivity() {
 
             val adapterParententity = moshi.adapter(EntityViewState::class.java)
             val parentEntityJson = adapterParententity.toJson(it.siteProtectionsViewState.parentEntity)
-
-            val type = Types.newParameterizedType(List::class.java, CertificateViewState::class.java)
-            val adapterCertifiate: JsonAdapter<List<CertificateViewState?>> = moshi.adapter(type)
-            val certificateJson = adapterCertifiate.toJson(it.siteProtectionsViewState.secCertificateViewModels)
 
             Timber.i("PDHy: received $json")
             Timber.i("PDHy: parentEntityJson $parentEntityJson")
