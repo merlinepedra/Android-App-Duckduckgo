@@ -618,7 +618,7 @@ class BrowserLottieTrackersAnimatorHelper {
             when (this) {
                 is ImageLogo -> ContextCompat.getDrawable(activity, resId)!!.toBitmap()
                 is LetterLogo -> generateDefaultDrawable(activity, this.trackerLetter).toBitmap(24.toPx(), 24.toPx())
-                is StackedLogo -> ContextCompat.getDrawable(activity, R.drawable.network_logo_blank)!!.toBitmap()
+                is StackedLogo -> ContextCompat.getDrawable(activity, R.drawable.network_logo_more)!!.toBitmap()
             }
         }.getOrThrow()
     }
