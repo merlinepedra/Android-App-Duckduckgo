@@ -2463,6 +2463,9 @@ class BrowserTabFragment :
                 delay(TRACKERS_INI_DELAY)
                 viewModel.refreshCta()
                 delay(TRACKERS_SECONDARY_DELAY)
+                if (isHidden) {
+                    return@launch
+                }
                 if (lastSeenOmnibarViewState?.isEditing != true) {
                     val site = viewModel.siteLiveData.value
                     val events = site?.orderedTrackingEntities()
