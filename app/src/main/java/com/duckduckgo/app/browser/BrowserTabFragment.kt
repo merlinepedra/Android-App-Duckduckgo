@@ -195,6 +195,7 @@ import com.duckduckgo.downloads.api.FileDownloader
 import com.duckduckgo.downloads.api.FileDownloader.PendingFileDownload
 import com.duckduckgo.mobile.android.ui.store.BrowserAppTheme
 import com.google.android.material.snackbar.BaseTransientBottomBar
+import kotlinx.android.synthetic.main.view_tracker_animation.*
 import kotlinx.coroutines.flow.cancellable
 import javax.inject.Provider
 
@@ -549,7 +550,9 @@ class BrowserTabFragment :
     }
 
     override fun onStop() {
-        trackerAnimationContainer.removeView(trackersAnimation)
+        Timber.i("PDHy: tabfragment onStop")
+        renderer.cancelTrackersAnimation()
+        trackerAnimationContainer.removeAllViews()
         alertDialog?.dismiss()
         super.onStop()
     }
@@ -2470,13 +2473,15 @@ class BrowserTabFragment :
                     val site = viewModel.siteLiveData.value
                     val events = site?.orderedTrackingEntities()
 
-                    Timber.i("Lottie fix: trackers $trackersAnimation")
-                    Timber.i("Lottie fix: trackers attached ${trackersAnimation.isAttachedToWindow}")
-                    Timber.i("Lottie fix: container child count ${trackerAnimationContainer.childCount}")
-                    Timber.i("Lottie fix: shield $shieldIcon")
-                    val trackerAnimationView = if (trackersAnimation.isAttachedToWindow) {
+                    Timber.i("Lottie fix: trackers ${site?.url} $trackersAnimation")
+                    Timber.i("Lottie fix: trackers ${site?.url} attached ${trackersAnimation?.isAttachedToWindow}")
+                    Timber.i("Lottie fix: container ${site?.url} child count ${trackerAnimationContainer.childCount}")
+                    Timber.i("Lottie fix: shield ${site?.url} $shieldIcon")
+
+                    val trackerAnimationView = if (trackersAnimation?.isAttachedToWindow == true) {
                         trackersAnimation
                     } else {
+                        Timber.i("Lottie fix: inflate new view ${site?.url}")
                         layoutInflater.inflate(R.layout.view_tracker_animation, trackerAnimationContainer, true).findViewById(R.id.trackersAnimation)
                     }
 

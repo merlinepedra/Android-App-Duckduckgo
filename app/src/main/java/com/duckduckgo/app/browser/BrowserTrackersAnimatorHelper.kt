@@ -513,6 +513,7 @@ class BrowserLottieTrackersAnimatorHelper {
         this.shieldAnimation = shieldAnimationView
         this.currentCta = cta
 
+        Timber.i("Lottie: isAnimating ${trackersAnimationView.isAnimating}")
         if (trackersAnimationView.isAnimating) return
 
         if (entities.isNullOrEmpty()) { // no badge nor tracker animations
@@ -566,6 +567,7 @@ class BrowserLottieTrackersAnimatorHelper {
             }
             this.addAnimatorListener(object : AnimatorListener {
                 override fun onAnimationStart(animation: Animator?) {
+                    Timber.i("Lottie: onAnimationStart")
                     if (partialAnimation) return
                     animateOmnibarOut(omnibarViews).start()
                 }
