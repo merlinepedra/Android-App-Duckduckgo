@@ -417,7 +417,6 @@
     </style>
 
     <style name="LocationPermissionDialogTitle">
-        <item name="android:textAlignment">center</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">?attr/normalTextColor</item>
@@ -428,7 +427,6 @@
 
     <style name="LocationPermissionDialogSubtitle">
         <item name="android:layout_marginTop">12dp</item>
-        <item name="android:textAlignment">center</item>
         <item name="android:textStyle">normal</item>
         <item name="android:layout_marginStart">24dp</item>
         <item name="android:layout_marginEnd">24dp</item>
