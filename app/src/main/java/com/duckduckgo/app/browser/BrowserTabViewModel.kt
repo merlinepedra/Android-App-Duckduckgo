@@ -98,7 +98,6 @@ import com.duckduckgo.app.pixels.AppPixelName
 import com.duckduckgo.app.privacy.db.NetworkLeaderboardDao
 import com.duckduckgo.app.privacy.db.UserWhitelistDao
 import com.duckduckgo.app.privacy.model.PrivacyShield
-import com.duckduckgo.app.privacy.model.PrivacyShield.UNPROTECTED
 import com.duckduckgo.app.settings.db.SettingsDataStore
 import com.duckduckgo.app.settings.db.SettingsSharedPreferences.LoginDetectorPrefsMapper.AutomaticFireproofSetting.ALWAYS
 import com.duckduckgo.app.settings.db.SettingsSharedPreferences.LoginDetectorPrefsMapper.AutomaticFireproofSetting.ASK_EVERY_TIME
@@ -1620,6 +1619,7 @@ class BrowserTabViewModel @Inject constructor(
             Timber.i("Shield: privacyProtection $privacyProtection")
             withContext(dispatchers.main()) {
                 siteLiveData.value = site
+                privacyGradeViewState.value = currentPrivacyGradeState().copy(privacyShield = privacyProtection)
             }
             withContext(dispatchers.io()) {
                 tabRepository.update(tabId, site)
