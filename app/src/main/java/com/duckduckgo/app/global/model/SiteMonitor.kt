@@ -88,8 +88,6 @@ class SiteMonitor(
     override val allTrackersBlocked: Boolean
         get() = trackingEvents.none { !it.blocked }
 
-    // private val gradeCalculator: Shield
-
     private var fullSiteDetailsAvailable: Boolean = false
 
     private var currentProtection: PrivacyShield = PrivacyShield.UNKNOWN
@@ -100,23 +98,18 @@ class SiteMonitor(
 
     init {
         // httpsAutoUpgrade is not supported yet; for now, keep it equal to isHttps and don't penalise sites
-        // gradeCalculator = Shield(https = isHttps, httpsAutoUpgrade = isHttps)
         appCoroutineScope.launch {
             domain?.let { userAllowList = isWhitelisted(it) }
         }
     }
 
     override fun updatePrivacyData(sitePrivacyData: SitePrivacyData) {
-        this.privacyPractices = sitePrivacyData.practices
         this.entity = sitePrivacyData.entity
-
-        Timber.i("PDHy: fullSiteDetailsAvailable for ${sitePrivacyData.entity}")
+        Timber.i("PDHy: fullSiteDetailsAvailable entity ${sitePrivacyData.entity} for $domain")
         fullSiteDetailsAvailable = true
-        // gradeCalculator.updateData(entity) //TODO: do we need this call?
     }
 
     private fun httpsStatus(): HttpsStatus {
-
         val uri = uri ?: return HttpsStatus.NONE
 
         if (uri.isHttps) {
@@ -132,37 +125,28 @@ class SiteMonitor(
 
     override fun trackerDetected(event: TrackingEvent) {
         trackingEvents.add(event)
-
-        val entity = event.entity ?: return
-        /*if (event.blocked) {
-            gradeCalculator.addEntityBlocked(entity)
-        } else {
-            gradeCalculator.addEntityNotBlocked(entity)
-        }*/
     }
 
     // TODO: remove?
     override fun calculateGrades(): SiteGrades {
         TODO()
-        /*val scores = gradeCalculator.calculateScore()
-        val privacyGradeOriginal = privacyGrade(scores)
-        val privacyGradeImproved = privacyGradeImproved(scores)
-        return SiteGrades(privacyGradeOriginal, privacyGradeImproved)*/
     }
 
     override fun privacyProtection(): PrivacyShield {
+        userAllowList = domain?.let { isWhitelisted(it) } ?: false
+        if (userAllowList || !isHttps) return UNPROTECTED
+
         if (!fullSiteDetailsAvailable) {
-            Timber.i("Shield: not fullSiteDetailsAvailable")
+            Timber.i("Shield: not fullSiteDetailsAvailable for $domain")
+            Timber.i("Shield: entity is ${entity?.name} for $domain")
             return UNKNOWN
         }
-        val isMajorNetwork = entity?.isMajor == true
-        Timber.i("Shield: isMajor ${entity?.isMajor} prev ${entity?.prevalence}")
-        userAllowList = domain?.let { isWhitelisted(it) } ?: false
 
-        return when {
-            !userAllowList && !isMajorNetwork && isHttps -> PROTECTED
-            else -> UNPROTECTED
-        }
+        val isMajorNetwork = entity?.isMajor == true
+        Timber.i("Shield: isMajor ${entity?.isMajor} prev ${entity?.prevalence} for $domain")
+
+        if (isMajorNetwork) return UNPROTECTED
+        return PROTECTED
     }
 
     @WorkerThread
