@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@duckduckgo/autofill": "github:duckduckgo/duckduckgo-autofill#4.6.0",
+    "@duckduckgo/autofill": "github:duckduckgo/duckduckgo-autofill#4.7.0",
     "@duckduckgo/privacy_dashboard": "github:more-duckduckgo-org/duckduckgo-privacy-dashboard#90a191b462c6509ffb968577c54365e4897246b2"
   }
 }
