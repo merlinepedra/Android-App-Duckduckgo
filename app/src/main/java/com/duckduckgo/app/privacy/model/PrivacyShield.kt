@@ -16,6 +16,16 @@
 
 package com.duckduckgo.app.privacy.model
 
+enum class PrivacyGrade {
+    A,
+    B_PLUS,
+    B,
+    C_PLUS,
+    C,
+    D,
+    UNKNOWN
+}
+
 enum class PrivacyShield {
     PROTECTED,
     UNPROTECTED,

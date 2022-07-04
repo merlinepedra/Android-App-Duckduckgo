@@ -358,8 +358,7 @@ class BrowserTabFragment :
         viewModel
     }
 
-    private val animatorHelper by lazy { BrowserTrackersAnimatorHelper() }
-    private val animatorHelper2 by lazy { BrowserLottieTrackersAnimatorHelper() }
+    private val animatorHelper by lazy { BrowserLottieTrackersAnimatorHelper() }
 
     private val smoothProgressAnimator by lazy { SmoothProgressAnimator(pageLoadingIndicator) }
 
@@ -470,7 +469,6 @@ class BrowserTabFragment :
         decorator.decorateWithFeatures()
 
         animatorHelper.setListener(this)
-        animatorHelper2.setListener(this)
 
         if (savedInstanceState == null) {
             viewModel.onViewReady()
@@ -1849,7 +1847,6 @@ class BrowserTabFragment :
         dismissAppLinkSnackBar()
         pulseAnimation.stop()
         animatorHelper.removeListener()
-        animatorHelper2.removeListener()
         supervisorJob.cancel()
         popupMenu.dismiss()
         loginDetectionDialog?.dismiss()
@@ -2000,8 +1997,7 @@ class BrowserTabFragment :
 
     private fun finishTrackerAnimation() {
         Timber.i("Lottie: finishTrackerAnimation")
-        // animatorHelper.finishTrackerAnimation(omnibarViews(), animationContainer)
-        animatorHelper2.finishTrackerAnimation(omnibarViews(), animationContainer)
+        animatorHelper.finishTrackerAnimation(omnibarViews(), animationContainer)
     }
 
     private fun showHideTipsDialog(cta: Cta) {
@@ -2077,7 +2073,6 @@ class BrowserTabFragment :
 
     override fun onAnimationFinished() {
         Timber.i("Lottie: onAnimationFinished")
-        // viewModel.stopShowingEmptyGrade()
     }
 
     private fun showEmailTooltip(address: String) {
@@ -2363,8 +2358,6 @@ class BrowserTabFragment :
                         Timber.i("Shield: UNPROTECTED")
                     }
                     UNKNOWN -> {
-                        /*val res = if (appTheme.isLightModeEnabled()) raw.protected_shield else raw.dark_protected_shield
-                        shieldIcon.setAnimation(res)*/
                         Timber.i("Shield: UNKNOWN")
                     }
                     WARNING -> {
@@ -2486,8 +2479,7 @@ class BrowserTabFragment :
                     }
 
                     activity?.let { activity ->
-                        // animatorHelper.startTrackersAnimation(lastSeenCtaViewState?.cta, activity, animationContainer, omnibarViews(), events)
-                        animatorHelper2.startTrackersAnimation(
+                        animatorHelper.startTrackersAnimation(
                             lastSeenCtaViewState?.cta, activity,
                             shieldIcon, trackerAnimationView, omnibarViews(), events, appTheme
                         )
@@ -2497,8 +2489,7 @@ class BrowserTabFragment :
         }
 
         fun cancelTrackersAnimation() {
-            // animatorHelper.cancelAnimations(omnibarViews(), animationContainer)
-            animatorHelper2.cancelAnimations(omnibarViews(), animationContainer)
+            animatorHelper.cancelAnimations(omnibarViews(), animationContainer)
         }
 
         fun renderGlobalViewState(viewState: GlobalLayoutViewState) {

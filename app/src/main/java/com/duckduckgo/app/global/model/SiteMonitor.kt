@@ -25,6 +25,8 @@ import com.duckduckgo.app.global.model.Site.SiteGrades
 import com.duckduckgo.app.global.model.SiteFactory.SitePrivacyData
 import com.duckduckgo.app.privacy.db.UserWhitelistDao
 import com.duckduckgo.app.privacy.model.HttpsStatus
+import com.duckduckgo.app.privacy.model.PrivacyGrade
+import com.duckduckgo.app.privacy.model.PrivacyGrade.B
 import com.duckduckgo.app.privacy.model.PrivacyPractices
 import com.duckduckgo.app.privacy.model.PrivacyShield
 import com.duckduckgo.app.privacy.model.PrivacyShield.PROTECTED
@@ -127,9 +129,9 @@ class SiteMonitor(
         trackingEvents.add(event)
     }
 
-    // TODO: remove?
+    // TODO: remove when privacy dashboard is migrated
     override fun calculateGrades(): SiteGrades {
-        TODO()
+        return SiteGrades(PrivacyGrade.C, B)
     }
 
     override fun privacyProtection(): PrivacyShield {

@@ -1614,28 +1614,13 @@ class BrowserTabViewModel @Inject constructor(
     private fun onSiteChanged() {
         httpsUpgraded = false
         viewModelScope.launch {
-
-            /*val improvedGrade = withContext(dispatchers.io()) {
-                site?.calculateGrades()?.improvedGrade
-            }*/
-
             val privacyProtection: PrivacyShield = withContext(dispatchers.io()) {
                 site?.privacyProtection() ?: PrivacyShield.UNKNOWN
             }
             Timber.i("Shield: privacyProtection $privacyProtection")
-
             withContext(dispatchers.main()) {
                 siteLiveData.value = site
-                val isWhiteListed: Boolean = site?.domain?.let { isWhitelisted(it) } ?: false
-                if (!isWhiteListed) {
-                    Timber.i("Shield: !isWhiteListed")
-                    privacyGradeViewState.value = currentPrivacyGradeState().copy(privacyShield = privacyProtection)
-                } else {
-                    Timber.i("Shield: isWhiteListed")
-                    privacyGradeViewState.value = currentPrivacyGradeState().copy(privacyShield = UNPROTECTED)
-                }
             }
-
             withContext(dispatchers.io()) {
                 tabRepository.update(tabId, site)
             }
@@ -1664,7 +1649,6 @@ class BrowserTabViewModel @Inject constructor(
         hasFocus: Boolean,
         hasQueryChanged: Boolean
     ) {
-
         // determine if empty list to be shown, or existing search results
         val autoCompleteSearchResults = if (query.isBlank() || !hasFocus) {
             AutoCompleteResult(query, emptyList())
