@@ -437,7 +437,10 @@ class BrowserTabViewModel @Inject constructor(
         class ShowBackNavigationHistory(val history: List<NavigationHistoryEntry>) : Command()
         class NavigateToHistory(val historyStackIndex: Int) : Command()
         object EmailSignEvent : Command()
-        class ShowSitePermissionsDialog(val permissionsToRequest: Array<String>) : Command()
+        class ShowSitePermissionsDialog(
+            val permissionsToRequest: Array<String>,
+            val request: PermissionRequest
+        ) : Command()
     }
 
     val autoCompleteViewState: MutableLiveData<AutoCompleteViewState> = MutableLiveData()
@@ -1385,7 +1388,7 @@ class BrowserTabViewModel @Inject constructor(
     override fun onSitePermissionRequested(request: PermissionRequest) {
         val permissionsToRequest = sitePermissionsManager.getPermissionsAllowedToAsk(request)
         if (permissionsToRequest.isNotEmpty()) {
-            command.value = ShowSitePermissionsDialog(permissionsToRequest)
+            command.value = ShowSitePermissionsDialog(permissionsToRequest, request)
         }
     }
 
