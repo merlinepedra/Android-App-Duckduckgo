@@ -7,6 +7,6 @@
   },
   "dependencies": {
     "@duckduckgo/autofill": "github:duckduckgo/duckduckgo-autofill#4.7.0",
-    "@duckduckgo/privacy_dashboard": "github:more-duckduckgo-org/duckduckgo-privacy-dashboard#90a191b462c6509ffb968577c54365e4897246b2"
+    "@duckduckgo/privacy_dashboard": "github:more-duckduckgo-org/duckduckgo-privacy-dashboard#885fd66743a6638c98e59baa9c2dd1b12079fe17"
   }
 }
